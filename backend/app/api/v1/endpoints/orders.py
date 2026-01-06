@@ -7,7 +7,7 @@ from math import ceil
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status, UploadFile, File
 from sqlalchemy import func, select
 
 from app.core.dependencies import CurrentActiveUser, DBSession
@@ -250,6 +250,73 @@ async def cancel_order(
         )
     
     order.status = OrderStatus.CANCELLED.value
+    await db.flush()
+    await db.refresh(order)
+    
+    return OrderResponse.model_validate(order)
+
+
+@router.post("/{order_id}/upload", response_model=OrderResponse)
+async def upload_payment_screenshot(
+    order_id: UUID,
+    current_user: CurrentActiveUser,
+    db: DBSession,
+    screenshot: UploadFile = File(...),
+):
+    """
+    Upload payment screenshot for manual verification.
+    
+    - **screenshot**: Image file (JPEG, PNG)
+    """
+    import os
+    import uuid as uuid_lib
+    from pathlib import Path
+    
+    # Get order
+    result = await db.execute(
+        select(Order).where(
+            Order.id == order_id,
+            Order.user_id == current_user.id,
+        )
+    )
+    order = result.scalar_one_or_none()
+    
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found",
+        )
+    
+    if order.status != OrderStatus.PENDING.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Can only upload screenshot for pending orders",
+        )
+    
+    # Validate file type
+    allowed_types = ["image/jpeg", "image/png", "image/jpg"]
+    if screenshot.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file type. Only JPEG and PNG allowed.",
+        )
+    
+    # Save file
+    upload_dir = Path("static/payment_screenshots")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    
+    file_ext = screenshot.filename.split(".")[-1] if screenshot.filename else "jpg"
+    file_name = f"{order_id}_{uuid_lib.uuid4().hex[:8]}.{file_ext}"
+    file_path = upload_dir / file_name
+    
+    content = await screenshot.read()
+    with open(file_path, "wb") as f:
+        f.write(content)
+    
+    # Update order
+    order.screenshot_url = f"/static/payment_screenshots/{file_name}"
+    order.status = OrderStatus.PROCESSING.value
+    
     await db.flush()
     await db.refresh(order)
     

@@ -74,10 +74,10 @@ export const authApi = {
 };
 
 export const videoApi = {
-  create: (data: { url: string; voice: string; target_language: string }) =>
+  create: (data: { source_url: string; voice_type?: string; output_language?: string }) =>
     api.post('/videos', data),
-  list: (page: number = 1, perPage: number = 10) =>
-    api.get('/videos', { params: { page, per_page: perPage } }),
+  list: (page: number = 1, pageSize: number = 10) =>
+    api.get('/videos', { params: { page, page_size: pageSize } }),
   get: (id: string) => api.get(`/videos/${id}`),
   delete: (id: string) => api.delete(`/videos/${id}`),
 };

@@ -20,24 +20,16 @@ from app.core.dependencies import DBSession
 from app.core.security import (
     create_access_token,
     create_refresh_token,
-    get_password_hash,
-    verify_password,
     verify_token,
-    generate_password_reset_token,
-    verify_password_reset_token,
 )
 from app.models.user import User
 from app.models.device import DeviceFingerprint, IPSignupLog
 from app.services.ip_service import ip_service
 from app.services.rate_limit_service import rate_limit_service
 from app.schemas.user import (
-    UserCreate,
-    UserLogin,
     UserResponse,
     Token,
     TokenRefresh,
-    PasswordReset,
-    PasswordResetConfirm,
 )
 
 
@@ -325,93 +317,20 @@ async def google_auth(request: Request, body: GoogleAuthRequest, db: DBSession):
     )
 
 
-# ============ Legacy Endpoints (Keep for compatibility) ============
+# ============ Logout Endpoint ============
 
-
-@router.post("/signup", response_model=Token, status_code=status.HTTP_201_CREATED)
-async def signup(user_data: UserCreate, db: DBSession):
+@router.post("/logout", status_code=status.HTTP_200_OK)
+async def logout():
     """
-    Create a new user account.
+    Logout user.
     
-    - **email**: Valid email address (unique)
-    - **name**: User's display name
-    - **password**: Strong password (min 8 chars, 1 uppercase, 1 lowercase, 1 digit)
+    Note: JWT tokens are stateless, so this endpoint is primarily for
+    frontend to clear tokens. In future, could add token blacklisting.
     """
-    # Check if email already exists
-    result = await db.execute(
-        select(User).where(User.email == user_data.email.lower())
-    )
-    if result.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
-        )
-    
-    # Create user
-    user = User(
-        email=user_data.email.lower(),
-        name=user_data.name,
-        hashed_password=get_password_hash(user_data.password),
-        credit_balance=3,  # Welcome bonus credits
-    )
-    
-    db.add(user)
-    await db.flush()
-    await db.refresh(user)
-    
-    # Generate tokens
-    access_token = create_access_token(subject=str(user.id))
-    refresh_token = create_refresh_token(subject=str(user.id))
-    
-    return Token(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        user=UserResponse.model_validate(user),
-    )
+    return {"message": "Logged out successfully"}
 
 
-@router.post("/login", response_model=Token)
-async def login(credentials: UserLogin, db: DBSession):
-    """
-    Authenticate user and return tokens.
-    
-    - **email**: Registered email address
-    - **password**: User's password
-    """
-    # Find user
-    result = await db.execute(
-        select(User).where(User.email == credentials.email.lower())
-    )
-    user = result.scalar_one_or_none()
-    
-    if not user or not verify_password(credentials.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-        )
-    
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is deactivated",
-        )
-    
-    # Update last login
-    user.last_login_at = datetime.now(timezone.utc)
-    await db.flush()
-    
-    # Generate tokens
-    access_token = create_access_token(subject=str(user.id))
-    refresh_token = create_refresh_token(subject=str(user.id))
-    
-    return Token(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        user=UserResponse.model_validate(user),
-    )
-
+# ============ Token Refresh ============
 
 @router.post("/refresh", response_model=Token)
 async def refresh_token(token_data: TokenRefresh, db: DBSession):
@@ -457,63 +376,3 @@ async def refresh_token(token_data: TokenRefresh, db: DBSession):
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         user=UserResponse.model_validate(user),
     )
-
-
-@router.post("/forgot-password", status_code=status.HTTP_200_OK)
-async def forgot_password(data: PasswordReset, db: DBSession):
-    """
-    Request password reset email.
-    
-    - **email**: Registered email address
-    """
-    # Find user
-    result = await db.execute(
-        select(User).where(User.email == data.email.lower())
-    )
-    user = result.scalar_one_or_none()
-    
-    # Always return success to prevent email enumeration
-    if user:
-        # Generate reset token
-        reset_token = generate_password_reset_token(user.email)
-        
-        # TODO: Send email with reset token
-        # await send_password_reset_email(user.email, reset_token)
-    
-    return {"message": "If the email exists, a password reset link will be sent"}
-
-
-@router.post("/reset-password", status_code=status.HTTP_200_OK)
-async def reset_password(data: PasswordResetConfirm, db: DBSession):
-    """
-    Reset password using reset token.
-    
-    - **token**: Password reset token from email
-    - **new_password**: New strong password
-    """
-    # Verify token
-    email = verify_password_reset_token(data.token)
-    
-    if not email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired reset token",
-        )
-    
-    # Find user
-    result = await db.execute(
-        select(User).where(User.email == email.lower())
-    )
-    user = result.scalar_one_or_none()
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User not found",
-        )
-    
-    # Update password
-    user.hashed_password = get_password_hash(data.new_password)
-    await db.flush()
-    
-    return {"message": "Password has been reset successfully"}

@@ -212,3 +212,21 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 - **FREE services used**: Edge-TTS, ip-api.com, FingerprintJS
 - **Credit system ready** - 3 trial credits for new users
 - **Admin panel ready** - User/order management
+
+---
+
+## 📋 Recent Changes (January 6, 2026)
+
+### Code Cleanup
+- ✅ Removed legacy email/password auth endpoints (`/signup`, `/login`, `/forgot-password`, `/reset-password`)
+- ✅ Added `/auth/logout` endpoint
+- ✅ Added `/orders/{id}/upload` screenshot endpoint
+- ✅ Fixed API contract mismatches (frontend ↔ backend)
+- ✅ Cleaned up unused imports and code
+- ✅ Deleted outdated `DEVELOPMENT_PLAN.md`
+
+### API Contract Fixes
+- `videoApi.create()`: Fixed body fields (`url` → `source_url`, `voice` → `voice_type`, `target_language` → `output_language`)
+- `videoApi.list()`: Fixed query param (`per_page` → `page_size`)
+- `authApi.logout()`: Backend endpoint now exists
+- `orderApi.uploadScreenshot()`: Backend endpoint now exists

@@ -68,6 +68,9 @@ class Order(Base):
     promo_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
     discount_percent: Mapped[int] = mapped_column(Integer, default=0)
     
+    # Screenshot for manual payment verification
+    screenshot_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    
     # Notes
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     

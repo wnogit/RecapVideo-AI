@@ -38,6 +38,9 @@ class OrderResponse(BaseModel):
     promo_code: Optional[str] = None
     discount_percent: int
     
+    # Screenshot for manual verification
+    screenshot_url: Optional[str] = None
+    
     # Timestamps
     created_at: datetime
     updated_at: datetime
