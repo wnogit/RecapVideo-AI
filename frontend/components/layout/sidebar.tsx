@@ -1,0 +1,133 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth-store';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Film,
+  Home,
+  Video,
+  CreditCard,
+  ShoppingCart,
+  User,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+  Coins,
+} from 'lucide-react';
+import { useState } from 'react';
+
+const navigation = [
+  { name: 'Dashboard', href: '/', icon: Home },
+  { name: 'My Videos', href: '/videos', icon: Video },
+  { name: 'Credits', href: '/credits', icon: Coins },
+  { name: 'Buy Credits', href: '/buy', icon: ShoppingCart },
+  { name: 'Profile', href: '/profile', icon: User },
+];
+
+export function Sidebar() {
+  const pathname = usePathname();
+  const { user, logout } = useAuthStore();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const NavContent = () => (
+    <>
+      {/* Logo */}
+      <div className="flex h-16 items-center px-6 border-b">
+        <Link href="/" className="flex items-center space-x-2">
+          <Film className="h-6 w-6 text-primary" />
+          <span className="text-xl font-bold">RecapVideo.AI</span>
+        </Link>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 px-4 py-4 space-y-1">
+        {navigation.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                isActive
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              )}
+              onClick={() => setMobileOpen(false)}
+            >
+              <item.icon className="h-5 w-5" />
+              {item.name}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* User section */}
+      <div className="border-t p-4">
+        <div className="flex items-center gap-3 mb-4">
+          <Avatar>
+            <AvatarImage src={user?.avatar_url} />
+            <AvatarFallback>
+              {user?.name?.charAt(0).toUpperCase() || 'U'}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{user?.name}</p>
+            <p className="text-xs text-muted-foreground truncate">
+              {user?.credit_balance || 0} credits
+            </p>
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          className="w-full justify-start"
+          onClick={() => {
+            logout();
+            setMobileOpen(false);
+          }}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Sign Out
+        </Button>
+      </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile menu button */}
+      <button
+        className="fixed top-4 left-4 z-50 lg:hidden p-2 rounded-md bg-background border"
+        onClick={() => setMobileOpen(!mobileOpen)}
+      >
+        {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+      </button>
+
+      {/* Mobile sidebar */}
+      <div
+        className={cn(
+          'fixed inset-0 z-40 lg:hidden',
+          mobileOpen ? 'block' : 'hidden'
+        )}
+      >
+        <div
+          className="fixed inset-0 bg-black/50"
+          onClick={() => setMobileOpen(false)}
+        />
+        <div className="fixed inset-y-0 left-0 w-64 bg-background border-r flex flex-col">
+          <NavContent />
+        </div>
+      </div>
+
+      {/* Desktop sidebar */}
+      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 border-r bg-background">
+        <NavContent />
+      </div>
+    </>
+  );
+}
