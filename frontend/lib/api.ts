@@ -65,12 +65,8 @@ api.interceptors.response.use(
 
 export default api;
 
-// API endpoints
+// API endpoints (Google OAuth only - no email/password)
 export const authApi = {
-  login: (data: { email: string; password: string }) =>
-    api.post('/auth/login', data),
-  signup: (data: { email: string; password: string; username: string }) =>
-    api.post('/auth/signup', data),
   logout: () => api.post('/auth/logout'),
   me: () => api.get('/users/me'),
   refresh: (refreshToken: string) =>

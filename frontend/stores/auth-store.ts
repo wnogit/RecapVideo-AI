@@ -25,9 +25,7 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   
-  // Actions
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string) => Promise<void>;
+  // Actions (Google OAuth only - no email/password)
   setAuth: (access_token: string, refresh_token: string, user: User) => void;
   logout: () => void;
   fetchUser: () => Promise<void>;
@@ -43,47 +41,7 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       error: null,
 
-      login: async (email: string, password: string) => {
-        set({ isLoading: true, error: null });
-        try {
-          const response = await authApi.login({ email, password });
-          const { access_token, refresh_token, user } = response.data;
-          
-          localStorage.setItem('access_token', access_token);
-          localStorage.setItem('refresh_token', refresh_token);
-          
-          set({
-            user,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-        } catch (error: any) {
-          const message = error.response?.data?.detail || 'Login failed';
-          set({ error: message, isLoading: false });
-          throw new Error(message);
-        }
-      },
-
-      signup: async (email: string, password: string, name: string) => {
-        set({ isLoading: true, error: null });
-        try {
-          const response = await authApi.signup({ email, password, username: name });
-          const { access_token, refresh_token, user } = response.data;
-          
-          localStorage.setItem('access_token', access_token);
-          localStorage.setItem('refresh_token', refresh_token);
-          
-          set({
-            user,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-        } catch (error: any) {
-          const message = error.response?.data?.detail || 'Signup failed';
-          set({ error: message, isLoading: false });
-          throw new Error(message);
-        }
-      },
+      // Google OAuth handles login - setAuth is called after OAuth callback
 
       logout: () => {
         localStorage.removeItem('access_token');
