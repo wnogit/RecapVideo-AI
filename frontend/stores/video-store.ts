@@ -127,9 +127,9 @@ export const useVideoStore = create<VideoState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await videoApi.create({
-        url: data.source_url,
-        voice: data.voice_type || 'my-MM-NilarNeural',
-        target_language: data.output_language || 'my',
+        source_url: data.source_url,
+        voice_type: data.voice_type,
+        output_language: data.output_language,
       });
       
       const video: Video = response.data;

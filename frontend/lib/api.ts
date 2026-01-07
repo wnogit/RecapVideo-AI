@@ -83,7 +83,7 @@ export const videoApi = {
 };
 
 export const creditApi = {
-  balance: () => api.get('/credits'),
+  balance: () => api.get('/credits/balance'),
   transactions: (page: number = 1) =>
     api.get('/credits/transactions', { params: { page } }),
   packages: () => api.get('/credits/packages'),
