@@ -22,7 +22,7 @@ import {
 import { useState } from 'react';
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: Home },
+  { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'My Videos', href: '/videos', icon: Video },
   { name: 'Credits', href: '/credits', icon: Coins },
   { name: 'Buy Credits', href: '/buy', icon: ShoppingCart },
@@ -38,7 +38,7 @@ export function Sidebar() {
     <>
       {/* Logo */}
       <div className="flex h-16 items-center px-6 border-b">
-        <Link href="/" className="flex items-center space-x-2">
+        <Link href="/dashboard" className="flex items-center space-x-2">
           <Film className="h-6 w-6 text-primary" />
           <span className="text-xl font-bold">RecapVideo.AI</span>
         </Link>

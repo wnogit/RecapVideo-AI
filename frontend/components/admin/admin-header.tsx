@@ -94,7 +94,7 @@ export function AdminHeader() {
               <a href="/admin/settings">Settings</a>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <a href="/">Back to App</a>
+              <a href="/dashboard">Back to App</a>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

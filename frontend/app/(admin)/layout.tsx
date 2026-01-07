@@ -22,7 +22,7 @@ export default function AdminLayout({
     if (!isLoading && !isAuthenticated) {
       router.push("/login?redirect=/admin")
     } else if (!isLoading && user && !user.is_admin) {
-      router.push("/")
+      router.push("/dashboard")
     }
   }, [isLoading, isAuthenticated, user, router])
 

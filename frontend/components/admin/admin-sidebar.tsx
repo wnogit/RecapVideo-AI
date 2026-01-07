@@ -106,7 +106,7 @@ export function AdminSidebar() {
 
       {/* Footer */}
       <div className="border-t p-4 space-y-2">
-        <Link href="/">
+        <Link href="/dashboard">
           <Button variant="outline" className="w-full justify-start gap-2">
             <ChevronLeft className="h-4 w-4" />
             Back to App

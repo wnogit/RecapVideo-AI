@@ -32,7 +32,7 @@ export function AuthGuard({ children, requireAdmin = false }: AuthGuardProps) {
   useEffect(() => {
     if (!isLoading && user) {
       if (requireAdmin && !user.is_admin) {
-        router.push('/');
+        router.push('/dashboard');
       }
     }
   }, [user, isLoading, requireAdmin, router]);

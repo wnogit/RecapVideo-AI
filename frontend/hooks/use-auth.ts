@@ -32,12 +32,12 @@ export function useAuth() {
 
   const handleLogin = async (email: string, password: string) => {
     await login(email, password);
-    router.push('/');
+    router.push('/dashboard');
   };
 
   const handleSignup = async (email: string, password: string, name: string) => {
     await signup(email, password, name);
-    router.push('/');
+    router.push('/dashboard');
   };
 
   const handleLogout = () => {
@@ -85,7 +85,7 @@ export function useRequireAuth(redirectTo: string = '/login') {
 /**
  * useRequireAdmin - Redirect if not admin
  */
-export function useRequireAdmin(redirectTo: string = '/') {
+export function useRequireAdmin(redirectTo: string = '/dashboard') {
   const { user, isLoading } = useRequireAuth('/login');
   const router = useRouter();
 
