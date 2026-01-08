@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -23,6 +23,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { authApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { getDeviceId } from '@/lib/fingerprint';
+import { siteConfig } from '@/lib/config';
 import { GoogleIcon } from '@/components/icons/google-icon';
 
 type AuthMode = 'login' | 'signup';
@@ -32,9 +33,12 @@ const ALLOWED_DOMAINS = ['gmail.com', 'yahoo.com', 'yahoo.co.uk', 'outlook.com',
 
 export function EmailAuthForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setAuth } = useAuthStore();
   
-  const [mode, setMode] = useState<AuthMode>('login');
+  // Check for mode in URL query params (e.g., /login?mode=signup)
+  const urlMode = searchParams.get('mode') as AuthMode | null;
+  const [mode, setMode] = useState<AuthMode>(urlMode === 'signup' ? 'signup' : 'login');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -51,6 +55,23 @@ export function EmailAuthForm() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [shake, setShake] = useState(false);
+  const { isAuthenticated, checkAuth } = useAuthStore();
+
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    const checkAndRedirect = async () => {
+      try {
+        await checkAuth();
+        // If we get here without error, user is authenticated
+        if (useAuthStore.getState().isAuthenticated) {
+          router.push('/dashboard');
+        }
+      } catch (e) {
+        // Not authenticated, stay on login page
+      }
+    };
+    checkAndRedirect();
+  }, [router, checkAuth]);
 
   useEffect(() => {
     loadDeviceId();
@@ -185,16 +206,16 @@ export function EmailAuthForm() {
       </div>
 
       {/* Back to Website Button */}
-      <Link 
-        href="/" 
+      <a 
+        href={siteConfig.landingUrl} 
         className="absolute left-6 top-6 md:left-8 md:top-8 flex items-center text-sm text-gray-400 hover:text-white transition-colors z-20"
       >
         <ChevronLeft className="w-4 h-4 mr-1" />
         Back to website
-      </Link>
+      </a>
 
       {/* Logo - Top Center */}
-      <Link href="/" className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-20">
+      <a href={siteConfig.landingUrl} className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-20">
         <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center">
           <Sparkles className="w-5 h-5 text-white" />
         </div>
@@ -214,7 +235,7 @@ export function EmailAuthForm() {
           ease: "easeOut",
           x: { duration: 0.4 }
         }}
-        className="w-full max-w-md mx-4 p-8 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl relative z-10"
+        className="w-full max-w-md mx-4 p-8 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl relative z-10 mt-16 sm:mt-20"
       >
         {/* Title */}
         <div className="text-center mb-8">
