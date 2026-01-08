@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/stores/auth-store"
 import { AdminSidebar, AdminHeader } from "@/components/admin"
@@ -13,20 +13,29 @@ export default function AdminLayout({
 }) {
   const router = useRouter()
   const { user, isAuthenticated, isLoading, checkAuth } = useAuthStore()
+  const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
-    checkAuth()
+    const verifyAuth = async () => {
+      await checkAuth()
+      setAuthChecked(true)
+    }
+    verifyAuth()
   }, [checkAuth])
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push("/login?redirect=/admin")
-    } else if (!isLoading && user && !user.is_admin) {
-      router.push("/dashboard")
+    // Only redirect after auth check is complete
+    if (authChecked && !isLoading) {
+      if (!isAuthenticated) {
+        router.push("/login?redirect=/admin")
+      } else if (user && !user.is_admin) {
+        router.push("/dashboard")
+      }
     }
-  }, [isLoading, isAuthenticated, user, router])
+  }, [authChecked, isLoading, isAuthenticated, user, router])
 
-  if (isLoading) {
+  // Show loading while auth is being verified
+  if (!authChecked || isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
