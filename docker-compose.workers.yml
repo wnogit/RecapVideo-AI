@@ -71,7 +71,7 @@ services:
       dockerfile: ../docker/Dockerfile.backend
     container_name: recapvideo-celery-beat
     restart: unless-stopped
-    command: celery -A app.core.celery_app beat --loglevel=info
+    command: celery -A app.core.celery_app beat --loglevel=info --schedule=/tmp/celerybeat-schedule
     environment:
       - ENVIRONMENT=production
       - REDIS_URL=redis://redis:6379/0
