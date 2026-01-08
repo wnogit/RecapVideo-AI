@@ -2,7 +2,7 @@
 Application Configuration using Pydantic Settings
 """
 from typing import List
-from pydantic import field_validator
+from pydantic import field_validator, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -38,15 +38,14 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
-    # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "https://studio.recapvideo.ai"]
+    # CORS - store as string to avoid pydantic_settings JSON parsing issues
+    CORS_ORIGINS_STR: str = "http://localhost:3000,https://studio.recapvideo.ai"
     
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, v):
-        if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",")]
-        return v
+    @computed_field
+    @property
+    def CORS_ORIGINS(self) -> List[str]:
+        """Parse CORS origins from comma-separated string."""
+        return [origin.strip() for origin in self.CORS_ORIGINS_STR.split(",")]
     
     # Cloudflare R2 Storage
     R2_ACCOUNT_ID: str = ""
