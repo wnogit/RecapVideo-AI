@@ -78,6 +78,11 @@ def process_video_task(self, video_id: str):
         except Exception as db_error:
             logger.error(f"Failed to update video status: {db_error}")
         
+        # Check if this is the final retry
+        if self.request.retries >= self.max_retries:
+            logger.warning(f"Max retries reached for video {video_id}, refunding credits")
+            run_async(refund_credits(video_id))
+        
         # Re-raise for Celery retry mechanism
         raise
 
