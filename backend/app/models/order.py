@@ -25,6 +25,7 @@ class OrderStatus(str, Enum):
     FAILED = "failed"
     REFUNDED = "refunded"
     CANCELLED = "cancelled"
+    REJECTED = "rejected"
 
 
 class Order(Base):
@@ -73,6 +74,10 @@ class Order(Base):
     
     # Notes
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    admin_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    
+    # Telegram message ID for updating notification
+    telegram_message_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(

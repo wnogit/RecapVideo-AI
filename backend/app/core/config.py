@@ -75,6 +75,11 @@ class Settings(BaseSettings):
     PAYPAL_SECRET: str = ""
     PAYPAL_MODE: str = "sandbox"  # sandbox or live
     
+    # Telegram Bot (for order notifications)
+    TELEGRAM_BOT_TOKEN: str = ""
+    TELEGRAM_ADMIN_CHAT_ID: str = ""
+    TELEGRAM_WEBHOOK_SECRET: str = ""  # Optional secret for webhook validation
+    
     # TTS Configuration
     EDGE_TTS_VOICE_FEMALE: str = "my-MM-NilarNeural"  # Burmese female
     EDGE_TTS_VOICE_MALE: str = "my-MM-ThihaNeural"    # Burmese male

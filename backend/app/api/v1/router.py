@@ -3,7 +3,7 @@ API v1 Router - Combines all endpoint routers
 """
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, users, videos, credits, orders, health, admin_api_keys
+from app.api.v1.endpoints import auth, users, videos, credits, orders, health, admin_api_keys, telegram
 
 
 api_router = APIRouter()
@@ -43,6 +43,12 @@ api_router.include_router(
     orders.router,
     prefix="/orders",
     tags=["Orders"],
+)
+
+api_router.include_router(
+    telegram.router,
+    prefix="/telegram",
+    tags=["Telegram"],
 )
 
 # Admin endpoints

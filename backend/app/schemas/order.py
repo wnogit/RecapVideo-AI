@@ -41,6 +41,10 @@ class OrderResponse(BaseModel):
     # Screenshot for manual verification
     screenshot_url: Optional[str] = None
     
+    # Notes
+    notes: Optional[str] = None
+    admin_note: Optional[str] = None
+    
     # Timestamps
     created_at: datetime
     updated_at: datetime

@@ -7,7 +7,7 @@ from math import ceil
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status, UploadFile, File
+from fastapi import APIRouter, HTTPException, Query, status, UploadFile, File, BackgroundTasks
 from sqlalchemy import func, select
 
 from app.core.dependencies import CurrentActiveUser, DBSession
@@ -19,6 +19,7 @@ from app.schemas.order import (
     OrderListResponse,
 )
 from app.schemas.credit import CREDIT_PACKAGES
+from app.services.telegram_service import telegram_service
 
 
 router = APIRouter()
@@ -261,6 +262,7 @@ async def upload_payment_screenshot(
     order_id: UUID,
     current_user: CurrentActiveUser,
     db: DBSession,
+    background_tasks: BackgroundTasks,
     screenshot: UploadFile = File(...),
 ):
     """
@@ -319,5 +321,34 @@ async def upload_payment_screenshot(
     
     await db.flush()
     await db.refresh(order)
+    
+    # Get package info for notification
+    package_name = f"{order.credits_amount} Credits"
+    for pkg in CREDIT_PACKAGES:
+        if pkg.credits == order.credits_amount:
+            package_name = pkg.name
+            break
+    
+    # Send Telegram notification in background
+    async def send_telegram_notification():
+        message_id = await telegram_service.send_order_notification(
+            order_id=order.id,
+            username=current_user.full_name or current_user.email.split("@")[0],
+            email=current_user.email,
+            package_name=package_name,
+            credits=order.credits_amount,
+            amount_usd=float(order.price_usd),
+            amount_mmk=float(order.price_mmk) if order.price_mmk else None,
+            payment_method=order.payment_method,
+            screenshot_url=order.screenshot_url,
+        )
+        
+        # Update order with telegram message ID for later updates
+        if message_id:
+            async with db.begin_nested():
+                order.telegram_message_id = message_id
+                await db.commit()
+    
+    background_tasks.add_task(send_telegram_notification)
     
     return OrderResponse.model_validate(order)
