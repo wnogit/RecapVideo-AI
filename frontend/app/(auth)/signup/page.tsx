@@ -1,7 +1,11 @@
-import { redirect } from 'next/navigation';
+import { EmailAuthForm } from '@/components/auth/email-auth-form';
+import { Metadata } from 'next';
 
-// Redirect /signup to /login?mode=signup
-// The EmailAuthForm component handles the mode parameter
+export const metadata: Metadata = {
+  title: 'Sign Up - RecapVideo.AI',
+  description: 'Create your RecapVideo.AI account',
+};
+
 export default function SignupPage() {
-  redirect('/login?mode=signup');
+  return <EmailAuthForm initialMode="signup" />;
 }

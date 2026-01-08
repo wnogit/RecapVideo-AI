@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -28,17 +28,18 @@ import { GoogleIcon } from '@/components/icons/google-icon';
 
 type AuthMode = 'login' | 'signup';
 
+interface EmailAuthFormProps {
+  initialMode?: AuthMode;
+}
+
 // Allowed email domains
 const ALLOWED_DOMAINS = ['gmail.com', 'yahoo.com', 'yahoo.co.uk', 'outlook.com', 'hotmail.com', 'live.com'];
 
-export function EmailAuthForm() {
+export function EmailAuthForm({ initialMode = 'login' }: EmailAuthFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { setAuth } = useAuthStore();
   
-  // Check for mode in URL query params (e.g., /login?mode=signup)
-  const urlMode = searchParams.get('mode') as AuthMode | null;
-  const [mode, setMode] = useState<AuthMode>(urlMode === 'signup' ? 'signup' : 'login');
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -425,32 +426,22 @@ export function EmailAuthForm() {
           {mode === 'login' ? (
             <>
               Don't have an account?{' '}
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('signup');
-                  setError(null);
-                  setSuccess(null);
-                }}
+              <Link
+                href="/signup"
                 className="text-violet-400 hover:text-violet-300 font-medium transition-colors"
               >
                 Sign up
-              </button>
+              </Link>
             </>
           ) : (
             <>
               Already have an account?{' '}
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('login');
-                  setError(null);
-                  setSuccess(null);
-                }}
+              <Link
+                href="/login"
                 className="text-violet-400 hover:text-violet-300 font-medium transition-colors"
               >
                 Sign in
-              </button>
+              </Link>
             </>
           )}
         </p>
