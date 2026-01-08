@@ -5,7 +5,7 @@ This module handles the complete video generation workflow:
 1. Extract transcript from YouTube video
 2. Generate recap script using Gemini
 3. Generate audio using Edge-TTS
-4. Render final video with ffmpeg
+4. Render final video with FFmpeg (copyright bypass, subtitles, logo, outro)
 5. Upload to Cloudflare R2
 
 Currently runs inline (single VPS). Foundation ready for Celery workers.
@@ -23,13 +23,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import async_session_maker
-from app.models.video import Video, VideoStatus
+from app.models.video import Video, VideoStatus, DEFAULT_VIDEO_OPTIONS
 from app.models.credit import CreditTransaction, TransactionType
 from app.services.transcript_service import transcript_service
 from app.services.script_service import script_service
 from app.services.tts_service import edge_tts_service
 from app.services.storage_service import storage_service
 from app.services.email_service import email_service
+from app.services.video_processing_service import (
+    VideoProcessingService,
+    VideoProcessingOptions,
+    CopyrightOptions,
+    SubtitleOptions,
+    LogoOptions,
+    OutroOptions,
+)
 
 
 class VideoProcessor:
@@ -39,6 +47,50 @@ class VideoProcessor:
         """Initialize video processor."""
         self.temp_dir = Path(settings.TEMP_FILES_DIR)
         self.temp_dir.mkdir(parents=True, exist_ok=True)
+        self.video_processing = VideoProcessingService()
+    
+    def _parse_options(self, options_dict: dict | None) -> VideoProcessingOptions:
+        """Parse options dict to VideoProcessingOptions."""
+        if not options_dict:
+            options_dict = DEFAULT_VIDEO_OPTIONS.copy()
+        
+        copyright_opts = options_dict.get("copyright", {})
+        subtitle_opts = options_dict.get("subtitles", {})
+        logo_opts = options_dict.get("logo", {})
+        outro_opts = options_dict.get("outro", {})
+        
+        return VideoProcessingOptions(
+            aspect_ratio=options_dict.get("aspect_ratio", "9:16"),
+            copyright=CopyrightOptions(
+                color_adjust=copyright_opts.get("color_adjust", True),
+                horizontal_flip=copyright_opts.get("horizontal_flip", True),
+                slight_zoom=copyright_opts.get("slight_zoom", False),
+                audio_pitch_shift=copyright_opts.get("audio_pitch_shift", True),
+            ),
+            subtitles=SubtitleOptions(
+                enabled=subtitle_opts.get("enabled", True),
+                font=subtitle_opts.get("font", "Pyidaungsu"),
+                size=subtitle_opts.get("size", "large"),
+                position=subtitle_opts.get("position", "bottom"),
+                background=subtitle_opts.get("background", "semi"),
+                color=subtitle_opts.get("color", "#FFFFFF"),
+                word_highlight=subtitle_opts.get("word_highlight", True),
+            ),
+            logo=LogoOptions(
+                enabled=logo_opts.get("enabled", False),
+                image_path=logo_opts.get("image_url"),  # Will download if needed
+                position=logo_opts.get("position", "top-right"),
+                size=logo_opts.get("size", "medium"),
+                opacity=logo_opts.get("opacity", 70),
+            ),
+            outro=OutroOptions(
+                enabled=outro_opts.get("enabled", False),
+                platform=outro_opts.get("platform", "youtube"),
+                channel_name=outro_opts.get("channel_name", ""),
+                logo_path=logo_opts.get("image_url") if outro_opts.get("use_logo") else None,
+                duration=outro_opts.get("duration", 5),
+            ),
+        )
     
     async def process_video(self, video_id: str) -> bool:
         """
@@ -68,6 +120,9 @@ class VideoProcessor:
                 
                 logger.info(f"Starting processing for video: {video_id}")
                 
+                # Parse options
+                processing_options = self._parse_options(video.options)
+                
                 # Update status
                 video.started_at = datetime.now(timezone.utc)
                 await self._update_status(
@@ -82,6 +137,7 @@ class VideoProcessor:
                 video.source_title = transcript_data.get("title", video.source_url)
                 video.transcript = transcript_data["text"]
                 video.source_duration_seconds = transcript_data.get("duration")
+                video.source_thumbnail = transcript_data.get("thumbnail")
                 
                 await self._update_status(
                     db, video,
@@ -111,14 +167,33 @@ class VideoProcessor:
                     70
                 )
                 
-                # Step 4: Render video (placeholder - actual implementation would use ffmpeg)
-                video_path = await self._render_video(video, audio_path, subtitle_path)
+                # Step 4: Download source video and render with FFmpeg
+                source_video_path = await self._download_source_video(video)
+                
+                # Process video with all effects
+                async def progress_cb(percent, message):
+                    # Map 0-100 to 70-90 (rendering phase)
+                    mapped_percent = 70 + int(percent * 0.2)
+                    await self._update_status(
+                        db, video,
+                        VideoStatus.RENDERING_VIDEO,
+                        message,
+                        mapped_percent
+                    )
+                
+                video_path = await self.video_processing.process_video(
+                    source_video_path=source_video_path,
+                    audio_path=audio_path,
+                    subtitle_path=subtitle_path if processing_options.subtitles.enabled else None,
+                    options=processing_options,
+                    progress_callback=progress_cb,
+                )
                 
                 await self._update_status(
                     db, video,
                     VideoStatus.UPLOADING,
                     "Uploading to cloud storage...",
-                    90
+                    92
                 )
                 
                 # Step 5: Upload to R2
@@ -142,7 +217,11 @@ class VideoProcessor:
                 logger.info(f"Video processing completed: {video_id}")
                 
                 # Cleanup temp files
-                self._cleanup_temp_files([video_path, audio_path, subtitle_path])
+                self._cleanup_temp_files([video_path, audio_path, subtitle_path, source_video_path])
+                
+                # Clean up work directory
+                work_dir = Path(video_path).parent
+                self.video_processing.cleanup_work_dir(str(work_dir))
                 
                 # Send notification email (async, don't wait)
                 asyncio.create_task(self._send_completion_email(video))
@@ -206,39 +285,40 @@ class VideoProcessor:
         
         return audio_path, subtitle_path
     
-    async def _render_video(
-        self,
-        video: Video,
-        audio_path: str,
-        subtitle_path: str,
-    ) -> str:
+    async def _download_source_video(self, video: Video) -> str:
         """
-        Render final video with ffmpeg.
+        Download source video from YouTube.
         
-        This is a placeholder - actual implementation would:
-        1. Download source video or use placeholder background
-        2. Overlay subtitles
-        3. Replace audio with TTS audio
-        4. Export final video
+        Uses yt-dlp to download the video for processing.
         """
-        logger.info(f"Rendering video: {video.id}")
+        logger.info(f"Downloading source video: {video.youtube_id}")
         
-        # For now, just return the audio as the "video"
-        # TODO: Implement actual video rendering with ffmpeg
+        output_path = str(self.temp_dir / f"{video.id}_source.mp4")
         
-        output_path = str(self.temp_dir / f"{video.id}_output.mp4")
+        # Use yt-dlp to download video
+        cmd = [
+            "yt-dlp",
+            "-f", "best[height<=1080]",
+            "-o", output_path,
+            "--no-playlist",
+            "--no-warnings",
+            f"https://www.youtube.com/watch?v={video.youtube_id}",
+        ]
         
-        # Placeholder: In production, this would use ffmpeg to create actual video
-        # For now, we'll create a simple video from the audio
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
         
-        # Example ffmpeg command (would be run with subprocess):
-        # ffmpeg -f lavfi -i color=c=black:s=1920x1080:r=30 \
-        #        -i audio.mp3 -shortest -c:v libx264 -c:a aac output.mp4
+        stdout, stderr = await process.communicate()
         
-        # For now, just copy audio to output location
-        import shutil
-        shutil.copy(audio_path, output_path)
+        if process.returncode != 0:
+            error_msg = stderr.decode() if stderr else "Unknown error"
+            logger.error(f"yt-dlp failed: {error_msg}")
+            raise RuntimeError(f"Failed to download video: {error_msg}")
         
+        logger.info(f"Downloaded source video to: {output_path}")
         return output_path
     
     async def _upload_files(

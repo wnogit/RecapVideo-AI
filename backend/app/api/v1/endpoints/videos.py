@@ -1,6 +1,7 @@
 """
 Video Endpoints
 """
+import asyncio
 from math import ceil
 from typing import Optional
 from uuid import UUID
@@ -17,6 +18,7 @@ from app.schemas.video import (
     VideoListResponse,
 )
 from app.utils.youtube import validate_youtube_shorts_url
+from app.processing.video_processor import process_video_task
 
 
 router = APIRouter()
@@ -39,6 +41,7 @@ async def create_video(
     - **voice_type**: Voice for TTS (optional, defaults to Burmese female)
     - **output_language**: Output language code (optional, defaults to "my")
     - **output_resolution**: Output resolution (optional, defaults to "1080p")
+    - **options**: Video processing options (copyright, subtitles, logo, outro)
     
     Cost: 2 credits per video
     """
@@ -67,6 +70,9 @@ async def create_video(
             }
         )
     
+    # Convert options to dict for JSONB storage
+    options_dict = video_data.options.model_dump() if video_data.options else None
+    
     # Create video
     video = Video(
         user_id=current_user.id,
@@ -75,6 +81,7 @@ async def create_video(
         voice_type=video_data.voice_type,
         output_language=video_data.output_language,
         output_resolution=video_data.output_resolution,
+        options=options_dict,
         credits_used=CREDITS_PER_VIDEO,
     )
     
@@ -98,8 +105,8 @@ async def create_video(
     await db.flush()
     await db.refresh(video)
     
-    # TODO: Queue video processing task
-    # await queue_video_processing(video.id)
+    # Queue video processing (run in background)
+    asyncio.create_task(process_video_task(str(video.id)))
     
     return VideoResponse.model_validate(video)
 

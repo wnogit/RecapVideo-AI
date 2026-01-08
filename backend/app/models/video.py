@@ -4,10 +4,10 @@ Video Model
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -35,6 +35,41 @@ class VoiceType(str, Enum):
     MALE_BURMESE = "my-MM-ThihaNeural"
     FEMALE_ENGLISH = "en-US-JennyNeural"
     MALE_ENGLISH = "en-US-GuyNeural"
+
+
+# Default video options
+DEFAULT_VIDEO_OPTIONS = {
+    "aspect_ratio": "9:16",
+    "copyright": {
+        "color_adjust": True,
+        "horizontal_flip": True,
+        "slight_zoom": False,
+        "audio_pitch_shift": True,
+    },
+    "subtitles": {
+        "enabled": True,
+        "font": "Pyidaungsu",
+        "size": "large",
+        "position": "bottom",
+        "background": "semi",
+        "color": "#FFFFFF",
+        "word_highlight": True,
+    },
+    "logo": {
+        "enabled": False,
+        "image_url": None,
+        "position": "top-right",
+        "size": "medium",
+        "opacity": 70,
+    },
+    "outro": {
+        "enabled": False,
+        "platform": "youtube",
+        "channel_name": "",
+        "use_logo": False,
+        "duration": 5,
+    },
+}
 
 
 class Video(Base):
@@ -76,6 +111,13 @@ class Video(Base):
     )
     output_language: Mapped[str] = mapped_column(String(10), default="my")  # my = Burmese
     output_resolution: Mapped[str] = mapped_column(String(20), default="1080p")
+    
+    # Video processing options (copyright, subtitles, logo, outro)
+    options: Mapped[Dict[str, Any] | None] = mapped_column(
+        JSONB,
+        default=lambda: DEFAULT_VIDEO_OPTIONS.copy(),
+        nullable=True,
+    )
     
     # Output
     video_url: Mapped[str | None] = mapped_column(String(500), nullable=True)

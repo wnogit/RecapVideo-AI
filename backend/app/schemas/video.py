@@ -2,7 +2,7 @@
 Video Schemas
 """
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field, HttpUrl, field_validator
@@ -10,6 +10,101 @@ from pydantic import BaseModel, Field, HttpUrl, field_validator
 from app.models.video import VideoStatus, VoiceType
 from app.utils.youtube import is_youtube_url
 
+
+# ===== Video Processing Options Schemas =====
+
+class CopyrightOptionsSchema(BaseModel):
+    """Copyright bypass options."""
+    color_adjust: bool = Field(default=True, description="Adjust colors slightly")
+    horizontal_flip: bool = Field(default=True, description="Flip video horizontally")
+    slight_zoom: bool = Field(default=False, description="Apply slight zoom effect")
+    audio_pitch_shift: bool = Field(default=True, description="Shift audio pitch slightly")
+
+
+class SubtitleOptionsSchema(BaseModel):
+    """Subtitle options."""
+    enabled: bool = Field(default=True, description="Enable subtitles")
+    font: str = Field(default="Pyidaungsu", description="Font family (Pyidaungsu or Padauk)")
+    size: str = Field(default="large", description="Font size (small/medium/large)")
+    position: str = Field(default="bottom", description="Position (top/center/bottom)")
+    background: str = Field(default="semi", description="Background style (none/semi/solid)")
+    color: str = Field(default="#FFFFFF", description="Text color hex")
+    word_highlight: bool = Field(default=True, description="Highlight current word")
+    
+    @field_validator("font")
+    @classmethod
+    def validate_font(cls, v: str) -> str:
+        if v not in ["Pyidaungsu", "Padauk"]:
+            raise ValueError("Font must be Pyidaungsu or Padauk")
+        return v
+    
+    @field_validator("size")
+    @classmethod
+    def validate_size(cls, v: str) -> str:
+        if v not in ["small", "medium", "large"]:
+            raise ValueError("Size must be small, medium, or large")
+        return v
+    
+    @field_validator("position")
+    @classmethod
+    def validate_position(cls, v: str) -> str:
+        if v not in ["top", "center", "bottom"]:
+            raise ValueError("Position must be top, center, or bottom")
+        return v
+
+
+class LogoOptionsSchema(BaseModel):
+    """Logo overlay options."""
+    enabled: bool = Field(default=False, description="Enable logo overlay")
+    image_url: Optional[str] = Field(default=None, description="Logo image URL from R2")
+    position: str = Field(default="top-right", description="Logo position")
+    size: str = Field(default="medium", description="Logo size (small/medium/large)")
+    opacity: int = Field(default=70, ge=0, le=100, description="Logo opacity 0-100")
+    
+    @field_validator("position")
+    @classmethod
+    def validate_position(cls, v: str) -> str:
+        valid = ["top-left", "top-right", "bottom-left", "bottom-right"]
+        if v not in valid:
+            raise ValueError(f"Position must be one of: {valid}")
+        return v
+
+
+class OutroOptionsSchema(BaseModel):
+    """Outro options."""
+    enabled: bool = Field(default=False, description="Enable outro")
+    platform: str = Field(default="youtube", description="Platform style")
+    channel_name: str = Field(default="", description="Channel name to display")
+    use_logo: bool = Field(default=False, description="Use uploaded logo in outro")
+    duration: int = Field(default=5, ge=3, le=7, description="Outro duration 3-7 seconds")
+    
+    @field_validator("platform")
+    @classmethod
+    def validate_platform(cls, v: str) -> str:
+        valid = ["youtube", "tiktok", "facebook", "instagram"]
+        if v not in valid:
+            raise ValueError(f"Platform must be one of: {valid}")
+        return v
+
+
+class VideoOptionsSchema(BaseModel):
+    """All video processing options."""
+    aspect_ratio: str = Field(default="9:16", description="Output aspect ratio")
+    copyright: CopyrightOptionsSchema = Field(default_factory=CopyrightOptionsSchema)
+    subtitles: SubtitleOptionsSchema = Field(default_factory=SubtitleOptionsSchema)
+    logo: LogoOptionsSchema = Field(default_factory=LogoOptionsSchema)
+    outro: OutroOptionsSchema = Field(default_factory=OutroOptionsSchema)
+    
+    @field_validator("aspect_ratio")
+    @classmethod
+    def validate_aspect_ratio(cls, v: str) -> str:
+        valid = ["9:16", "16:9", "1:1", "4:5"]
+        if v not in valid:
+            raise ValueError(f"Aspect ratio must be one of: {valid}")
+        return v
+
+
+# ===== Video Create/Response Schemas =====
 
 class VideoCreate(BaseModel):
     """Schema for video creation."""
@@ -20,6 +115,10 @@ class VideoCreate(BaseModel):
     )
     output_language: str = Field(default="my", description="Output language code")
     output_resolution: str = Field(default="1080p", description="Output resolution")
+    options: VideoOptionsSchema = Field(
+        default_factory=VideoOptionsSchema,
+        description="Video processing options"
+    )
     
     @field_validator("source_url")
     @classmethod
@@ -59,6 +158,7 @@ class VideoResponse(BaseModel):
     voice_type: str
     output_language: str
     output_resolution: str
+    options: Optional[Dict[str, Any]] = None  # JSON options
     
     # Output
     video_url: Optional[str] = None
