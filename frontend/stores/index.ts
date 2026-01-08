@@ -5,4 +5,4 @@ export { useUIStore } from './ui-store';
 export { useVideoCreationStore } from './video-creation-store';
 
 export type { User } from './auth-store';
-export type { Video, VideoStatus } from './video-store';
+export type { Video, VideoStatus, CreateVideoData } from './video-store';
