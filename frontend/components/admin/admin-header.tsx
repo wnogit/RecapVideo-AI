@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, Search, Menu } from "lucide-react"
+import { Bell, Search, Menu, Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -15,6 +15,7 @@ import {
 import { useAuthStore } from "@/stores/auth-store"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { AdminSidebar } from "./admin-sidebar"
+import Link from "next/link"
 
 export function AdminHeader() {
   const { user, logout } = useAuthStore()
@@ -57,6 +58,14 @@ export function AdminHeader() {
 
       {/* Right Side */}
       <div className="flex items-center gap-4">
+        {/* Back to User Dashboard Button */}
+        <Button asChild variant="outline" size="sm" className="hidden sm:flex">
+          <Link href="/dashboard">
+            <Home className="h-4 w-4 mr-2" />
+            User Mode
+          </Link>
+        </Button>
+
         {/* Notifications */}
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />

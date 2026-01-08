@@ -19,6 +19,7 @@ import {
   X,
   Coins,
   PlusCircle,
+  Shield,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -70,6 +71,23 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        {/* Admin Dashboard Link - Only for admins */}
+        {user?.is_admin && (
+          <Link
+            href="/admin"
+            className={cn(
+              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors mt-4 border-t pt-4',
+              pathname.startsWith('/admin')
+                ? 'bg-orange-600 text-white'
+                : 'bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 dark:text-orange-400'
+            )}
+            onClick={() => setMobileOpen(false)}
+          >
+            <Shield className="h-5 w-5" />
+            Admin Dashboard
+          </Link>
+        )}
       </nav>
 
       {/* User section */}
