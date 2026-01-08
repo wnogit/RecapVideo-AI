@@ -128,7 +128,7 @@ class VideoProcessor:
                 await self._update_status(
                     db, video,
                     VideoStatus.EXTRACTING_TRANSCRIPT,
-                    "Extracting transcript from YouTube video...",
+                    "🎬 Video ကို လေ့လာနေပါတယ်...",
                     10
                 )
                 
@@ -142,7 +142,7 @@ class VideoProcessor:
                 await self._update_status(
                     db, video,
                     VideoStatus.GENERATING_SCRIPT,
-                    "Generating recap script with AI...",
+                    "✍️ Script ရေးနေပါတယ်...",
                     30
                 )
                 
@@ -153,7 +153,7 @@ class VideoProcessor:
                 await self._update_status(
                     db, video,
                     VideoStatus.GENERATING_AUDIO,
-                    "Generating voiceover audio...",
+                    "🎙️ အသံသွင်းနေပါတယ်...",
                     50
                 )
                 
@@ -163,7 +163,7 @@ class VideoProcessor:
                 await self._update_status(
                     db, video,
                     VideoStatus.RENDERING_VIDEO,
-                    "Rendering final video...",
+                    "🎨 Video ပြင်ဆင်နေပါတယ်...",
                     70
                 )
                 
@@ -192,7 +192,7 @@ class VideoProcessor:
                 await self._update_status(
                     db, video,
                     VideoStatus.UPLOADING,
-                    "Uploading to cloud storage...",
+                    "☁️ မကြာခင် ပြီးပါပြီ...",
                     92
                 )
                 

@@ -24,15 +24,15 @@ interface VideoCardProps {
 }
 
 const statusConfig: Record<VideoStatus, { label: string; color: 'default' | 'secondary' | 'success' | 'destructive' | 'warning' }> = {
-  pending: { label: 'Pending', color: 'secondary' },
-  extracting_transcript: { label: 'Extracting...', color: 'default' },
-  generating_script: { label: 'Generating Script...', color: 'default' },
-  generating_audio: { label: 'Creating Audio...', color: 'default' },
-  rendering_video: { label: 'Rendering...', color: 'default' },
-  uploading: { label: 'Uploading...', color: 'default' },
-  completed: { label: 'Completed', color: 'success' },
-  failed: { label: 'Failed', color: 'destructive' },
-  cancelled: { label: 'Cancelled', color: 'warning' },
+  pending: { label: 'စောင့်ဆိုင်းနေသည်', color: 'secondary' },
+  extracting_transcript: { label: 'လေ့လာနေသည်...', color: 'default' },
+  generating_script: { label: 'Script ရေးနေသည်...', color: 'default' },
+  generating_audio: { label: 'အသံသွင်းနေသည်...', color: 'default' },
+  rendering_video: { label: 'ပြင်ဆင်နေသည်...', color: 'default' },
+  uploading: { label: 'မကြာခင်ပြီးမည်...', color: 'default' },
+  completed: { label: 'ပြီးပါပြီ', color: 'success' },
+  failed: { label: 'မအောင်မြင်ပါ', color: 'destructive' },
+  cancelled: { label: 'ဖျက်သိမ်းပြီး', color: 'warning' },
 };
 
 export function VideoCard({ video, onCancel, onDownload }: VideoCardProps) {
