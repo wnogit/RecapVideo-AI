@@ -151,12 +151,11 @@ class StorageService:
         """
         from io import BytesIO
         
-        loggclient = await self._get_client()
-            
-            fo(f"Uploading bytes to R2: {key}")
+        logger.info(f"Uploading bytes to R2: {key}")
         
         try:
-            self.client.upload_fileobj(
+            client = await self._get_client()
+            client.upload_fileobj(
                 BytesIO(data),
                 settings.R2_BUCKET_NAME,
                 key,
@@ -184,11 +183,10 @@ class StorageService:
             True if deleted successfully
         """
         logger.info(f"Deleting from R2: {key}")
-        client = await self._get_client()
-            
-            
+        
         try:
-            self.client.delete_object(
+            client = await self._get_client()
+            client.delete_object(
                 Bucket=settings.R2_BUCKET_NAME,
                 Key=key,
             )

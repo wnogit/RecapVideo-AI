@@ -136,11 +136,11 @@ Current Script:
 Instructions: {instructions}
 
 Output the improved script ONLY:
-"""client = await self._get_client()
-            response = await 
+"""
         
         try:
-            response = await self.client.generate_content_async(prompt)
+            client = await self._get_client()
+            response = await client.generate_content_async(prompt)
             return response.text.strip()
         except Exception as e:
             logger.error(f"Script improvement failed: {e}")

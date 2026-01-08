@@ -52,12 +52,11 @@ class EmailService:
         if isinstance(to, str):
             to = [to]
         
-        loggclient = await self._get_client()
-            
-            response = g email to {to}: {subject}")
+        logger.info(f"Sending email to {to}: {subject}")
         
         try:
-            response = self.client.Emails.send({
+            client = await self._get_client()
+            response = client.emails.send({
                 "from": from_email,
                 "to": to,
                 "subject": subject,
