@@ -71,9 +71,9 @@ export function AdminHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full">
               <Avatar className="h-9 w-9">
-                <AvatarImage src={user?.avatar_url} alt={user?.full_name} />
+                <AvatarImage src={user?.avatar_url} alt={user?.name} />
                 <AvatarFallback>
-                  {user?.full_name ? getInitials(user.full_name) : "AD"}
+                  {user?.name ? getInitials(user.name) : "AD"}
                 </AvatarFallback>
               </Avatar>
             </Button>
@@ -82,7 +82,7 @@ export function AdminHeader() {
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">
-                  {user?.full_name || "Admin"}
+                  {user?.name || "Admin"}
                 </p>
                 <p className="text-xs leading-none text-muted-foreground">
                   {user?.email}
