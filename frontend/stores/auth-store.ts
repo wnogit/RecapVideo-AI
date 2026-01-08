@@ -25,7 +25,9 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   
-  // Actions (Google OAuth only - no email/password)
+  // Actions - Both email/password and Google OAuth
+  login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, name: string) => Promise<void>;
   setAuth: (access_token: string, refresh_token: string, user: User) => void;
   logout: () => void;
   fetchUser: () => Promise<void>;
@@ -41,6 +43,52 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
       error: null,
+
+      // Email/password login
+      login: async (email: string, password: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await authApi.login({ email, password });
+          const { access_token, refresh_token, user } = response.data;
+          localStorage.setItem('access_token', access_token);
+          if (refresh_token) {
+            localStorage.setItem('refresh_token', refresh_token);
+          }
+          set({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+          });
+        } catch (error: any) {
+          const message = error.response?.data?.detail || 'Login failed';
+          set({ isLoading: false, error: message });
+          throw new Error(message);
+        }
+      },
+
+      // Email/password signup
+      signup: async (email: string, password: string, name: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await authApi.signup({ email, password, name });
+          const { access_token, refresh_token, user } = response.data;
+          localStorage.setItem('access_token', access_token);
+          if (refresh_token) {
+            localStorage.setItem('refresh_token', refresh_token);
+          }
+          set({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+          });
+        } catch (error: any) {
+          const message = error.response?.data?.detail || 'Signup failed';
+          set({ isLoading: false, error: message });
+          throw new Error(message);
+        }
+      },
 
       // Google OAuth handles login - setAuth is called after OAuth callback
 
