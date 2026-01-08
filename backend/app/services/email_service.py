@@ -56,7 +56,7 @@ class EmailService:
         
         try:
             client = await self._get_client()
-            response = client.emails.send({
+            response = client.Emails.send({
                 "from": from_email,
                 "to": to,
                 "subject": subject,
