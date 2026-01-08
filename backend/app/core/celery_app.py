@@ -36,12 +36,16 @@ celery_app.conf.update(
     task_default_retry_delay=60,  # 1 minute
     task_max_retries=3,
     
-    # Concurrency - adjust based on VPS resources
-    worker_concurrency=2,  # 2 concurrent video tasks
+    # Concurrency - optimized for 12 CPU / 24GB RAM VPS
+    # 4 workers × 3 FFmpeg threads = 12 cores (full utilization)
+    worker_concurrency=4,  # 4 concurrent video tasks
     
-    # Task time limits
+    # Task time limits (video processing can take time)
     task_soft_time_limit=600,   # 10 minutes soft limit
     task_time_limit=900,        # 15 minutes hard limit
+    
+    # Memory optimization
+    worker_max_tasks_per_child=50,  # Restart worker after 50 tasks to free memory
 )
 
 # Optional: Task routes for different queues

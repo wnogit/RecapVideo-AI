@@ -733,7 +733,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         return float(data["format"]["duration"])
     
     async def _run_ffmpeg(self, cmd: list) -> None:
-        """Run FFmpeg command asynchronously."""
+        """Run FFmpeg command asynchronously with thread limiting."""
+        # Insert -threads 3 after ffmpeg command to limit CPU usage
+        # This allows 4 workers × 3 threads = 12 cores (full utilization)
+        if len(cmd) > 1 and 'ffmpeg' in cmd[0]:
+            cmd = [cmd[0], "-threads", "3"] + cmd[1:]
+        
         logger.debug(f"Running FFmpeg: {' '.join(cmd)}")
         
         process = await asyncio.create_subprocess_exec(

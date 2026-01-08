@@ -1,18 +1,21 @@
 # RecapVideo.AI - Docker Compose with Celery Workers
-# Scalable Deployment (Phase 2/3)
-# Use this file for worker scaling: docker-compose -f docker-compose.yml -f docker-compose.workers.yml up
+# Optimized for: 12 CPU / 24GB RAM / 720GB NVMe SSD VPS
+# 
+# Usage:
+#   docker-compose -f docker-compose.yml -f docker-compose.workers.yml up -d
+#   docker-compose -f docker-compose.yml -f docker-compose.workers.yml up -d --scale worker-video=2
 
 version: '3.8'
 
 services:
   # Celery Worker for Video Processing
+  # Each worker uses: 3 CPU cores (via FFmpeg -threads 3) + 4GB RAM
   worker-video:
     build:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
-    container_name: recapvideo-worker-video
     restart: unless-stopped
-    command: celery -A app.core.celery_app worker -Q video_processing -c 2 --loglevel=info
+    command: celery -A app.core.celery_app worker -Q video_processing -c 4 --loglevel=info
     environment:
       - ENVIRONMENT=production
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-recapvideo}:${POSTGRES_PASSWORD:-recapvideo_secret}@postgres:5432/${POSTGRES_DB:-recapvideo}
@@ -22,29 +25,31 @@ services:
       - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
       - R2_BUCKET_NAME=${R2_BUCKET_NAME:-recapvideo}
       - R2_PUBLIC_URL=${R2_PUBLIC_URL:-https://videos.recapvideo.ai}
-      - TRANSCRIPT_API_KEY=${TRANSCRIPT_API_KEY}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
     volumes:
-      - temp_files:/tmp/recapvideo
+      # Mount host /tmp for NVMe SSD speed (3-5x faster than Docker overlay)
+      - /tmp/recapvideo:/tmp/recapvideo
+      # Mount fonts as read-only
       - ./backend/app/assets/fonts:/app/app/assets/fonts:ro
     depends_on:
       - postgres
       - redis
     deploy:
-      replicas: 2
       resources:
         limits:
-          cpus: '2'
+          cpus: '10'
+          memory: 16G
+        reservations:
+          cpus: '4'
           memory: 4G
 
-  # Celery Worker for Emails
+  # Celery Worker for Emails (lightweight)
   worker-email:
     build:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
     container_name: recapvideo-worker-email
     restart: unless-stopped
-    command: celery -A app.core.celery_app worker -Q emails -c 1 --loglevel=info
+    command: celery -A app.core.celery_app worker -Q emails -c 2 --loglevel=info
     environment:
       - ENVIRONMENT=production
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-recapvideo}:${POSTGRES_PASSWORD:-recapvideo_secret}@postgres:5432/${POSTGRES_DB:-recapvideo}
@@ -78,14 +83,15 @@ services:
           cpus: '0.25'
           memory: 256M
 
-  # Flower - Celery Monitoring (Optional)
+  # Flower - Celery Monitoring Dashboard
+  # Access at: http://your-server:5555
   flower:
     build:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
     container_name: recapvideo-flower
     restart: unless-stopped
-    command: celery -A app.core.celery_app flower --port=5555
+    command: celery -A app.core.celery_app flower --port=5555 --basic_auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-recapvideo123}
     environment:
       - REDIS_URL=redis://redis:6379/0
     ports:
@@ -98,5 +104,4 @@ services:
           cpus: '0.25'
           memory: 256M
 
-volumes:
-  temp_files:
+# Note: temp_files volume removed - using host /tmp mount for NVMe speed
