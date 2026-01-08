@@ -293,7 +293,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA Section */}}
+      {/* CTA Section */}
       <section className="py-20">
         <div className="container">
           <div className="max-w-3xl mx-auto text-center">
