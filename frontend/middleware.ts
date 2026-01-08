@@ -6,7 +6,7 @@ import type { NextRequest } from 'next/server';
  * 
  * URL Structure:
  * - recapvideo.ai → Marketing/Landing pages
- * - app.recapvideo.ai → Dashboard/App pages
+ * - studio.recapvideo.ai → Dashboard/App pages
  * - api.recapvideo.ai → Backend API (handled by DNS/proxy)
  */
 
@@ -27,40 +27,40 @@ export function middleware(request: NextRequest) {
   }
   
   // Production subdomain handling
-  const isAppSubdomain = subdomain === 'app';
+  const isStudioSubdomain = subdomain === 'studio' || subdomain === 'app';
   const isMainDomain = hostname === 'recapvideo.ai' || hostname === 'www.recapvideo.ai';
   
   // Protected routes that require authentication
   const protectedPaths = ['/dashboard', '/videos', '/credits', '/buy', '/profile', '/admin'];
   const isProtectedPath = protectedPaths.some(path => url.pathname.startsWith(path));
   
-  // Auth paths (login, callback)
-  const authPaths = ['/login', '/auth'];
+  // Auth paths (login, signup, callback)
+  const authPaths = ['/login', '/signup', '/auth'];
   const isAuthPath = authPaths.some(path => url.pathname.startsWith(path));
   
-  // Marketing paths
-  const marketingPaths = ['/', '/pricing', '/features', '/about', '/contact', '/blog'];
+  // Marketing paths (pages that should stay on main domain)
+  const marketingPaths = ['/', '/pricing', '/features', '/about', '/contact', '/blog', '/faq', '/terms', '/privacy'];
   const isMarketingPath = marketingPaths.includes(url.pathname) || url.pathname.startsWith('/blog/');
   
   // If on main domain (recapvideo.ai)
   if (isMainDomain) {
-    // If trying to access protected/app routes, redirect to app subdomain
-    if (isProtectedPath || isAuthPath) {
-      return NextResponse.redirect(new URL(`https://app.recapvideo.ai${url.pathname}`, request.url));
-    }
-    
-    // Allow marketing pages
+    // Allow marketing pages (including terms, privacy, faq, contact)
     if (isMarketingPath) {
       return NextResponse.next();
     }
     
-    // Default: redirect to app subdomain for unknown routes
-    return NextResponse.redirect(new URL(`https://app.recapvideo.ai${url.pathname}`, request.url));
+    // If trying to access protected/app routes, redirect to studio subdomain
+    if (isProtectedPath || isAuthPath) {
+      return NextResponse.redirect(new URL(`https://studio.recapvideo.ai${url.pathname}`, request.url));
+    }
+    
+    // Default: allow on main domain (don't redirect unknown routes)
+    return NextResponse.next();
   }
   
-  // If on app subdomain (app.recapvideo.ai)
-  if (isAppSubdomain) {
-    // Root path on app subdomain → redirect to /dashboard
+  // If on studio/app subdomain (studio.recapvideo.ai)
+  if (isStudioSubdomain) {
+    // Root path on studio subdomain → redirect to /dashboard
     if (url.pathname === '/') {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
@@ -70,7 +70,7 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL(`https://recapvideo.ai${url.pathname}`, request.url));
     }
     
-    // Allow all other paths on app subdomain
+    // Allow all other paths on studio subdomain
     return NextResponse.next();
   }
   
