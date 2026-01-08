@@ -8,6 +8,7 @@ import { useVideoCreationStore } from '@/stores/video-creation-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { Eye, Smartphone, FlipHorizontal } from 'lucide-react';
+import { extractYoutubeId } from '@/lib/youtube';
 
 export function LivePreviewCanvas() {
   const {
@@ -20,13 +21,8 @@ export function LivePreviewCanvas() {
     voiceId,
   } = useVideoCreationStore();
 
-  // Extract YouTube video ID for thumbnail
-  const getYouTubeId = (url: string) => {
-    const match = url.match(/shorts\/([a-zA-Z0-9_-]{11})/);
-    return match ? match[1] : null;
-  };
-
-  const videoId = getYouTubeId(sourceUrl);
+  // Use centralized YouTube ID extraction
+  const videoId = extractYoutubeId(sourceUrl);
   const thumbnailUrl = videoId 
     ? `https://i.ytimg.com/vi/${videoId}/oar2.jpg`
     : null;

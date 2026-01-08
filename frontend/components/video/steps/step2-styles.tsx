@@ -25,6 +25,7 @@ import {
   FlipHorizontal,
   ZoomIn,
   Music,
+  AlertCircle,
 } from 'lucide-react';
 
 // Position options
@@ -348,6 +349,19 @@ export function Step2Styles() {
                 PNG, JPG (Max 2MB)
               </p>
             </div>
+            
+            {/* Warning if logo enabled but no image */}
+            {logoOptions.enabled && !logoOptions.imageUrl && (
+              <div className="flex items-start gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg">
+                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Logo ပုံ Upload လုပ်ပါ</p>
+                  <p className="text-xs mt-1 opacity-80">
+                    Logo ထည့်လိုပါက ပုံ Upload လုပ်ရန် လိုအပ်ပါသည်။ မထည့်လိုပါက Switch ကို ပိတ်ပါ။
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Position */}

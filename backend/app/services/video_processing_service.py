@@ -306,6 +306,12 @@ class VideoProcessingService:
         output_path = work_dir / "with_logo.mp4"
         logo_size = self.LOGO_SIZES.get(options.size, 80)
         
+        # Download logo if it's a URL
+        logo_path = await self._ensure_local_logo(options.image_path, work_dir)
+        if not logo_path:
+            logger.warning("Logo path invalid, skipping logo overlay")
+            return video_path
+        
         # Position mapping
         positions = {
             "top-left": f"x=20:y=20",
@@ -324,7 +330,7 @@ class VideoProcessingService:
         cmd = [
             self.ffmpeg_path, "-y",
             "-i", video_path,
-            "-i", options.image_path,
+            "-i", logo_path,
             "-filter_complex", filter_str,
             "-c:a", "copy",
             "-c:v", "libx264",
@@ -335,6 +341,51 @@ class VideoProcessingService:
         
         await self._run_ffmpeg(cmd)
         return str(output_path)
+    
+    async def _ensure_local_logo(self, logo_path: str, work_dir: Path) -> Optional[str]:
+        """
+        Ensure logo is available locally.
+        Downloads if it's a URL (http/https), returns path if local.
+        """
+        import httpx
+        
+        if not logo_path:
+            return None
+        
+        # Check if it's a URL
+        if logo_path.startswith(("http://", "https://")):
+            try:
+                logger.info(f"Downloading logo from: {logo_path}")
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(logo_path, timeout=30.0)
+                    response.raise_for_status()
+                    
+                    # Determine extension from content-type or URL
+                    content_type = response.headers.get("content-type", "")
+                    if "png" in content_type or logo_path.endswith(".png"):
+                        ext = ".png"
+                    elif "gif" in content_type or logo_path.endswith(".gif"):
+                        ext = ".gif"
+                    else:
+                        ext = ".jpg"
+                    
+                    local_path = work_dir / f"logo{ext}"
+                    with open(local_path, "wb") as f:
+                        f.write(response.content)
+                    
+                    logger.info(f"Logo downloaded to: {local_path}")
+                    return str(local_path)
+                    
+            except Exception as e:
+                logger.error(f"Failed to download logo: {e}")
+                return None
+        
+        # Local path - verify it exists
+        if Path(logo_path).exists():
+            return logo_path
+        
+        logger.warning(f"Logo file not found: {logo_path}")
+        return None
     
     async def _replace_audio(
         self,
@@ -444,7 +495,8 @@ class VideoProcessingService:
         border_style = backgrounds.get(options.background, 1)
         
         # Color conversion (hex to ASS format BGR)
-        color = options.color.lstrip("#")
+        # Normalize color: handle #FFF, #FFFFFF, FFF, FFFFFF formats
+        color = self._normalize_hex_color(options.color)
         ass_color = f"&H00{color[4:6]}{color[2:4]}{color[0:2]}"
         
         # ASS header - use Arial for Unicode support
@@ -524,6 +576,25 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         
         return ass_header
     
+    def _normalize_hex_color(self, color: str) -> str:
+        """
+        Normalize hex color to 6-digit format.
+        Handles: #FFF, #FFFFFF, FFF, FFFFFF
+        Returns: 6-digit hex without #
+        """
+        color = color.strip().lstrip("#")
+        
+        # Handle 3-digit shorthand (e.g., FFF -> FFFFFF)
+        if len(color) == 3:
+            color = "".join([c * 2 for c in color])
+        
+        # Validate length and characters
+        if len(color) != 6 or not all(c in "0123456789ABCDEFabcdef" for c in color):
+            logger.warning(f"Invalid color '{color}', using white")
+            return "FFFFFF"
+        
+        return color.upper()
+    
     def _find_font(self) -> str:
         """Find available font for text rendering."""
         for font_path in self.FONT_PATHS:
@@ -553,16 +624,24 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         
         config = platform_config.get(options.platform, platform_config["youtube"])
         
-        # Build font option if available
-        font_opt = f":fontfile={self.font_path}" if self.font_path else ""
+        # Build font option - REQUIRED for Myanmar text rendering
+        if self.font_path:
+            font_opt = f":fontfile='{self.font_path}'"
+        else:
+            logger.warning("No font found for outro - Myanmar text may not render correctly")
+            font_opt = ""
+        
+        # Escape text for FFmpeg (handle special characters)
+        channel_text = options.channel_name.replace("'", "'\\''").replace(":", "\\:")
+        cta_text = config['text'].replace("'", "'\\''").replace(":", "\\:")
         
         # Create outro using FFmpeg
         # Simple text overlay on colored background
         filter_complex = (
             f"color=c={config['color']}:s={width}x{height}:d={options.duration}[bg];"
-            f"[bg]drawtext=text='{options.channel_name}':fontsize=48:fontcolor=white:"
+            f"[bg]drawtext=text='{channel_text}':fontsize=48:fontcolor=white:"
             f"x=(w-text_w)/2:y=h/2-50{font_opt}[t1];"
-            f"[t1]drawtext=text='{config['text']}':fontsize=36:fontcolor=white:"
+            f"[t1]drawtext=text='{cta_text}':fontsize=36:fontcolor=white:"
             f"x=(w-text_w)/2:y=h/2+50{font_opt}"
         )
         

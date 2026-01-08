@@ -3,6 +3,7 @@
  * Manages state for the multi-step video creation wizard
  */
 import { create } from 'zustand';
+import { isYoutubeShortsUrl } from '@/lib/youtube';
 import {
   AspectRatio,
   CopyrightOptions,
@@ -82,15 +83,6 @@ export interface VideoCreationState {
   };
 }
 
-// YouTube Shorts URL validation
-const isValidYouTubeShortsUrl = (url: string): boolean => {
-  const patterns = [
-    /^https?:\/\/(?:www\.)?youtube\.com\/shorts\/[a-zA-Z0-9_-]{11}/,
-    /^https?:\/\/m\.youtube\.com\/shorts\/[a-zA-Z0-9_-]{11}/,
-  ];
-  return patterns.some(pattern => pattern.test(url.trim()));
-};
-
 export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
   // Initial state
   currentStep: 1,
@@ -138,7 +130,7 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
   
   // Step 1 Actions
   setSourceUrl: (url) => {
-    const isValid = isValidYouTubeShortsUrl(url);
+    const isValid = isYoutubeShortsUrl(url);
     set({ sourceUrl: url, isStep1Valid: isValid });
   },
   
@@ -151,7 +143,11 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
   
   setSubtitleOptions: (options) => set({ subtitleOptions: options }),
   
-  setLogoOptions: (options) => set({ logoOptions: options }),
+  setLogoOptions: (options) => {
+    // Validate: if logo is enabled, imageUrl must be provided
+    const isValid = !options.enabled || (options.enabled && !!options.imageUrl);
+    set({ logoOptions: options, isStep2Valid: isValid });
+  },
   
   // Step 3 Actions
   setOutroOptions: (options) => set({ outroOptions: options }),

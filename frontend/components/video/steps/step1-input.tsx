@@ -4,15 +4,21 @@
  * Step 1: Input
  * YouTube URL and Voice Selection
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useVideoCreationStore } from '@/stores/video-creation-store';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
-import { Link2, AlertCircle, CheckCircle2, Mic, Volume2 } from 'lucide-react';
+import { Link2, AlertCircle, CheckCircle2, Mic, Volume2, Loader2, Square } from 'lucide-react';
 import { isYoutubeShortsUrl, isRegularYoutubeUrl } from '@/lib/youtube';
 import { AspectRatio, FORMAT_OPTIONS } from '@/lib/types/video-options';
+
+// Voice sample URLs - stored in backend static folder
+const VOICE_SAMPLE_URLS: Record<string, string> = {
+  'my-MM-NilarNeural': '/api/v1/static/voice-samples/nilar-sample.mp3',
+  'my-MM-ThihaNeural': '/api/v1/static/voice-samples/thiha-sample.mp3',
+};
 
 // Available voices (Burmese)
 const VOICES = [
@@ -44,14 +50,73 @@ export function Step1Input() {
   } = useVideoCreationStore();
 
   const [urlTouched, setUrlTouched] = useState(false);
+  const [playingVoice, setPlayingVoice] = useState<string | null>(null);
+  const [loadingVoice, setLoadingVoice] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  
   const isValidShorts = isYoutubeShortsUrl(sourceUrl);
   const isRegularYoutube = isRegularYoutubeUrl(sourceUrl) && !isValidShorts;
   const showError = urlTouched && sourceUrl && !isValidShorts;
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   // Handle URL change
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUrlTouched(true);
     setSourceUrl(e.target.value);
+  };
+
+  // Play voice sample
+  const handlePlayVoiceSample = async (voiceIdToPlay: string) => {
+    // If already playing this voice, stop it
+    if (playingVoice === voiceIdToPlay) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      setPlayingVoice(null);
+      return;
+    }
+
+    // Stop any currently playing audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+
+    setLoadingVoice(voiceIdToPlay);
+
+    try {
+      const sampleUrl = VOICE_SAMPLE_URLS[voiceIdToPlay];
+      if (!sampleUrl) {
+        console.warn('No sample URL for voice:', voiceIdToPlay);
+        setLoadingVoice(null);
+        return;
+      }
+
+      audioRef.current = new Audio(sampleUrl);
+      audioRef.current.onended = () => setPlayingVoice(null);
+      audioRef.current.onerror = () => {
+        console.error('Failed to load voice sample');
+        setPlayingVoice(null);
+        setLoadingVoice(null);
+      };
+      audioRef.current.oncanplaythrough = () => {
+        setLoadingVoice(null);
+        setPlayingVoice(voiceIdToPlay);
+        audioRef.current?.play();
+      };
+    } catch (error) {
+      console.error('Error playing voice sample:', error);
+      setLoadingVoice(null);
+    }
   };
 
   return (
@@ -180,14 +245,27 @@ export function Step1Input() {
                 {/* Play Sample Button */}
                 <button
                   type="button"
-                  className="mt-3 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  className={cn(
+                    "mt-3 flex items-center gap-1 text-xs transition-colors",
+                    playingVoice === voice.id 
+                      ? "text-primary font-medium" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
                   onClick={(e) => {
                     e.preventDefault();
-                    // TODO: Play voice sample
+                    e.stopPropagation();
+                    handlePlayVoiceSample(voice.id);
                   }}
+                  disabled={loadingVoice === voice.id}
                 >
-                  <Volume2 className="h-3 w-3" />
-                  နမူနာ နားထောင်ရန်
+                  {loadingVoice === voice.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : playingVoice === voice.id ? (
+                    <Square className="h-3 w-3 fill-current" />
+                  ) : (
+                    <Volume2 className="h-3 w-3" />
+                  )}
+                  {playingVoice === voice.id ? 'ရပ်မည်' : 'နမူနာ နားထောင်ရန်'}
                 </button>
               </Label>
             </div>
