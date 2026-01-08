@@ -118,4 +118,4 @@ export function useCreateVideo() {
   };
 }
 
-export { CreateVideoData } from '@/stores/video-store';
+export type { CreateVideoData } from '@/stores/video-store';
