@@ -35,7 +35,7 @@ export default function MarketingLayout({
 
       {/* Header */}
       <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'glass border-b border-white/10' : 'bg-transparent'}`}>
-        <div className="container flex h-16 items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center space-x-2 group">
             <div className="relative">
               <Film className="h-7 w-7 text-violet-500 transition-transform group-hover:scale-110" />
@@ -94,7 +94,7 @@ export default function MarketingLayout({
               exit={{ opacity: 0, height: 0 }}
               className="md:hidden overflow-hidden glass border-t border-white/10"
             >
-              <nav className="container py-4 flex flex-col gap-4">
+              <nav className="max-w-7xl mx-auto px-4 md:px-6 py-4 flex flex-col gap-4">
                 <Link 
                   href="/#features" 
                   className="text-sm font-medium py-2 hover:text-violet-400 transition-colors"
@@ -144,8 +144,8 @@ export default function MarketingLayout({
       <main className="flex-1">{children}</main>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 py-12 md:py-16 glass">
-        <div className="container">
+      <footer className="border-t border-white/10 py-8 md:py-12 glass">
+        <div className="max-w-7xl mx-auto px-4 md:px-6">
           <div className="grid gap-10 grid-cols-2 md:grid-cols-4">
             <div className="col-span-2 md:col-span-1">
               <Link href="/" className="flex items-center space-x-2 mb-4 group">

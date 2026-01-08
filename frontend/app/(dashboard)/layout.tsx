@@ -9,11 +9,11 @@ export default function DashboardLayout({
 }) {
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-muted/30">
+      <div className="dark min-h-screen bg-background text-foreground antialiased selection:bg-purple-500/30">
         <Sidebar />
         <div className="lg:pl-64">
           <Header />
-          <main className="p-6">{children}</main>
+          <main className="max-w-[1600px] mx-auto px-4 md:px-8 py-6">{children}</main>
         </div>
       </div>
     </AuthGuard>

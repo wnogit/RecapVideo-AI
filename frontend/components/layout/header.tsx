@@ -11,7 +11,8 @@ export function Header() {
   const { user } = useAuthStore();
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-6">
+    <header className="sticky top-0 z-30 border-b bg-background">
+      <div className="max-w-[1600px] mx-auto flex h-16 items-center gap-4 px-4 md:px-8">
       {/* Spacer for mobile menu button */}
       <div className="lg:hidden w-10" />
 
@@ -45,6 +46,7 @@ export function Header() {
             </AvatarFallback>
           </Avatar>
         </Link>
+      </div>
       </div>
     </header>
   );

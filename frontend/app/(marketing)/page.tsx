@@ -30,8 +30,8 @@ export default function LandingPage() {
   return (
     <>
       {/* Hero Section */}
-      <section className="relative py-20 lg:py-32 overflow-hidden">
-        <div className="container relative z-10">
+      <section className="relative py-12 md:py-20 overflow-hidden flex justify-center">
+        <div className="container px-4 md:px-6 max-w-7xl mx-auto relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -202,8 +202,8 @@ export default function LandingPage() {
       </section>
 
       {/* Features Bento Grid */}
-      <section id="features" className="py-20 md:py-32">
-        <div className="container">
+      <section id="features" className="py-12 md:py-16 flex justify-center">
+        <div className="container px-4 md:px-6 max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -229,9 +229,10 @@ export default function LandingPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.02, rotate: [0, -0.5, 0.5, 0] }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="md:col-span-2 lg:col-span-2 glass rounded-2xl p-8 group hover:bg-white/10 transition-all duration-300 relative overflow-hidden"
+              className="md:col-span-2 lg:col-span-2 glass rounded-2xl p-8 group hover:bg-white/10 transition-all duration-300 relative overflow-hidden cursor-pointer"
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-red-500/20 to-transparent blur-2xl" />
               <Youtube className="h-12 w-12 text-red-500 mb-4 group-hover:scale-110 transition-transform" />
@@ -246,9 +247,10 @@ export default function LandingPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.05, rotate: [0, -1, 1, -1, 0] }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
-              className="glass rounded-2xl p-6 group hover:bg-white/10 transition-all duration-300"
+              className="glass rounded-2xl p-6 group hover:bg-white/10 transition-all duration-300 cursor-pointer"
             >
               <Globe className="h-10 w-10 text-blue-500 mb-4 group-hover:scale-110 transition-transform" />
               <h3 className="text-lg font-semibold mb-2">Multi-Language</h3>
@@ -260,9 +262,10 @@ export default function LandingPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.05, rotate: [0, -1, 1, -1, 0] }}
               viewport={{ once: true }}
               transition={{ delay: 0.3 }}
-              className="glass rounded-2xl p-6 group hover:bg-white/10 transition-all duration-300"
+              className="glass rounded-2xl p-6 group hover:bg-white/10 transition-all duration-300 cursor-pointer"
             >
               <Mic className="h-10 w-10 text-green-500 mb-4 group-hover:scale-110 transition-transform" />
               <h3 className="text-lg font-semibold mb-2">Natural Voices</h3>
@@ -274,9 +277,10 @@ export default function LandingPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.05, rotate: [0, -1, 1, -1, 0] }}
               viewport={{ once: true }}
               transition={{ delay: 0.4 }}
-              className="glass rounded-2xl p-6 group hover:bg-white/10 transition-all duration-300"
+              className="glass rounded-2xl p-6 group hover:bg-white/10 transition-all duration-300 cursor-pointer"
             >
               <Zap className="h-10 w-10 text-yellow-500 mb-4 group-hover:scale-110 transition-transform" />
               <h3 className="text-lg font-semibold mb-2">Fast Processing</h3>
@@ -288,9 +292,10 @@ export default function LandingPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.05, rotate: [0, -1, 1, -1, 0] }}
               viewport={{ once: true }}
               transition={{ delay: 0.5 }}
-              className="glass rounded-2xl p-6 group hover:bg-white/10 transition-all duration-300"
+              className="glass rounded-2xl p-6 group hover:bg-white/10 transition-all duration-300 cursor-pointer"
             >
               <Brain className="h-10 w-10 text-purple-500 mb-4 group-hover:scale-110 transition-transform" />
               <h3 className="text-lg font-semibold mb-2">Smart Summaries</h3>
@@ -303,9 +308,10 @@ export default function LandingPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.02, rotate: [0, -0.5, 0.5, 0] }}
               viewport={{ once: true }}
               transition={{ delay: 0.6 }}
-              className="md:col-span-2 glass rounded-2xl p-8 group hover:bg-white/10 transition-all duration-300 relative overflow-hidden"
+              className="md:col-span-2 glass rounded-2xl p-8 group hover:bg-white/10 transition-all duration-300 relative overflow-hidden cursor-pointer"
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-violet-500/20 to-transparent blur-2xl" />
               <Shield className="h-12 w-12 text-violet-500 mb-4 group-hover:scale-110 transition-transform" />
@@ -320,9 +326,9 @@ export default function LandingPage() {
       </section>
 
       {/* How It Works - Magic Timeline */}
-      <section id="how-it-works" className="py-20 md:py-32 relative overflow-hidden">
+      <section id="how-it-works" className="py-12 md:py-16 relative overflow-hidden flex justify-center">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-violet-500/5 to-transparent" />
-        <div className="container relative">
+        <div className="container px-4 md:px-6 max-w-7xl mx-auto relative">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -419,8 +425,8 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 md:py-32">
-        <div className="container">
+      <section id="pricing" className="py-12 md:py-16 flex justify-center">
+        <div className="container px-4 md:px-6 max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -561,12 +567,12 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 md:py-32 relative overflow-hidden">
+      <section className="py-12 md:py-16 relative overflow-hidden flex justify-center">
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-pink-500/10" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-violet-500/20 rounded-full blur-3xl" />
         </div>
-        <div className="container relative">
+        <div className="container px-4 md:px-6 max-w-7xl mx-auto relative">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
