@@ -118,8 +118,8 @@ We aim to respond to all inquiries within 48 hours.`
 
 export default function PrivacyPage() {
   return (
-    <div className="py-16 md:py-24">
-      <div className="container max-w-4xl">
+    <div className="py-12 md:py-16">
+      <div className="max-w-4xl mx-auto px-4 md:px-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

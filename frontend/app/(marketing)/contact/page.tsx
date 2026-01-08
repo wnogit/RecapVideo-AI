@@ -75,8 +75,8 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="py-16 md:py-24">
-      <div className="container max-w-6xl">
+    <div className="py-12 md:py-16">
+      <div className="max-w-6xl mx-auto px-4 md:px-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
