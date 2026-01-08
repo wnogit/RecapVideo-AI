@@ -1,6 +1,7 @@
 """
 Video Endpoints
 """
+import re
 from math import ceil
 from typing import Optional
 from uuid import UUID
@@ -21,6 +22,44 @@ from app.schemas.video import (
 router = APIRouter()
 
 
+# Credits per video
+CREDITS_PER_VIDEO = 2
+
+# YouTube Shorts URL patterns
+YOUTUBE_SHORTS_PATTERNS = [
+    r'^https?://(?:www\.)?youtube\.com/shorts/([a-zA-Z0-9_-]{11})(?:\?.*)?$',
+    r'^https?://m\.youtube\.com/shorts/([a-zA-Z0-9_-]{11})(?:\?.*)?$',
+]
+
+
+def validate_youtube_shorts_url(url: str) -> tuple[bool, str | None]:
+    """
+    Validate that URL is a YouTube Shorts URL.
+    
+    Returns:
+        (is_valid, video_id or error_message)
+    """
+    url = url.strip()
+    
+    for pattern in YOUTUBE_SHORTS_PATTERNS:
+        match = re.match(pattern, url)
+        if match:
+            return True, match.group(1)
+    
+    # Check if it's a regular YouTube video (to give specific error)
+    regular_patterns = [
+        r'^https?://(?:www\.)?youtube\.com/watch\?v=',
+        r'^https?://youtu\.be/',
+        r'^https?://(?:www\.)?youtube\.com/playlist',
+    ]
+    
+    for pattern in regular_patterns:
+        if re.match(pattern, url):
+            return False, "Only YouTube Shorts are supported. Please use a youtube.com/shorts/ link."
+    
+    return False, "Invalid URL. Please enter a valid YouTube Shorts URL (youtube.com/shorts/...)"
+
+
 @router.post("", response_model=VideoResponse, status_code=status.HTTP_201_CREATED)
 async def create_video(
     video_data: VideoCreate,
@@ -30,43 +69,63 @@ async def create_video(
     """
     Create a new video generation request.
     
-    - **source_url**: YouTube video URL
+    - **source_url**: YouTube Shorts URL only (youtube.com/shorts/xxx)
     - **voice_type**: Voice for TTS (optional, defaults to Burmese female)
     - **output_language**: Output language code (optional, defaults to "my")
     - **output_resolution**: Output resolution (optional, defaults to "1080p")
+    
+    Cost: 2 credits per video
     """
+    # Validate YouTube Shorts URL
+    is_valid, result = validate_youtube_shorts_url(video_data.source_url)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "INVALID_URL",
+                "message": result,
+            }
+        )
+    
+    video_id = result  # YouTube video ID
+    
     # Check credits
-    credits_required = 1
-    if not current_user.can_create_video(credits_required):
+    if not current_user.can_create_video(CREDITS_PER_VIDEO):
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail=f"Insufficient credits. Required: {credits_required}, Available: {current_user.credit_balance}",
+            detail={
+                "code": "INSUFFICIENT_CREDITS",
+                "message": f"Insufficient credits. Required: {CREDITS_PER_VIDEO}, Available: {current_user.credit_balance}",
+                "required": CREDITS_PER_VIDEO,
+                "available": current_user.credit_balance,
+            }
         )
     
     # Create video
     video = Video(
         user_id=current_user.id,
         source_url=video_data.source_url,
+        youtube_id=video_id,
         voice_type=video_data.voice_type,
         output_language=video_data.output_language,
         output_resolution=video_data.output_resolution,
-        credits_used=credits_required,
+        credits_used=CREDITS_PER_VIDEO,
     )
     
     db.add(video)
     
     # Deduct credits
-    current_user.credit_balance -= credits_required
+    current_user.credit_balance -= CREDITS_PER_VIDEO
     
     # Record transaction
     transaction = CreditTransaction(
         user_id=current_user.id,
         transaction_type=TransactionType.USAGE.value,
-        amount=-credits_required,
+        amount=-CREDITS_PER_VIDEO,
         balance_after=current_user.credit_balance,
         reference_type="video",
         reference_id=str(video.id),
-        description=f"Video creation: {video_data.source_url[:50]}...",
+        description=f"Video creation: YouTube Shorts {video_id}",
     )
     db.add(transaction)
     

@@ -3,16 +3,18 @@ Authentication Endpoints with Anti-Abuse Protection
 
 Supports:
 - Google OAuth (primary)
+- Email/Password (secondary)
 - VPN/Proxy detection
 - Device fingerprinting
 - IP rate limiting
 """
-from datetime import datetime, timezone
+import secrets
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, status, Request
 from sqlalchemy import select, func
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from loguru import logger
 
 from app.core.config import settings
@@ -21,11 +23,14 @@ from app.core.security import (
     create_access_token,
     create_refresh_token,
     verify_token,
+    get_password_hash,
+    verify_password,
 )
 from app.models.user import User
 from app.models.device import DeviceFingerprint, IPSignupLog
 from app.services.ip_service import ip_service
 from app.services.rate_limit_service import rate_limit_service
+from app.services.email_service import email_service
 from app.schemas.user import (
     UserResponse,
     Token,
@@ -36,6 +41,22 @@ from app.schemas.user import (
 router = APIRouter()
 
 
+# ============ Constants ============
+
+# Allowed email domains for signup
+ALLOWED_EMAIL_DOMAINS = [
+    "gmail.com",
+    "yahoo.com",
+    "yahoo.co.uk",
+    "outlook.com",
+    "hotmail.com",
+    "live.com",
+]
+
+# Trial credits for new users
+TRIAL_CREDITS = 4
+
+
 # ============ Additional Schemas ============
 
 class GoogleAuthRequest(BaseModel):
@@ -43,6 +64,43 @@ class GoogleAuthRequest(BaseModel):
     code: str  # Google authorization code
     redirect_uri: str  # The redirect URI used
     device_id: Optional[str] = None  # FingerprintJS visitor ID
+
+
+class EmailSignupRequest(BaseModel):
+    """Email/Password signup request."""
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    name: str = Field(..., min_length=2, max_length=100)
+    device_id: Optional[str] = None
+    
+    @field_validator('email')
+    @classmethod
+    def validate_email_domain(cls, v: str) -> str:
+        domain = v.lower().split('@')[1]
+        if domain not in ALLOWED_EMAIL_DOMAINS:
+            raise ValueError(
+                f"Only Gmail, Yahoo, Outlook, Hotmail, and Live email addresses are allowed. "
+                f"Your domain '{domain}' is not supported."
+            )
+        return v.lower()
+
+
+class EmailLoginRequest(BaseModel):
+    """Email/Password login request."""
+    email: EmailStr
+    password: str
+    device_id: Optional[str] = None
+    remember_me: bool = False
+
+
+class EmailVerifyRequest(BaseModel):
+    """Email verification request."""
+    token: str
+
+
+class ResendVerificationRequest(BaseModel):
+    """Resend verification email request."""
+    email: EmailStr
 
 
 class IPCheckRequest(BaseModel):
@@ -230,7 +288,7 @@ async def google_auth(request: Request, body: GoogleAuthRequest, db: DBSession):
             is_verified=True,
             oauth_provider="google",
             oauth_id=google_user["google_id"],
-            credit_balance=3,  # Trial credits
+            credit_balance=TRIAL_CREDITS,  # Trial credits
             signup_ip=client_ip,
             signup_device_id=body.device_id,
         )
@@ -376,3 +434,340 @@ async def refresh_token(token_data: TokenRefresh, db: DBSession):
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         user=UserResponse.model_validate(user),
     )
+
+
+# ============ Email/Password Signup ============
+
+@router.post("/signup", response_model=dict)
+async def email_signup(request: Request, body: EmailSignupRequest, db: DBSession):
+    """
+    Sign up with email and password.
+    
+    - Only Gmail, Yahoo, Outlook, Hotmail, Live domains are allowed.
+    - Verification email will be sent.
+    - Account must be verified before use.
+    """
+    client_ip = get_client_ip(request)
+    
+    # Step 1: Check VPN/Proxy
+    ip_result = await ip_service.check_ip(client_ip)
+    
+    if not ip_result["allowed"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "VPN_DETECTED",
+                "message": ip_result.get("reason", "Please disconnect VPN/Proxy to continue."),
+            }
+        )
+    
+    # Step 2: Check if email already exists
+    result = await db.execute(
+        select(User).where(User.email == body.email.lower())
+    )
+    existing_user = result.scalar_one_or_none()
+    
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An account with this email already exists. Please login instead.",
+        )
+    
+    # Step 3: Check rate limits
+    ip_allowed, _ = await rate_limit_service.check_signup_limit(client_ip)
+    if not ip_allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many signups from this IP today. Please try again tomorrow.",
+        )
+    
+    if body.device_id:
+        device_allowed, _ = await rate_limit_service.check_device_limit(body.device_id)
+        if not device_allowed:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many accounts from this device.",
+            )
+    
+    # Step 4: Create user (unverified)
+    verification_token = secrets.token_urlsafe(32)
+    verification_expires = datetime.now(timezone.utc) + timedelta(hours=24)
+    
+    user = User(
+        email=body.email.lower(),
+        name=body.name,
+        hashed_password=get_password_hash(body.password),
+        is_verified=False,
+        oauth_provider=None,
+        oauth_id=None,
+        credit_balance=0,  # Credits given after verification
+        signup_ip=client_ip,
+        signup_device_id=body.device_id,
+        verification_token=verification_token,
+        verification_expires=verification_expires,
+    )
+    
+    db.add(user)
+    await db.flush()
+    await db.refresh(user)
+    
+    # Record for rate limiting
+    await rate_limit_service.record_signup(client_ip)
+    if body.device_id:
+        await rate_limit_service.record_device_signup(body.device_id)
+    
+    # Log IP signup
+    ip_log = IPSignupLog(
+        ip_address=client_ip,
+        user_id=user.id,
+        country=ip_result.get("country"),
+        city=ip_result.get("city"),
+        isp=ip_result.get("isp"),
+    )
+    db.add(ip_log)
+    
+    await db.commit()
+    
+    # Step 5: Send verification email
+    try:
+        await email_service.send_verification_email(
+            to=user.email,
+            name=user.name,
+            token=verification_token,
+        )
+    except Exception as e:
+        logger.error(f"Failed to send verification email: {e}")
+        # Don't fail signup if email fails
+    
+    logger.info(f"New user signed up: {user.email}")
+    
+    return {
+        "message": "Account created successfully! Please check your email to verify your account.",
+        "email": user.email,
+    }
+
+
+# ============ Email/Password Login ============
+
+@router.post("/login", response_model=Token)
+async def email_login(request: Request, body: EmailLoginRequest, db: DBSession):
+    """
+    Login with email and password.
+    
+    - **email**: User's email
+    - **password**: User's password
+    - **remember_me**: If true, generates longer-lived refresh token
+    """
+    client_ip = get_client_ip(request)
+    
+    # Step 1: Check VPN/Proxy
+    ip_result = await ip_service.check_ip(client_ip)
+    
+    if not ip_result["allowed"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "VPN_DETECTED",
+                "message": ip_result.get("reason", "Please disconnect VPN/Proxy to continue."),
+            }
+        )
+    
+    # Step 2: Find user
+    result = await db.execute(
+        select(User).where(User.email == body.email.lower())
+    )
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password.",
+        )
+    
+    # Step 3: Verify password
+    if not user.hashed_password or not verify_password(body.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password.",
+        )
+    
+    # Step 4: Check if verified
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "EMAIL_NOT_VERIFIED",
+                "message": "Please verify your email before logging in. Check your inbox for the verification link.",
+            }
+        )
+    
+    # Step 5: Check if active
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been deactivated. Please contact support.",
+        )
+    
+    # Step 6: Update last login
+    user.last_login_at = datetime.now(timezone.utc)
+    
+    # Step 7: Handle remember me
+    if body.remember_me:
+        remember_token = secrets.token_urlsafe(32)
+        user.remember_token = remember_token
+        user.remember_expires = datetime.now(timezone.utc) + timedelta(days=30)
+    
+    # Track device fingerprint
+    if body.device_id:
+        result = await db.execute(
+            select(DeviceFingerprint).where(
+                DeviceFingerprint.fingerprint_id == body.device_id,
+                DeviceFingerprint.user_id == user.id,
+            )
+        )
+        device = result.scalar_one_or_none()
+        
+        if device:
+            device.last_seen = datetime.now(timezone.utc)
+            device.login_count += 1
+            device.ip_address = client_ip
+        else:
+            device = DeviceFingerprint(
+                fingerprint_id=body.device_id,
+                user_id=user.id,
+                ip_address=client_ip,
+                country=ip_result.get("country"),
+                city=ip_result.get("city"),
+                isp=ip_result.get("isp"),
+            )
+            db.add(device)
+    
+    await db.commit()
+    
+    # Generate tokens
+    access_token = create_access_token(subject=str(user.id))
+    
+    # Longer refresh token for remember me
+    if body.remember_me:
+        refresh_token = create_refresh_token(
+            subject=str(user.id),
+            expires_delta=timedelta(days=30)
+        )
+    else:
+        refresh_token = create_refresh_token(subject=str(user.id))
+    
+    return Token(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user=UserResponse.model_validate(user),
+    )
+
+
+# ============ Email Verification ============
+
+@router.post("/verify-email", response_model=Token)
+async def verify_email(body: EmailVerifyRequest, db: DBSession):
+    """
+    Verify email address using token from email.
+    
+    - **token**: Verification token from email link
+    """
+    # Find user by token
+    result = await db.execute(
+        select(User).where(User.verification_token == body.token)
+    )
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid verification token.",
+        )
+    
+    # Check if already verified
+    if user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already verified. Please login.",
+        )
+    
+    # Check if token expired
+    if user.verification_expires and datetime.now(timezone.utc) > user.verification_expires:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Verification link has expired. Please request a new one.",
+        )
+    
+    # Verify user and give trial credits
+    user.is_verified = True
+    user.verification_token = None
+    user.verification_expires = None
+    user.credit_balance = TRIAL_CREDITS
+    
+    await db.commit()
+    
+    logger.info(f"User verified: {user.email}")
+    
+    # Generate tokens and auto-login
+    access_token = create_access_token(subject=str(user.id))
+    refresh_token = create_refresh_token(subject=str(user.id))
+    
+    return Token(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user=UserResponse.model_validate(user),
+    )
+
+
+# ============ Resend Verification Email ============
+
+@router.post("/resend-verification", response_model=dict)
+async def resend_verification(body: ResendVerificationRequest, db: DBSession):
+    """
+    Resend verification email.
+    
+    - **email**: User's email address
+    """
+    # Find user
+    result = await db.execute(
+        select(User).where(User.email == body.email.lower())
+    )
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        # Don't reveal if email exists
+        return {"message": "If the email exists, a verification link has been sent."}
+    
+    if user.is_verified:
+        return {"message": "Email already verified. Please login."}
+    
+    # Generate new token
+    verification_token = secrets.token_urlsafe(32)
+    user.verification_token = verification_token
+    user.verification_expires = datetime.now(timezone.utc) + timedelta(hours=24)
+    
+    await db.commit()
+    
+    # Send email
+    try:
+        await email_service.send_verification_email(
+            to=user.email,
+            name=user.name,
+            token=verification_token,
+        )
+    except Exception as e:
+        logger.error(f"Failed to send verification email: {e}")
+    
+    return {"message": "If the email exists, a verification link has been sent."}
+
+
+# ============ Get Allowed Email Domains ============
+
+@router.get("/allowed-domains", response_model=list)
+async def get_allowed_domains():
+    """
+    Get list of allowed email domains for signup.
+    """
+    return ALLOWED_EMAIL_DOMAINS

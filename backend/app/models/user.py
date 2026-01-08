@@ -101,6 +101,14 @@ class User(Base):
     oauth_provider: Mapped[str | None] = mapped_column(String(50), nullable=True)  # google, facebook
     oauth_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     
+    # Email verification
+    verification_token: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    verification_expires: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    
+    # Remember me token
+    remember_token: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    remember_expires: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    
     # Anti-abuse tracking
     signup_ip: Mapped[str | None] = mapped_column(String(50), nullable=True)
     signup_device_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -114,6 +122,6 @@ class User(Base):
         """Check if user has any credits."""
         return self.credit_balance > 0
     
-    def can_create_video(self, required_credits: int = 1) -> bool:
+    def can_create_video(self, required_credits: int = 2) -> bool:
         """Check if user has enough credits to create a video."""
         return self.credit_balance >= required_credits

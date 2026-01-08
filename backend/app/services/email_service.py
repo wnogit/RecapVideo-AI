@@ -103,6 +103,33 @@ class EmailService:
         
         return await self.send_email(to, subject, html)
     
+    async def send_verification_email(self, to: str, name: str, token: str) -> bool:
+        """Send email verification link."""
+        subject = "Verify Your Email - RecapVideo.AI"
+        
+        verify_url = f"https://app.recapvideo.ai/verify?token={token}"
+        
+        html = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #ea580c;">Verify Your Email</h1>
+            <p>Hi {name},</p>
+            <p>Thank you for signing up for RecapVideo.AI! Please verify your email address to activate your account.</p>
+            <p>
+                <a href="{verify_url}" 
+                   style="display: inline-block; background: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
+                    Verify Email
+                </a>
+            </p>
+            <p>Or copy and paste this link into your browser:</p>
+            <p style="color: #666; word-break: break-all;">{verify_url}</p>
+            <p>This link will expire in 24 hours.</p>
+            <p>If you didn't create an account, you can safely ignore this email.</p>
+            <p>The RecapVideo.AI Team</p>
+        </div>
+        """
+        
+        return await self.send_email(to, subject, html)
+    
     async def send_password_reset_email(self, to: str, reset_token: str) -> bool:
         """Send password reset email."""
         subject = "Reset Your Password - RecapVideo.AI"

@@ -17,13 +17,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Link2, Mic, Languages, Film } from 'lucide-react';
+import { Loader2, Link2, Mic, Languages, Film, AlertCircle, Coins } from 'lucide-react';
+
+// YouTube Shorts URL patterns
+const YOUTUBE_SHORTS_PATTERNS = [
+  /^https?:\/\/(?:www\.)?youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})(?:\?.*)?$/,
+  /^https?:\/\/youtu\.be\/([a-zA-Z0-9_-]{11})(?:\?.*)?$/,
+];
+
+const isYoutubeShortsUrl = (url: string): boolean => {
+  return YOUTUBE_SHORTS_PATTERNS.some(pattern => pattern.test(url));
+};
+
+const isRegularYoutubeUrl = (url: string): boolean => {
+  const regularPatterns = [
+    /^https?:\/\/(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+    /^https?:\/\/(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+  ];
+  return regularPatterns.some(pattern => pattern.test(url));
+};
+
+const CREDITS_PER_VIDEO = 2;
 
 const videoSchema = z.object({
-  url: z.string().url('Please enter a valid URL').refine(
-    (url) => url.includes('youtube.com') || url.includes('youtu.be'),
-    'Please enter a valid YouTube URL'
-  ),
+  url: z.string()
+    .url('Please enter a valid URL')
+    .refine(
+      (url) => isYoutubeShortsUrl(url),
+      'Only YouTube Shorts URLs are supported'
+    ),
   voice: z.string().default('my-MM-NilarNeural'),
   language: z.string().default('my'),
 });
@@ -85,7 +107,11 @@ export function VideoForm({ onSuccess }: VideoFormProps) {
     }
   };
 
-  const hasCredits = (user?.credit_balance || 0) >= 1;
+  const hasCredits = (user?.credit_balance || 0) >= CREDITS_PER_VIDEO;
+
+  // Check if URL is a regular YouTube video (not Shorts)
+  const watchedUrl = watch('url');
+  const isRegularVideo = watchedUrl && isRegularYoutubeUrl(watchedUrl) && !isYoutubeShortsUrl(watchedUrl);
 
   return (
     <Card>
@@ -95,7 +121,7 @@ export function VideoForm({ onSuccess }: VideoFormProps) {
           Create New Video
         </CardTitle>
         <CardDescription>
-          Enter a YouTube URL to generate a recap video with Burmese voiceover
+          Enter a YouTube Shorts URL to generate a recap video with Burmese voiceover
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -108,7 +134,7 @@ export function VideoForm({ onSuccess }: VideoFormProps) {
 
           {!hasCredits && (
             <div className="rounded-md bg-yellow-500/10 p-3 text-sm text-yellow-600">
-              You need at least 1 credit to create a video.{' '}
+              You need at least {CREDITS_PER_VIDEO} credits to create a video.{' '}
               <a href="/buy" className="underline font-medium">
                 Buy credits
               </a>
@@ -117,19 +143,30 @@ export function VideoForm({ onSuccess }: VideoFormProps) {
 
           {/* YouTube URL */}
           <div className="space-y-2">
-            <Label htmlFor="url">YouTube URL</Label>
+            <Label htmlFor="url">YouTube Shorts URL</Label>
             <div className="relative">
               <Link2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="url"
                 type="url"
-                placeholder="https://www.youtube.com/watch?v=..."
+                placeholder="https://www.youtube.com/shorts/..."
                 className="pl-10"
                 {...register('url')}
               />
             </div>
             {errors.url && (
               <p className="text-sm text-destructive">{errors.url.message}</p>
+            )}
+            {isRegularVideo && (
+              <div className="flex items-start gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-md">
+                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Only YouTube Shorts are supported</p>
+                  <p className="text-xs mt-1 opacity-80">
+                    Please use a Shorts URL like: youtube.com/shorts/VIDEO_ID
+                  </p>
+                </div>
+              </div>
             )}
           </div>
 
@@ -185,14 +222,17 @@ export function VideoForm({ onSuccess }: VideoFormProps) {
 
           {/* Credit Info */}
           <div className="flex items-center justify-between text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
-            <span>Cost per video:</span>
-            <span className="font-medium">1 Credit</span>
+            <span className="flex items-center gap-2">
+              <Coins className="h-4 w-4" />
+              Cost per video:
+            </span>
+            <span className="font-medium">{CREDITS_PER_VIDEO} Credits</span>
           </div>
 
           <Button
             type="submit"
             className="w-full"
-            disabled={isLoading || !hasCredits}
+            disabled={isLoading || !hasCredits || isRegularVideo}
           >
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Generate Video

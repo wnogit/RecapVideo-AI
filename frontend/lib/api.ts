@@ -65,12 +65,26 @@ api.interceptors.response.use(
 
 export default api;
 
-// API endpoints (Google OAuth only - no email/password)
+// API endpoints
 export const authApi = {
+  // Email/Password auth
+  signup: (data: { email: string; password: string; name: string; device_id?: string }) =>
+    api.post('/auth/signup', data),
+  login: (data: { email: string; password: string; device_id?: string; remember_me?: boolean }) =>
+    api.post('/auth/login', data),
+  verifyEmail: (token: string) =>
+    api.post('/auth/verify-email', { token }),
+  resendVerification: (email: string) =>
+    api.post('/auth/resend-verification', { email }),
+  getAllowedDomains: () =>
+    api.get<string[]>('/auth/allowed-domains'),
+  
+  // OAuth & common
   logout: () => api.post('/auth/logout'),
   me: () => api.get('/users/me'),
   refresh: (refreshToken: string) =>
     api.post('/auth/refresh', { refresh_token: refreshToken }),
+  checkIp: () => api.get('/auth/check-ip'),
 };
 
 export const videoApi = {
