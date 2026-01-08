@@ -8,6 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field, HttpUrl, field_validator
 
 from app.models.video import VideoStatus, VoiceType
+from app.utils.youtube import is_youtube_url
 
 
 class VideoCreate(BaseModel):
@@ -24,13 +25,7 @@ class VideoCreate(BaseModel):
     @classmethod
     def validate_youtube_url(cls, v: str) -> str:
         """Validate YouTube URL."""
-        import re
-        youtube_patterns = [
-            r'(https?://)?(www\.)?youtube\.com/watch\?v=[\w-]+',
-            r'(https?://)?(www\.)?youtu\.be/[\w-]+',
-            r'(https?://)?(www\.)?youtube\.com/shorts/[\w-]+',
-        ]
-        if not any(re.match(pattern, v) for pattern in youtube_patterns):
+        if not is_youtube_url(v):
             raise ValueError("Invalid YouTube URL")
         return v
     

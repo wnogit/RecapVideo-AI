@@ -1,7 +1,6 @@
 """
 Video Endpoints
 """
-import re
 from math import ceil
 from typing import Optional
 from uuid import UUID
@@ -17,6 +16,7 @@ from app.schemas.video import (
     VideoResponse,
     VideoListResponse,
 )
+from app.utils.youtube import validate_youtube_shorts_url
 
 
 router = APIRouter()
@@ -24,40 +24,6 @@ router = APIRouter()
 
 # Credits per video
 CREDITS_PER_VIDEO = 2
-
-# YouTube Shorts URL patterns
-YOUTUBE_SHORTS_PATTERNS = [
-    r'^https?://(?:www\.)?youtube\.com/shorts/([a-zA-Z0-9_-]{11})(?:\?.*)?$',
-    r'^https?://m\.youtube\.com/shorts/([a-zA-Z0-9_-]{11})(?:\?.*)?$',
-]
-
-
-def validate_youtube_shorts_url(url: str) -> tuple[bool, str | None]:
-    """
-    Validate that URL is a YouTube Shorts URL.
-    
-    Returns:
-        (is_valid, video_id or error_message)
-    """
-    url = url.strip()
-    
-    for pattern in YOUTUBE_SHORTS_PATTERNS:
-        match = re.match(pattern, url)
-        if match:
-            return True, match.group(1)
-    
-    # Check if it's a regular YouTube video (to give specific error)
-    regular_patterns = [
-        r'^https?://(?:www\.)?youtube\.com/watch\?v=',
-        r'^https?://youtu\.be/',
-        r'^https?://(?:www\.)?youtube\.com/playlist',
-    ]
-    
-    for pattern in regular_patterns:
-        if re.match(pattern, url):
-            return False, "Only YouTube Shorts are supported. Please use a youtube.com/shorts/ link."
-    
-    return False, "Invalid URL. Please enter a valid YouTube Shorts URL (youtube.com/shorts/...)"
 
 
 @router.post("", response_model=VideoResponse, status_code=status.HTTP_201_CREATED)
