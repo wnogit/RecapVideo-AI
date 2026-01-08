@@ -32,7 +32,7 @@ aiohttp==3.9.3
 
 # TTS & Processing
 edge-tts==6.1.9
-yt-dlp==2024.1.17
+yt-dlp>=2024.12.6
 ffmpeg-python==0.2.0
 webvtt-py==0.4.6
 
