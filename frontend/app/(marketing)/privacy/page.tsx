@@ -1,174 +1,203 @@
-import { Metadata } from 'next';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Privacy Policy - RecapVideo.AI',
-  description: 'Privacy Policy for RecapVideo.AI video translation service',
-};
+import { motion } from 'framer-motion';
+import { Badge } from '@/components/ui/badge';
+import { Shield, Lock, Eye, Database, UserCheck, Globe, Bell, Mail } from 'lucide-react';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+
+const privacySections = [
+  {
+    id: 'information-collection',
+    icon: Database,
+    title: 'Information We Collect',
+    content: `We collect information you provide directly to us, such as:
+
+• **Account Information**: When you create an account, we collect your name, email address, and password.
+• **Payment Information**: When you make a purchase, we collect payment details through our secure payment processors (KBZ Pay, Wave Pay).
+• **Usage Data**: We collect information about how you use our services, including videos processed, features used, and preferences.
+• **Device Information**: We may collect information about the device you use to access our services, including browser type, operating system, and IP address.
+
+We do NOT store your payment card information directly - all payments are processed through secure third-party payment providers.`
+  },
+  {
+    id: 'information-use',
+    icon: Eye,
+    title: 'How We Use Your Information',
+    content: `We use the information we collect to:
+
+• **Provide Services**: Process your video requests, manage your account, and deliver the features you use.
+• **Improve Our Services**: Analyze usage patterns to improve our AI algorithms and user experience.
+• **Communicate With You**: Send you service updates, security alerts, and support messages.
+• **Process Payments**: Handle credit purchases and maintain transaction records.
+• **Prevent Fraud**: Detect and prevent fraudulent activity and abuse of our services.
+
+We never sell your personal information to third parties.`
+  },
+  {
+    id: 'data-security',
+    icon: Lock,
+    title: 'Data Security',
+    content: `We implement industry-standard security measures to protect your data:
+
+• **Encryption**: All data is encrypted in transit using TLS/SSL and at rest using AES-256 encryption.
+• **Secure Storage**: Videos and user data are stored on secure cloud infrastructure with regular security audits.
+• **Access Control**: Only authorized personnel have access to user data, and access is logged and monitored.
+• **Regular Updates**: We regularly update our security practices to address new threats.
+
+Despite our efforts, no method of transmission over the Internet or electronic storage is 100% secure. We cannot guarantee absolute security.`
+  },
+  {
+    id: 'data-retention',
+    icon: Database,
+    title: 'Data Retention',
+    content: `We retain your information for as long as necessary to provide our services:
+
+• **Account Data**: Retained while your account is active and for a reasonable period afterward.
+• **Processed Videos**: Stored for 30 days after creation, then automatically deleted unless you choose to keep them.
+• **Transaction Records**: Retained for 7 years as required by law.
+• **Usage Logs**: Anonymized after 90 days.
+
+You can request deletion of your account and associated data at any time by contacting us.`
+  },
+  {
+    id: 'user-rights',
+    icon: UserCheck,
+    title: 'Your Rights',
+    content: `You have the following rights regarding your personal data:
+
+• **Access**: Request a copy of the personal data we hold about you.
+• **Correction**: Request correction of inaccurate or incomplete data.
+• **Deletion**: Request deletion of your personal data.
+• **Portability**: Request a copy of your data in a portable format.
+• **Objection**: Object to certain processing of your data.
+
+To exercise these rights, please contact us at privacy@recapvideo.ai.`
+  },
+  {
+    id: 'cookies',
+    icon: Globe,
+    title: 'Cookies & Tracking',
+    content: `We use cookies and similar technologies for:
+
+• **Essential Cookies**: Required for the website to function properly (authentication, security).
+• **Analytics Cookies**: Help us understand how visitors use our site (anonymized).
+• **Preference Cookies**: Remember your settings and preferences.
+
+You can manage cookie preferences through your browser settings. Disabling certain cookies may affect your ability to use some features.`
+  },
+  {
+    id: 'updates',
+    icon: Bell,
+    title: 'Policy Updates',
+    content: `We may update this Privacy Policy from time to time. When we do:
+
+• We will post the updated policy on this page with a new "Last Updated" date.
+• For significant changes, we will notify you via email or a prominent notice on our website.
+• Your continued use of our services after changes take effect constitutes acceptance of the updated policy.
+
+We encourage you to review this policy periodically.`
+  },
+  {
+    id: 'contact',
+    icon: Mail,
+    title: 'Contact Us',
+    content: `If you have questions about this Privacy Policy or our data practices, please contact us:
+
+• **Email**: privacy@recapvideo.ai
+• **Telegram**: @recapvideo
+• **Address**: Yangon, Myanmar
+
+We aim to respond to all inquiries within 48 hours.`
+  }
+];
 
 export default function PrivacyPage() {
   return (
-    <div className="container max-w-4xl py-12 md:py-20">
-      <div className="prose prose-gray dark:prose-invert max-w-none">
-        <h1 className="text-3xl md:text-4xl font-bold mb-8">Privacy Policy</h1>
-        <p className="text-muted-foreground mb-8">Last updated: January 8, 2026</p>
+    <div className="py-16 md:py-24">
+      <div className="container max-w-4xl">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-12"
+        >
+          <Badge className="mb-4 bg-violet-500/10 text-violet-400 border-violet-500/20">
+            <Shield className="mr-1 h-3 w-3" />
+            Legal
+          </Badge>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            Privacy <span className="gradient-text">Policy</span>
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Your privacy matters to us. Learn how we protect and handle your data.
+          </p>
+          <p className="text-sm text-muted-foreground mt-4">
+            Last updated: January 2025
+          </p>
+        </motion.div>
 
-        <section className="mb-8">
-          <h2 className="text-xl md:text-2xl font-semibold mb-4">1. Introduction</h2>
+        {/* Introduction */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="glass rounded-2xl p-8 mb-8"
+        >
           <p className="text-muted-foreground leading-relaxed">
-            RecapVideo.AI (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) respects your privacy and is committed to 
-            protecting your personal data. This Privacy Policy explains how we collect, use, 
-            and safeguard your information when you use our Service.
+            RecapVideo.AI (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) is committed to protecting your privacy. 
+            This Privacy Policy explains how we collect, use, disclose, and safeguard your 
+            information when you use our video recap generation service. Please read this 
+            policy carefully to understand our practices regarding your personal data.
           </p>
-        </section>
+        </motion.div>
 
-        <section className="mb-8">
-          <h2 className="text-xl md:text-2xl font-semibold mb-4">2. Information We Collect</h2>
-          
-          <h3 className="text-lg font-medium mt-6 mb-3">2.1 Account Information</h3>
-          <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-            <li>Email address</li>
-            <li>Name (if provided)</li>
-            <li>Profile picture (from Google OAuth)</li>
-            <li>Password (encrypted)</li>
-          </ul>
+        {/* Accordion Sections */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Accordion type="single" collapsible className="space-y-4">
+            {privacySections.map((section, index) => (
+              <AccordionItem
+                key={section.id}
+                value={section.id}
+                className="glass rounded-xl border-white/10 px-6 overflow-hidden"
+              >
+                <AccordionTrigger className="hover:no-underline py-6">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-lg bg-gradient-to-r from-violet-600/20 to-pink-600/20 flex items-center justify-center">
+                      <section.icon className="h-5 w-5 text-violet-400" />
+                    </div>
+                    <span className="text-lg font-semibold text-left">{section.title}</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pb-6">
+                  <div className="pl-14 text-muted-foreground leading-relaxed whitespace-pre-line">
+                    {section.content}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </motion.div>
 
-          <h3 className="text-lg font-medium mt-6 mb-3">2.2 Usage Data</h3>
-          <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-            <li>Videos created and processed</li>
-            <li>YouTube URLs submitted</li>
-            <li>Credit transaction history</li>
-            <li>Login timestamps and session data</li>
-          </ul>
-
-          <h3 className="text-lg font-medium mt-6 mb-3">2.3 Technical Data</h3>
-          <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-            <li>IP address</li>
-            <li>Browser type and version</li>
-            <li>Device information</li>
-            <li>Operating system</li>
-          </ul>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-xl md:text-2xl font-semibold mb-4">3. How We Use Your Information</h2>
-          <p className="text-muted-foreground leading-relaxed mb-4">
-            We use the collected information to:
+        {/* Footer Note */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-12 text-center text-sm text-muted-foreground"
+        >
+          <p>
+            By using RecapVideo.AI, you acknowledge that you have read and understood this Privacy Policy.
           </p>
-          <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-            <li>Provide and maintain our Service</li>
-            <li>Process your video requests</li>
-            <li>Manage your account and credits</li>
-            <li>Send important service notifications</li>
-            <li>Prevent fraud and abuse</li>
-            <li>Improve our Service and user experience</li>
-            <li>Respond to customer support requests</li>
-          </ul>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-xl md:text-2xl font-semibold mb-4">4. Data Storage and Security</h2>
-          <p className="text-muted-foreground leading-relaxed mb-4">
-            We take data security seriously:
-          </p>
-          <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-            <li>All data is encrypted in transit (HTTPS/TLS)</li>
-            <li>Passwords are hashed using industry-standard algorithms</li>
-            <li>Videos are stored securely in cloud storage (Cloudflare R2)</li>
-            <li>We use secure, reputable hosting providers</li>
-            <li>Regular security audits and updates</li>
-          </ul>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-xl md:text-2xl font-semibold mb-4">5. Data Sharing</h2>
-          <p className="text-muted-foreground leading-relaxed mb-4">
-            We do NOT sell your personal data. We may share data with:
-          </p>
-          <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-            <li><strong>Service Providers:</strong> Cloud hosting, payment processors, email services</li>
-            <li><strong>Legal Requirements:</strong> When required by law or to protect our rights</li>
-            <li><strong>Business Transfers:</strong> In case of merger or acquisition</li>
-          </ul>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-xl md:text-2xl font-semibold mb-4">6. Third-Party Services</h2>
-          <p className="text-muted-foreground leading-relaxed mb-4">
-            We integrate with the following third-party services:
-          </p>
-          <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-            <li><strong>Google OAuth:</strong> For secure sign-in</li>
-            <li><strong>YouTube:</strong> For transcript extraction</li>
-            <li><strong>Cloudflare R2:</strong> For video storage</li>
-            <li><strong>Microsoft Azure:</strong> For text-to-speech services</li>
-            <li><strong>OpenAI/Google AI:</strong> For translation and summarization</li>
-          </ul>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-xl md:text-2xl font-semibold mb-4">7. Cookies</h2>
-          <p className="text-muted-foreground leading-relaxed">
-            We use essential cookies for authentication and session management. 
-            We do not use tracking or advertising cookies.
-          </p>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-xl md:text-2xl font-semibold mb-4">8. Your Rights</h2>
-          <p className="text-muted-foreground leading-relaxed mb-4">
-            You have the right to:
-          </p>
-          <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-            <li>Access your personal data</li>
-            <li>Correct inaccurate data</li>
-            <li>Request deletion of your data</li>
-            <li>Export your data</li>
-            <li>Withdraw consent at any time</li>
-          </ul>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-xl md:text-2xl font-semibold mb-4">9. Data Retention</h2>
-          <p className="text-muted-foreground leading-relaxed">
-            We retain your data for as long as your account is active. Upon account deletion, 
-            we will remove your personal data within 30 days, except where retention is 
-            required by law.
-          </p>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-xl md:text-2xl font-semibold mb-4">10. Children&apos;s Privacy</h2>
-          <p className="text-muted-foreground leading-relaxed">
-            Our Service is not intended for users under 13 years of age. We do not knowingly 
-            collect data from children under 13.
-          </p>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-xl md:text-2xl font-semibold mb-4">11. International Data Transfers</h2>
-          <p className="text-muted-foreground leading-relaxed">
-            Your data may be processed in countries other than your own. We ensure appropriate 
-            safeguards are in place for international data transfers.
-          </p>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-xl md:text-2xl font-semibold mb-4">12. Changes to This Policy</h2>
-          <p className="text-muted-foreground leading-relaxed">
-            We may update this Privacy Policy periodically. We will notify you of significant 
-            changes via email or through the Service.
-          </p>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-xl md:text-2xl font-semibold mb-4">13. Contact Us</h2>
-          <p className="text-muted-foreground leading-relaxed">
-            For privacy-related questions or requests, contact us at:{' '}
-            <a href="mailto:privacy@recapvideo.ai" className="text-primary hover:underline">
-              privacy@recapvideo.ai
-            </a>
-          </p>
-        </section>
+        </motion.div>
       </div>
     </div>
   );
