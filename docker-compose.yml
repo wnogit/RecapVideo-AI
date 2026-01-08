@@ -99,12 +99,16 @@ services:
     build:
       context: ./frontend
       dockerfile: ../docker/Dockerfile.frontend
+      args:
+        - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+        - NEXT_PUBLIC_API_URL=${API_URL:-https://api.recapvideo.ai}
     container_name: recapvideo-frontend
     restart: unless-stopped
     environment:
       - NEXT_PUBLIC_API_URL=${API_URL:-https://api.recapvideo.ai}
       - NEXT_PUBLIC_WS_URL=${WS_URL:-wss://api.recapvideo.ai}
       - NEXT_PUBLIC_APP_NAME=RecapVideo.AI
+      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
     ports:
       - "3000:3000"
     depends_on:
