@@ -75,6 +75,7 @@ class UserResponse(BaseModel):
     phone: Optional[str] = None
     is_active: bool
     is_verified: bool
+    is_admin: bool = False
     credit_balance: int
     created_at: datetime
     
