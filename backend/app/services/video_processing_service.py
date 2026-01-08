@@ -13,9 +13,9 @@ import os
 import shutil
 import subprocess
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 from loguru import logger
 
@@ -66,20 +66,10 @@ class OutroOptions:
 class VideoProcessingOptions:
     """All video processing options."""
     aspect_ratio: str = "9:16"  # 9:16, 16:9, 1:1, 4:5
-    copyright: CopyrightOptions = None
-    subtitles: SubtitleOptions = None
-    logo: LogoOptions = None
-    outro: OutroOptions = None
-    
-    def __post_init__(self):
-        if self.copyright is None:
-            self.copyright = CopyrightOptions()
-        if self.subtitles is None:
-            self.subtitles = SubtitleOptions()
-        if self.logo is None:
-            self.logo = LogoOptions()
-        if self.outro is None:
-            self.outro = OutroOptions()
+    copyright: CopyrightOptions = field(default_factory=CopyrightOptions)
+    subtitles: SubtitleOptions = field(default_factory=SubtitleOptions)
+    logo: LogoOptions = field(default_factory=LogoOptions)
+    outro: OutroOptions = field(default_factory=OutroOptions)
 
 
 class VideoProcessingService:
@@ -120,7 +110,7 @@ class VideoProcessingService:
         audio_path: str,
         subtitle_path: Optional[str],
         options: VideoProcessingOptions,
-        progress_callback: Optional[callable] = None,
+        progress_callback: Optional[Callable] = None,
     ) -> str:
         """
         Process video with all options applied.

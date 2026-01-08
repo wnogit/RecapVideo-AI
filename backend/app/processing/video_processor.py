@@ -102,6 +102,7 @@ class VideoProcessor:
             True if processing completed successfully
         """
         async with async_session_maker() as db:
+            video = None
             try:
                 # Get video
                 result = await db.execute(
@@ -183,7 +184,7 @@ class VideoProcessor:
                 video_path = await self.video_processing.process_video(
                     source_video_path=source_video_path,
                     audio_path=audio_path,
-                    subtitle_path=subtitle_path if processing_options.subtitles.enabled else None,
+                    subtitle_path=subtitle_path if (processing_options.subtitles and processing_options.subtitles.enabled) else None,
                     options=processing_options,
                     progress_callback=progress_cb,
                 )
@@ -230,6 +231,9 @@ class VideoProcessor:
             except Exception as e:
                 logger.exception(f"Video processing failed: {video_id}")
                 
+                if video is None:
+                    return False
+                
                 # Update status to failed
                 video.status = VideoStatus.FAILED.value
                 video.error_message = str(e)
@@ -273,7 +277,7 @@ class VideoProcessor:
         
         return script
     
-    async def _generate_audio(self, video: Video) -> tuple[str, str]:
+    async def _generate_audio(self, video: Video) -> tuple[str, str | None]:
         """Generate audio using Edge-TTS."""
         logger.info(f"Generating audio with voice: {video.voice_type}")
         
@@ -400,7 +404,7 @@ class VideoProcessor:
         except Exception as e:
             logger.warning(f"Failed to send completion email: {e}")
     
-    def _cleanup_temp_files(self, paths: list[str]):
+    def _cleanup_temp_files(self, paths: list[str | None]):
         """Clean up temporary files."""
         for path in paths:
             if path:

@@ -77,7 +77,8 @@ async def upload_logo(
         )
     
     # Generate unique filename
-    extension = file.filename.split(".")[-1] if "." in file.filename else "png"
+    filename = file.filename or "upload.png"
+    extension = filename.split(".")[-1] if "." in filename else "png"
     unique_filename = f"{current_user.id}/{uuid.uuid4()}.{extension}"
     
     # Upload to R2
@@ -98,7 +99,7 @@ async def upload_logo(
     
     return UploadResponse(
         url=url,
-        filename=file.filename,
+        filename=filename,
         content_type=file.content_type,
         size=len(content),
     )
