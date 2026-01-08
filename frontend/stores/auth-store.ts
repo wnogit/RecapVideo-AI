@@ -29,6 +29,7 @@ interface AuthState {
   setAuth: (access_token: string, refresh_token: string, user: User) => void;
   logout: () => void;
   fetchUser: () => Promise<void>;
+  checkAuth: () => Promise<void>;
   updateUser: (data: Partial<User>) => void;
   clearError: () => void;
 }
@@ -90,6 +91,11 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
         }
+      },
+
+      checkAuth: async () => {
+        // Alias for fetchUser - checks if user is authenticated
+        await get().fetchUser();
       },
 
       updateUser: (data: Partial<User>) => {
