@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Film } from 'lucide-react';
+import { studioUrls } from '@/lib/config';
 
 export default function MarketingLayout({
   children,
@@ -16,18 +17,18 @@ export default function MarketingLayout({
             <span className="text-xl font-bold">RecapVideo.AI</span>
           </Link>
           <nav className="flex items-center gap-6">
-            <Link
-              href="/login"
+            <a
+              href={studioUrls.login}
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               Sign In
-            </Link>
-            <Link
-              href="/signup"
+            </a>
+            <a
+              href={studioUrls.signup}
               className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
             >
               Get Started
-            </Link>
+            </a>
           </nav>
         </div>
       </header>

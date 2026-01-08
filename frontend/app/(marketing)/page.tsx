@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { studioUrls } from '@/lib/config';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -36,12 +37,12 @@ export default function LandingPage() {
               with natural-sounding Burmese AI voices. Create engaging recap videos in minutes.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/signup">
+              <a href={studioUrls.signup}>
                 <Button size="lg" className="w-full sm:w-auto">
                   Start Free Trial
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              </Link>
+              </a>
               <Link href="#demo">
                 <Button size="lg" variant="outline" className="w-full sm:w-auto">
                   <Play className="mr-2 h-4 w-4" />
@@ -212,9 +213,9 @@ export default function LandingPage() {
                     Cloud storage
                   </li>
                 </ul>
-                <Link href="/signup" className="block mt-6">
+                <a href={studioUrls.signup} className="block mt-6">
                   <Button variant="outline" className="w-full">Get Started</Button>
-                </Link>
+                </a>
               </CardContent>
             </Card>
 
@@ -249,9 +250,9 @@ export default function LandingPage() {
                     20% savings
                   </li>
                 </ul>
-                <Link href="/signup" className="block mt-6">
+                <a href={studioUrls.signup} className="block mt-6">
                   <Button className="w-full">Get Started</Button>
-                </Link>
+                </a>
               </CardContent>
             </Card>
 
@@ -283,16 +284,16 @@ export default function LandingPage() {
                     30% savings
                   </li>
                 </ul>
-                <Link href="/signup" className="block mt-6">
+                <a href={studioUrls.signup} className="block mt-6">
                   <Button variant="outline" className="w-full">Get Started</Button>
-                </Link>
+                </a>
               </CardContent>
             </Card>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* CTA Section */}}
       <section className="py-20">
         <div className="container">
           <div className="max-w-3xl mx-auto text-center">
@@ -303,12 +304,12 @@ export default function LandingPage() {
               Join thousands of content creators using RecapVideo.AI to create
               engaging Burmese content from YouTube videos.
             </p>
-            <Link href="/signup">
+            <a href={studioUrls.signup}>
               <Button size="lg">
                 Start Free Trial
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-            </Link>
+            </a>
           </div>
         </div>
       </section>
