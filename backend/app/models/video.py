@@ -48,7 +48,6 @@ DEFAULT_VIDEO_OPTIONS = {
     },
     "subtitles": {
         "enabled": True,
-        "font": "Pyidaungsu",
         "size": "large",
         "position": "bottom",
         "background": "semi",

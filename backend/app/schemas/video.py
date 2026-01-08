@@ -24,19 +24,11 @@ class CopyrightOptionsSchema(BaseModel):
 class SubtitleOptionsSchema(BaseModel):
     """Subtitle options."""
     enabled: bool = Field(default=True, description="Enable subtitles")
-    font: str = Field(default="Pyidaungsu", description="Font family (Pyidaungsu or Padauk)")
     size: str = Field(default="large", description="Font size (small/medium/large)")
     position: str = Field(default="bottom", description="Position (top/center/bottom)")
     background: str = Field(default="semi", description="Background style (none/semi/solid)")
     color: str = Field(default="#FFFFFF", description="Text color hex")
     word_highlight: bool = Field(default=True, description="Highlight current word")
-    
-    @field_validator("font")
-    @classmethod
-    def validate_font(cls, v: str) -> str:
-        if v not in ["Pyidaungsu", "Padauk"]:
-            raise ValueError("Font must be Pyidaungsu or Padauk")
-        return v
     
     @field_validator("size")
     @classmethod

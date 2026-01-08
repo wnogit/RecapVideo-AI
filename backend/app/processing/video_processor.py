@@ -69,7 +69,6 @@ class VideoProcessor:
             ),
             subtitles=SubtitleOptions(
                 enabled=subtitle_opts.get("enabled", True),
-                font=subtitle_opts.get("font", "Pyidaungsu"),
                 size=subtitle_opts.get("size", "large"),
                 position=subtitle_opts.get("position", "bottom"),
                 background=subtitle_opts.get("background", "semi"),

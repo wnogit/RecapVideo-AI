@@ -35,7 +35,6 @@ class CopyrightOptions:
 class SubtitleOptions:
     """Subtitle options."""
     enabled: bool = True
-    font: str = "Pyidaungsu"
     size: str = "large"  # small, medium, large
     position: str = "bottom"  # top, center, bottom
     background: str = "semi"  # none, semi, solid
@@ -436,7 +435,7 @@ class VideoProcessingService:
         color = options.color.lstrip("#")
         ass_color = f"&H00{color[4:6]}{color[2:4]}{color[0:2]}"
         
-        # ASS header
+        # ASS header - use Arial for Unicode support
         ass_content = f"""[Script Info]
 Title: Subtitles
 ScriptType: v4.00+
@@ -445,7 +444,7 @@ PlayResY: 1080
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{options.font},{font_size},{ass_color},&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,{border_style},2,1,2,10,10,{margin_v},1
+Style: Default,Arial,{font_size},{ass_color},&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,{border_style},2,1,2,10,10,{margin_v},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
