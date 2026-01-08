@@ -57,7 +57,16 @@ function AuthCallbackContent() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || 'Authentication failed');
+        // Handle error detail which can be string or object
+        let errorMsg = 'Authentication failed';
+        if (data.detail) {
+          if (typeof data.detail === 'string') {
+            errorMsg = data.detail;
+          } else if (typeof data.detail === 'object' && data.detail.message) {
+            errorMsg = data.detail.message;
+          }
+        }
+        throw new Error(errorMsg);
       }
 
       // Store auth tokens
