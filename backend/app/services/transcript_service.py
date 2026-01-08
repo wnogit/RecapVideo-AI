@@ -7,6 +7,7 @@ from loguru import logger
 
 from app.core.config import settings
 from app.services.api_key_service import api_key_service
+from app.utils.youtube import extract_youtube_id  # Centralized extraction
 
 
 class TranscriptService:
@@ -27,23 +28,9 @@ class TranscriptService:
         """
         Extract YouTube video ID from URL.
         
-        Supports:
-        - https://www.youtube.com/watch?v=VIDEO_ID
-        - https://youtu.be/VIDEO_ID
-        - https://www.youtube.com/shorts/VIDEO_ID
+        Delegates to centralized utility for consistent URL parsing.
         """
-        import re
-        
-        patterns = [
-            r'(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/shorts/)([a-zA-Z0-9_-]{11})',
-        ]
-        
-        for pattern in patterns:
-            match = re.search(pattern, url)
-            if match:
-                return match.group(1)
-        
-        return None
+        return extract_youtube_id(url)
     
     async def get_transcript(
         self,

@@ -1,15 +1,65 @@
 """
 RecapVideo.AI - FastAPI Main Application
 """
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from loguru import logger
+from sqlalchemy import select
 
 from app.core.config import settings
 from app.api.v1.router import api_router
-from app.core.database import engine, Base
+from app.core.database import engine, Base, async_session_maker
+
+
+async def resume_pending_videos():
+    """
+    Resume processing of videos that were interrupted by server restart.
+    
+    This handles the case where asyncio.create_task jobs are lost on restart.
+    Videos in 'processing' or 'pending' state will be re-queued.
+    """
+    from app.models.video import Video, VideoStatus
+    from app.processing.video_processor import process_video_task
+    
+    try:
+        async with async_session_maker() as db:
+            # Find interrupted videos (processing or pending)
+            result = await db.execute(
+                select(Video).where(
+                    Video.status.in_([
+                        VideoStatus.PENDING.value,
+                        VideoStatus.EXTRACTING_TRANSCRIPT.value,
+                        VideoStatus.GENERATING_SCRIPT.value,
+                        VideoStatus.GENERATING_AUDIO.value,
+                        VideoStatus.RENDERING_VIDEO.value,
+                    ])
+                )
+            )
+            pending_videos = result.scalars().all()
+            
+            if pending_videos:
+                logger.info(f"Found {len(pending_videos)} pending videos to resume")
+                
+                for video in pending_videos:
+                    # Reset to pending to restart from beginning
+                    video.status = VideoStatus.PENDING.value
+                    video.status_message = "Resumed after server restart"
+                    video.progress_percent = 0
+                    
+                await db.commit()
+                
+                # Re-queue each video for processing
+                for video in pending_videos:
+                    logger.info(f"Resuming video: {video.id}")
+                    asyncio.create_task(process_video_task(str(video.id)))
+            else:
+                logger.info("No pending videos to resume")
+                
+    except Exception as e:
+        logger.error(f"Failed to resume pending videos: {e}")
 
 
 @asynccontextmanager
@@ -24,6 +74,9 @@ async def lifespan(app: FastAPI):
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         logger.info("Database tables created")
+    
+    # Resume pending video processing jobs
+    await resume_pending_videos()
     
     yield
     

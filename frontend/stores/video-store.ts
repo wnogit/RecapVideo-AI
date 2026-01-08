@@ -71,11 +71,44 @@ interface VideoState {
   clearError: () => void;
 }
 
-interface CreateVideoData {
+export interface VideoOptionsData {
+  aspect_ratio?: string;
+  copyright?: {
+    color_adjust?: boolean;
+    horizontal_flip?: boolean;
+    slight_zoom?: boolean;
+    audio_pitch_shift?: boolean;
+  };
+  subtitles?: {
+    enabled?: boolean;
+    size?: string;
+    position?: string;
+    background?: string;
+    color?: string;
+    word_highlight?: boolean;
+  };
+  logo?: {
+    enabled?: boolean;
+    image_path?: string;
+    position?: string;
+    size?: string;
+    opacity?: number;
+  };
+  outro?: {
+    enabled?: boolean;
+    platform?: string;
+    channel_name?: string;
+    logo_path?: string;
+    duration?: number;
+  };
+}
+
+export interface CreateVideoData {
   source_url: string;
   voice_type?: string;
   output_language?: string;
   output_resolution?: string;
+  options?: VideoOptionsData;
 }
 
 export const useVideoStore = create<VideoState>((set, get) => ({
@@ -130,6 +163,7 @@ export const useVideoStore = create<VideoState>((set, get) => ({
         source_url: data.source_url,
         voice_type: data.voice_type,
         output_language: data.output_language,
+        options: data.options,
       });
       
       const video: Video = response.data;

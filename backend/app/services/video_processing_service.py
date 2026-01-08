@@ -97,12 +97,22 @@ class VideoProcessingService:
         "large": 120,
     }
     
+    # Cross-platform font paths (fallback order)
+    FONT_PATHS = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Debian/Ubuntu
+        "/usr/share/fonts/dejavu/DejaVuSans.ttf",           # Alpine/RHEL
+        "/usr/share/fonts/TTF/DejaVuSans.ttf",              # Arch Linux
+        "C:/Windows/Fonts/arial.ttf",                        # Windows
+        "/System/Library/Fonts/Helvetica.ttc",               # macOS
+    ]
+    
     def __init__(self):
         """Initialize video processing service."""
         self.temp_dir = Path(settings.TEMP_FILES_DIR)
         self.temp_dir.mkdir(parents=True, exist_ok=True)
         self.ffmpeg_path = "ffmpeg"  # Assumes ffmpeg is in PATH
         self.ffprobe_path = "ffprobe"
+        self.font_path = self._find_font()
         
     async def process_video(
         self,
@@ -486,6 +496,16 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         
         return f"{hours}:{minutes:02d}:{seconds:02d}.{ms}"
     
+    def _find_font(self) -> str:
+        """Find available font for text rendering."""
+        for font_path in self.FONT_PATHS:
+            if Path(font_path).exists():
+                logger.debug(f"Using font: {font_path}")
+                return font_path
+        # Fallback - let FFmpeg use default
+        logger.warning("No font found, FFmpeg will use default")
+        return ""
+    
     async def _generate_outro(
         self,
         options: OutroOptions,
@@ -505,14 +525,17 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         
         config = platform_config.get(options.platform, platform_config["youtube"])
         
+        # Build font option if available
+        font_opt = f":fontfile={self.font_path}" if self.font_path else ""
+        
         # Create outro using FFmpeg
         # Simple text overlay on colored background
         filter_complex = (
             f"color=c={config['color']}:s={width}x{height}:d={options.duration}[bg];"
             f"[bg]drawtext=text='{options.channel_name}':fontsize=48:fontcolor=white:"
-            f"x=(w-text_w)/2:y=h/2-50:fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf[t1];"
+            f"x=(w-text_w)/2:y=h/2-50{font_opt}[t1];"
             f"[t1]drawtext=text='{config['text']}':fontsize=36:fontcolor=white:"
-            f"x=(w-text_w)/2:y=h/2+50:fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+            f"x=(w-text_w)/2:y=h/2+50{font_opt}"
         )
         
         cmd = [

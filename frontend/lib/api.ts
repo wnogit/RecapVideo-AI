@@ -87,9 +87,45 @@ export const authApi = {
   checkIp: () => api.get('/auth/check-ip'),
 };
 
+export interface VideoOptions {
+  aspect_ratio?: string;
+  copyright?: {
+    color_adjust?: boolean;
+    horizontal_flip?: boolean;
+    slight_zoom?: boolean;
+    audio_pitch_shift?: boolean;
+  };
+  subtitles?: {
+    enabled?: boolean;
+    size?: string;
+    position?: string;
+    background?: string;
+    color?: string;
+    word_highlight?: boolean;
+  };
+  logo?: {
+    enabled?: boolean;
+    image_path?: string;
+    position?: string;
+    size?: string;
+    opacity?: number;
+  };
+  outro?: {
+    enabled?: boolean;
+    platform?: string;
+    channel_name?: string;
+    logo_path?: string;
+    duration?: number;
+  };
+}
+
 export const videoApi = {
-  create: (data: { source_url: string; voice_type?: string; output_language?: string }) =>
-    api.post('/videos', data),
+  create: (data: { 
+    source_url: string; 
+    voice_type?: string; 
+    output_language?: string;
+    options?: VideoOptions;
+  }) => api.post('/videos', data),
   list: (page: number = 1, pageSize: number = 10) =>
     api.get('/videos', { params: { page, page_size: pageSize } }),
   get: (id: string) => api.get(`/videos/${id}`),

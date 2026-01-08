@@ -79,34 +79,51 @@ export function VideoFormNew({ onSuccess }: VideoFormNewProps) {
   const [outroOptions, setOutroOptions] = useState<OutroOptions>(DEFAULT_OUTRO_OPTIONS);
 
   const watchedUrl = watch('url');
-  const isRegularVideo = watchedUrl && isRegularYoutubeUrl(watchedUrl) && !isYoutubeShortsUrl(watchedUrl);
+  const isRegularVideo = Boolean(watchedUrl && isRegularYoutubeUrl(watchedUrl) && !isYoutubeShortsUrl(watchedUrl));
   const hasCredits = (user?.credit_balance || 0) >= CREDITS_PER_VIDEO;
 
   const onSubmit = async (data: VideoFormData) => {
     try {
       clearError();
       
-      // Build complete video options
-      const options: VideoOptions = {
-        sourceUrl: data.url,
-        voiceId,
-        aspectRatio,
-        copyright: copyrightOptions,
-        subtitles: subtitleOptions,
-        logo: logoOptions,
-        outro: outroOptions,
-        avatar: { enabled: false, style: 'cartoon-female', position: 'bottom-right', size: 'medium' },
-        effects: { blurBackground: false, borderStyle: 'none', colorFilter: 'none' },
-        thumbnail: { enabled: true, style: 'clickbait' },
+      // Build complete video options matching backend schema
+      const options = {
+        aspect_ratio: aspectRatio,
+        copyright: {
+          color_adjust: copyrightOptions.colorAdjust,
+          horizontal_flip: copyrightOptions.horizontalFlip,
+          slight_zoom: copyrightOptions.slightZoom,
+          audio_pitch_shift: copyrightOptions.audioPitchShift,
+        },
+        subtitles: {
+          enabled: subtitleOptions.enabled,
+          size: subtitleOptions.size,
+          position: subtitleOptions.position,
+          background: subtitleOptions.background,
+          color: subtitleOptions.color,
+          word_highlight: subtitleOptions.wordHighlight,
+        },
+        logo: {
+          enabled: logoOptions.enabled,
+          image_path: logoOptions.imageUrl,
+          position: logoOptions.position,
+          size: logoOptions.size,
+          opacity: logoOptions.opacity,
+        },
+        outro: {
+          enabled: outroOptions.enabled,
+          platform: outroOptions.platform,
+          channel_name: outroOptions.channelName,
+          logo_path: outroOptions.useUploadedLogo && logoOptions.imageUrl ? logoOptions.imageUrl : undefined,
+          duration: outroOptions.duration,
+        },
       };
 
-      // For now, just send basic data (backend to be updated)
       await create({
         url: data.url,
         voice: voiceId,
         language: 'my',
-        // TODO: Send full options when backend is ready
-        // options: JSON.stringify(options),
+        options,
       });
       
       reset();

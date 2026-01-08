@@ -69,12 +69,44 @@ export function useCreateVideo() {
     voice?: string;
     language?: string;
     resolution?: string;
+    options?: {
+      aspect_ratio?: string;
+      copyright?: {
+        color_adjust?: boolean;
+        horizontal_flip?: boolean;
+        slight_zoom?: boolean;
+        audio_pitch_shift?: boolean;
+      };
+      subtitles?: {
+        enabled?: boolean;
+        size?: string;
+        position?: string;
+        background?: string;
+        color?: string;
+        word_highlight?: boolean;
+      };
+      logo?: {
+        enabled?: boolean;
+        image_path?: string;
+        position?: string;
+        size?: string;
+        opacity?: number;
+      };
+      outro?: {
+        enabled?: boolean;
+        platform?: string;
+        channel_name?: string;
+        logo_path?: string;
+        duration?: number;
+      };
+    };
   }) => {
     return createVideo({
       source_url: data.url,
       voice_type: data.voice,
       output_language: data.language,
       output_resolution: data.resolution,
+      options: data.options,
     });
   };
 
@@ -86,9 +118,4 @@ export function useCreateVideo() {
   };
 }
 
-interface CreateVideoData {
-  source_url: string;
-  voice_type?: string;
-  output_language?: string;
-  output_resolution?: string;
-}
+export { CreateVideoData } from '@/stores/video-store';
