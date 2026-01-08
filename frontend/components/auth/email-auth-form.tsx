@@ -220,7 +220,7 @@ export function EmailAuthForm() {
           <Sparkles className="w-5 h-5 text-white" />
         </div>
         <span className="text-xl font-bold text-white hidden sm:block">RecapVideo AI</span>
-      </Link>
+      </a>
 
       {/* Animated Login Card */}
       <motion.div
