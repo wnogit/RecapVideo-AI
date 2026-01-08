@@ -1,5 +1,5 @@
 /**
- * useAuth Hook - Authentication utilities
+ * useAuth Hook - Authentication utilities (Google OAuth)
  */
 'use client';
 
@@ -7,14 +7,15 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 export function useAuth() {
   const {
     user,
     isAuthenticated,
     isLoading,
     error,
-    login,
-    signup,
     logout,
     fetchUser,
     clearError,
@@ -30,14 +31,11 @@ export function useAuth() {
     }
   }, []);
 
-  const handleLogin = async (email: string, password: string) => {
-    await login(email, password);
-    router.push('/dashboard');
-  };
-
-  const handleSignup = async (email: string, password: string, name: string) => {
-    await signup(email, password, name);
-    router.push('/dashboard');
+  // Redirect to Google OAuth login
+  const loginWithGoogle = () => {
+    const redirectUri = `${window.location.origin}/auth/callback`;
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email%20profile&access_type=offline&prompt=consent`;
+    window.location.href = googleAuthUrl;
   };
 
   const handleLogout = () => {
@@ -50,8 +48,7 @@ export function useAuth() {
     isAuthenticated,
     isLoading,
     error,
-    login: handleLogin,
-    signup: handleSignup,
+    loginWithGoogle,
     logout: handleLogout,
     clearError,
   };
