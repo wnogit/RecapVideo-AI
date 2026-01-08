@@ -23,9 +23,12 @@ FROM python:3.11-slim AS runner
 
 WORKDIR /app
 
-# Install runtime dependencies
+# Install runtime dependencies including fonts
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
+    fonts-dejavu-core \
+    fonts-noto-core \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
@@ -39,8 +42,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Copy application code
 COPY --chown=appuser:appgroup . .
 
-# Create temp directory
+# Create directories
 RUN mkdir -p /tmp/recapvideo && chown appuser:appgroup /tmp/recapvideo
+RUN mkdir -p /app/app/assets/fonts && chown appuser:appgroup /app/app/assets/fonts
 
 USER appuser
 

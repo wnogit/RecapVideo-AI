@@ -1,0 +1,227 @@
+'use client';
+
+/**
+ * Step 1: Input
+ * YouTube URL and Voice Selection
+ */
+import { useState, useEffect } from 'react';
+import { useVideoCreationStore } from '@/stores/video-creation-store';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
+import { Link2, AlertCircle, CheckCircle2, Mic, Volume2 } from 'lucide-react';
+import { isYoutubeShortsUrl, isRegularYoutubeUrl } from '@/lib/youtube';
+import { AspectRatio, FORMAT_OPTIONS } from '@/lib/types/video-options';
+
+// Available voices (Burmese)
+const VOICES = [
+  { 
+    id: 'my-MM-NilarNeural', 
+    name: 'Nilar', 
+    gender: 'female' as const, 
+    description: 'အမျိုးသမီး အသံ (ပုံမှန်)',
+    isPopular: true,
+  },
+  { 
+    id: 'my-MM-ThihaNeural', 
+    name: 'Thiha', 
+    gender: 'male' as const, 
+    description: 'အမျိုးသား အသံ',
+    isPopular: false,
+  },
+];
+
+export function Step1Input() {
+  const {
+    sourceUrl,
+    voiceId,
+    aspectRatio,
+    setSourceUrl,
+    setVoiceId,
+    setAspectRatio,
+    isStep1Valid,
+  } = useVideoCreationStore();
+
+  const [urlTouched, setUrlTouched] = useState(false);
+  const isValidShorts = isYoutubeShortsUrl(sourceUrl);
+  const isRegularYoutube = isRegularYoutubeUrl(sourceUrl) && !isValidShorts;
+  const showError = urlTouched && sourceUrl && !isValidShorts;
+
+  // Handle URL change
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUrlTouched(true);
+    setSourceUrl(e.target.value);
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Section Header */}
+      <div>
+        <h2 className="text-xl font-semibold flex items-center gap-2">
+          🎬 Video အချက်အလက်
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          YouTube Shorts URL ထည့်ပြီး Voice ရွေးချယ်ပါ
+        </p>
+      </div>
+
+      {/* YouTube URL Input */}
+      <div className="space-y-3">
+        <Label htmlFor="url" className="text-base font-medium">
+          YouTube Shorts URL
+        </Label>
+        <div className="relative">
+          <Link2 className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+          <Input
+            id="url"
+            type="url"
+            placeholder="https://www.youtube.com/shorts/..."
+            className={cn(
+              "pl-10 h-12 text-base",
+              isValidShorts && "border-green-500 focus-visible:ring-green-500",
+              showError && "border-destructive focus-visible:ring-destructive"
+            )}
+            value={sourceUrl}
+            onChange={handleUrlChange}
+            onBlur={() => setUrlTouched(true)}
+          />
+          {/* Status Icon */}
+          {sourceUrl && (
+            <div className="absolute right-3 top-3">
+              {isValidShorts ? (
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-destructive" />
+              )}
+            </div>
+          )}
+        </div>
+        
+        {/* Error Messages */}
+        {showError && (
+          <div className="flex items-start gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
+            <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            <div>
+              {isRegularYoutube ? (
+                <>
+                  <p className="font-medium">YouTube Shorts သာ လက်ခံပါသည်</p>
+                  <p className="text-xs mt-1 opacity-80">
+                    URL ပုံစံ: youtube.com/shorts/VIDEO_ID
+                  </p>
+                </>
+              ) : (
+                <p>ကျေးဇူးပြု၍ မှန်ကန်သော YouTube Shorts URL ထည့်ပါ</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Success Message */}
+        {isValidShorts && (
+          <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 dark:bg-green-950/20 p-3 rounded-lg">
+            <CheckCircle2 className="h-4 w-4" />
+            <span>URL မှန်ကန်ပါသည် ✓</span>
+          </div>
+        )}
+      </div>
+
+      {/* Voice Selection */}
+      <div className="space-y-3">
+        <Label className="text-base font-medium flex items-center gap-2">
+          <Mic className="h-4 w-4" />
+          Voice ရွေးချယ်ပါ
+        </Label>
+        
+        <RadioGroup
+          value={voiceId}
+          onValueChange={setVoiceId}
+          className="grid grid-cols-2 gap-4"
+        >
+          {VOICES.map((voice) => (
+            <div key={voice.id}>
+              <RadioGroupItem
+                value={voice.id}
+                id={voice.id}
+                className="peer sr-only"
+              />
+              <Label
+                htmlFor={voice.id}
+                className={cn(
+                  "flex flex-col items-center justify-center rounded-xl border-2 p-4 cursor-pointer transition-all",
+                  "hover:bg-accent hover:border-accent-foreground/20",
+                  "peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5",
+                  voiceId === voice.id && "border-primary bg-primary/5"
+                )}
+              >
+                {/* Avatar */}
+                <div className={cn(
+                  "w-14 h-14 rounded-full flex items-center justify-center text-2xl mb-2",
+                  voice.gender === 'female' 
+                    ? "bg-pink-100 dark:bg-pink-950" 
+                    : "bg-blue-100 dark:bg-blue-950"
+                )}>
+                  {voice.gender === 'female' ? '👩' : '👨'}
+                </div>
+                
+                {/* Name */}
+                <span className="font-medium text-base">{voice.name}</span>
+                <span className="text-xs text-muted-foreground mt-1">
+                  {voice.description}
+                </span>
+                
+                {/* Popular Badge */}
+                {voice.isPopular && (
+                  <span className="mt-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                    ⭐ လူကြိုက်များ
+                  </span>
+                )}
+                
+                {/* Play Sample Button */}
+                <button
+                  type="button"
+                  className="mt-3 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    // TODO: Play voice sample
+                  }}
+                >
+                  <Volume2 className="h-3 w-3" />
+                  နမူနာ နားထောင်ရန်
+                </button>
+              </Label>
+            </div>
+          ))}
+        </RadioGroup>
+      </div>
+
+      {/* Aspect Ratio (Quick Select) */}
+      <div className="space-y-3">
+        <Label className="text-base font-medium">
+          📐 Video Format
+        </Label>
+        
+        <div className="flex flex-wrap gap-2">
+          {FORMAT_OPTIONS.map((format) => (
+            <button
+              key={format.value}
+              type="button"
+              onClick={() => setAspectRatio(format.value)}
+              className={cn(
+                "px-4 py-2 rounded-lg border text-sm transition-all",
+                aspectRatio === format.value
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-muted hover:border-primary/50"
+              )}
+            >
+              {format.icon} {format.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          TikTok/Shorts အတွက် 9:16 အကြံပြုပါသည်
+        </p>
+      </div>
+    </div>
+  );
+}

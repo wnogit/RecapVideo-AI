@@ -12,7 +12,7 @@ services:
       dockerfile: ../docker/Dockerfile.backend
     container_name: recapvideo-worker-video
     restart: unless-stopped
-    command: celery -A app.processing.celery_config worker -Q video_processing -c 2 --loglevel=info
+    command: celery -A app.core.celery_app worker -Q video_processing -c 2 --loglevel=info
     environment:
       - ENVIRONMENT=production
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-recapvideo}:${POSTGRES_PASSWORD:-recapvideo_secret}@postgres:5432/${POSTGRES_DB:-recapvideo}
@@ -26,6 +26,7 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
     volumes:
       - temp_files:/tmp/recapvideo
+      - ./backend/app/assets/fonts:/app/app/assets/fonts:ro
     depends_on:
       - postgres
       - redis
@@ -43,7 +44,7 @@ services:
       dockerfile: ../docker/Dockerfile.backend
     container_name: recapvideo-worker-email
     restart: unless-stopped
-    command: celery -A app.processing.celery_config worker -Q emails -c 1 --loglevel=info
+    command: celery -A app.core.celery_app worker -Q emails -c 1 --loglevel=info
     environment:
       - ENVIRONMENT=production
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-recapvideo}:${POSTGRES_PASSWORD:-recapvideo_secret}@postgres:5432/${POSTGRES_DB:-recapvideo}
@@ -65,7 +66,7 @@ services:
       dockerfile: ../docker/Dockerfile.backend
     container_name: recapvideo-celery-beat
     restart: unless-stopped
-    command: celery -A app.processing.celery_config beat --loglevel=info
+    command: celery -A app.core.celery_app beat --loglevel=info
     environment:
       - ENVIRONMENT=production
       - REDIS_URL=redis://redis:6379/0
@@ -84,7 +85,7 @@ services:
       dockerfile: ../docker/Dockerfile.backend
     container_name: recapvideo-flower
     restart: unless-stopped
-    command: celery -A app.processing.celery_config flower --port=5555
+    command: celery -A app.core.celery_app flower --port=5555
     environment:
       - REDIS_URL=redis://redis:6379/0
     ports:

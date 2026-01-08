@@ -12,8 +12,9 @@ alembic==1.13.1
 asyncpg==0.29.0
 psycopg2-binary==2.9.9
 
-# Cache & Queue (Redis - for future worker scaling)
+# Cache & Queue (Redis - for Celery workers)
 redis==5.0.1
+celery==5.3.6
 
 # Authentication
 python-jose[cryptography]==3.3.0
@@ -33,6 +34,7 @@ aiohttp==3.9.3
 edge-tts==6.1.9
 yt-dlp==2024.1.17
 ffmpeg-python==0.2.0
+webvtt-py==0.4.6
 
 # External APIs
 google-generativeai==0.3.2

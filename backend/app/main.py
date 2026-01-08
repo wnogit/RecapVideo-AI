@@ -18,11 +18,11 @@ async def resume_pending_videos():
     """
     Resume processing of videos that were interrupted by server restart.
     
-    This handles the case where asyncio.create_task jobs are lost on restart.
+    Uses Celery to queue interrupted videos for reliable processing.
     Videos in 'processing' or 'pending' state will be re-queued.
     """
     from app.models.video import Video, VideoStatus
-    from app.processing.video_processor import process_video_task
+    from app.tasks.video_tasks import process_video_task
     
     try:
         async with async_session_maker() as db:
@@ -51,10 +51,10 @@ async def resume_pending_videos():
                     
                 await db.commit()
                 
-                # Re-queue each video for processing
+                # Re-queue each video via Celery (reliable)
                 for video in pending_videos:
-                    logger.info(f"Resuming video: {video.id}")
-                    asyncio.create_task(process_video_task(str(video.id)))
+                    logger.info(f"Resuming video via Celery: {video.id}")
+                    process_video_task.delay(str(video.id))
             else:
                 logger.info("No pending videos to resume")
                 

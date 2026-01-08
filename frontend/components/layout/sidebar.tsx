@@ -18,11 +18,13 @@ import {
   Menu,
   X,
   Coins,
+  PlusCircle,
 } from 'lucide-react';
 import { useState } from 'react';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
+  { name: 'Video ဖန်တီးမည်', href: '/create', icon: PlusCircle, highlight: true },
   { name: 'My Videos', href: '/videos', icon: Video },
   { name: 'Credits', href: '/credits', icon: Coins },
   { name: 'Buy Credits', href: '/buy', icon: ShoppingCart },
@@ -48,6 +50,7 @@ export function Sidebar() {
       <nav className="flex-1 px-4 py-4 space-y-1">
         {navigation.map((item) => {
           const isActive = pathname === item.href;
+          const isHighlight = 'highlight' in item && item.highlight;
           return (
             <Link
               key={item.name}
@@ -56,7 +59,9 @@ export function Sidebar() {
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 isActive
                   ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  : isHighlight
+                    ? 'bg-gradient-to-r from-violet-600 to-pink-600 text-white hover:from-violet-700 hover:to-pink-700'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
               )}
               onClick={() => setMobileOpen(false)}
             >

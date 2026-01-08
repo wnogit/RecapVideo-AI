@@ -1,7 +1,6 @@
 """
 Video Endpoints
 """
-import asyncio
 from math import ceil
 from typing import Optional
 from uuid import UUID
@@ -18,7 +17,7 @@ from app.schemas.video import (
     VideoListResponse,
 )
 from app.utils.youtube import validate_youtube_shorts_url
-from app.processing.video_processor import process_video_task
+from app.tasks.video_tasks import process_video_task
 
 
 router = APIRouter()
@@ -105,8 +104,8 @@ async def create_video(
     await db.flush()
     await db.refresh(video)
     
-    # Queue video processing (run in background)
-    asyncio.create_task(process_video_task(str(video.id)))
+    # Queue video processing via Celery (survives server restarts)
+    process_video_task.delay(str(video.id))
     
     return VideoResponse.model_validate(video)
 

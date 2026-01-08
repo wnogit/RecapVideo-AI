@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Optional
 
+import webvtt
 from loguru import logger
 
 from app.core.config import settings
@@ -98,12 +99,23 @@ class VideoProcessingService:
     }
     
     # Cross-platform font paths (fallback order)
+    # Priority: Bundled fonts > System fonts
     FONT_PATHS = [
+        # Bundled fonts in project (best for Docker)
+        str(Path(__file__).parent.parent / "assets" / "fonts" / "NotoSansMyanmar-Regular.ttf"),
+        str(Path(__file__).parent.parent / "assets" / "fonts" / "Pyidaungsu-Regular.ttf"),
+        str(Path(__file__).parent.parent / "assets" / "fonts" / "DejaVuSans.ttf"),
+        # Linux system fonts
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Debian/Ubuntu
         "/usr/share/fonts/dejavu/DejaVuSans.ttf",           # Alpine/RHEL
         "/usr/share/fonts/TTF/DejaVuSans.ttf",              # Arch Linux
-        "C:/Windows/Fonts/arial.ttf",                        # Windows
-        "/System/Library/Fonts/Helvetica.ttc",               # macOS
+        "/usr/share/fonts/noto/NotoSansMyanmar-Regular.ttf", # Noto Myanmar
+        # Windows fonts
+        "C:/Windows/Fonts/arial.ttf",
+        "C:/Windows/Fonts/seguiemj.ttf",  # Segoe UI Emoji
+        # macOS fonts
+        "/System/Library/Fonts/Helvetica.ttc",
+        "/Library/Fonts/Arial.ttf",
     ]
     
     def __init__(self):
@@ -450,11 +462,45 @@ Style: Default,Arial,{font_size},{ass_color},&H000000FF,&H00000000,&H80000000,0,
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
         
-        # Parse VTT and convert to ASS events
+        # Parse VTT using webvtt-py library (robust parsing)
+        try:
+            for caption in webvtt.read(subtitle_path):
+                start = self._time_to_ass(caption.start)
+                end = self._time_to_ass(caption.end)
+                # Replace newlines with ASS line break
+                text = caption.text.replace("\n", "\\N")
+                ass_content += f"Dialogue: 0,{start},{end},Default,,0,0,0,,{text}\n"
+        except Exception as e:
+            logger.warning(f"webvtt-py parsing failed, using fallback: {e}")
+            # Fallback to manual parsing
+            ass_content = self._parse_vtt_fallback(subtitle_path, ass_content)
+        
+        with open(ass_path, "w", encoding="utf-8") as f:
+            f.write(ass_content)
+        
+        return ass_path
+    
+    def _time_to_ass(self, time_str: str) -> str:
+        """Convert VTT time (HH:MM:SS.mmm) to ASS time (H:MM:SS.cc)."""
+        # VTT: 00:00:01.500 -> ASS: 0:00:01.50
+        parts = time_str.replace(",", ".").split(":")
+        if len(parts) == 2:
+            parts.insert(0, "0")
+        
+        hours = int(parts[0])
+        minutes = int(parts[1])
+        seconds_ms = parts[2].split(".")
+        seconds = int(seconds_ms[0])
+        # Convert milliseconds to centiseconds (2 digits)
+        ms = seconds_ms[1][:2] if len(seconds_ms) > 1 else "00"
+        
+        return f"{hours}:{minutes:02d}:{seconds:02d}.{ms}"
+    
+    def _parse_vtt_fallback(self, subtitle_path: str, ass_header: str) -> str:
+        """Fallback VTT parser if webvtt-py fails."""
         with open(subtitle_path, "r", encoding="utf-8") as f:
             content = f.read()
         
-        # Simple VTT parser
         lines = content.split("\n")
         i = 0
         while i < len(lines):
@@ -462,8 +508,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if "-->" in line:
                 # Time line
                 times = line.split("-->")
-                start = self._vtt_to_ass_time(times[0].strip())
-                end = self._vtt_to_ass_time(times[1].strip().split()[0])
+                start = self._time_to_ass(times[0].strip())
+                end = self._time_to_ass(times[1].strip().split()[0])
                 
                 # Get text
                 i += 1
@@ -473,28 +519,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     i += 1
                 text = "\\N".join(text_lines)
                 
-                ass_content += f"Dialogue: 0,{start},{end},Default,,0,0,0,,{text}\n"
+                ass_header += f"Dialogue: 0,{start},{end},Default,,0,0,0,,{text}\n"
             i += 1
         
-        with open(ass_path, "w", encoding="utf-8") as f:
-            f.write(ass_content)
-        
-        return ass_path
-    
-    def _vtt_to_ass_time(self, vtt_time: str) -> str:
-        """Convert VTT time to ASS time format."""
-        # VTT: 00:00:01.500 -> ASS: 0:00:01.50
-        parts = vtt_time.replace(",", ".").split(":")
-        if len(parts) == 2:
-            parts.insert(0, "0")
-        
-        hours = int(parts[0])
-        minutes = int(parts[1])
-        seconds_ms = parts[2].split(".")
-        seconds = int(seconds_ms[0])
-        ms = seconds_ms[1][:2] if len(seconds_ms) > 1 else "00"
-        
-        return f"{hours}:{minutes:02d}:{seconds:02d}.{ms}"
+        return ass_header
     
     def _find_font(self) -> str:
         """Find available font for text rendering."""
