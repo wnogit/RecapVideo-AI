@@ -94,7 +94,7 @@ export function VideoForm({ onSuccess }: VideoFormProps) {
 
   // Check if URL is a regular YouTube video (not Shorts)
   const watchedUrl = watch('url');
-  const isRegularVideo = watchedUrl && isRegularYoutubeUrl(watchedUrl) && !isYoutubeShortsUrl(watchedUrl);
+  const isRegularVideo = Boolean(watchedUrl && isRegularYoutubeUrl(watchedUrl) && !isYoutubeShortsUrl(watchedUrl));
 
   return (
     <Card>
