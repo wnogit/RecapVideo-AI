@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, 
   Mail, 
@@ -13,6 +14,7 @@ import {
   Eye,
   EyeOff,
   Check,
+  ChevronLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,6 +50,7 @@ export function EmailAuthForm() {
   // Validation
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [shake, setShake] = useState(false);
 
   useEffect(() => {
     loadDeviceId();
@@ -150,6 +153,9 @@ export function EmailAuthForm() {
       } else {
         setError(detail || 'An error occurred. Please try again.');
       }
+      // Trigger shake animation on error
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
     } finally {
       setIsLoading(false);
     }
@@ -170,203 +176,193 @@ export function EmailAuthForm() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 p-12 flex-col justify-between relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -left-40 w-80 h-80 bg-white/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute top-1/2 -right-20 w-60 h-60 bg-pink-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
-          <div className="absolute -bottom-20 left-1/3 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-500" />
-        </div>
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      {/* Background Magic Glows */}
+      <div className="absolute inset-0 -z-10 bg-slate-950">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-purple-500/20 blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/15 blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-[40%] right-[20%] w-[30%] h-[30%] rounded-full bg-pink-500/10 blur-[100px] animate-pulse" style={{ animationDelay: '2s' }} />
+      </div>
 
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-white">RecapVideo AI</span>
-          </div>
-          <p className="text-white/80 text-lg">
-            Transform YouTube Shorts into Burmese voiceover videos
+      {/* Back to Website Button */}
+      <Link 
+        href="/" 
+        className="absolute left-6 top-6 md:left-8 md:top-8 flex items-center text-sm text-gray-400 hover:text-white transition-colors z-20"
+      >
+        <ChevronLeft className="w-4 h-4 mr-1" />
+        Back to website
+      </Link>
+
+      {/* Logo - Top Center */}
+      <Link href="/" className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-20">
+        <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center">
+          <Sparkles className="w-5 h-5 text-white" />
+        </div>
+        <span className="text-xl font-bold text-white hidden sm:block">RecapVideo AI</span>
+      </Link>
+
+      {/* Animated Login Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ 
+          opacity: 1, 
+          y: 0,
+          x: shake ? [0, -10, 10, -10, 10, 0] : 0 
+        }}
+        transition={{ 
+          duration: 0.5, 
+          ease: "easeOut",
+          x: { duration: 0.4 }
+        }}
+        className="w-full max-w-md mx-4 p-8 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl relative z-10"
+      >
+        {/* Title */}
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+            {mode === 'login' ? 'Welcome Back' : 'Create Your Account'}
+          </h2>
+          <p className="text-gray-400 mt-2 text-sm">
+            {mode === 'login' 
+              ? 'Sign in to continue creating amazing videos' 
+              : 'Start creating AI-powered recap videos'}
           </p>
         </div>
 
-        <div className="relative z-10 space-y-6">
-          <h1 className="text-4xl font-bold text-white leading-tight">
-            Create engaging<br />
-            recap videos<br />
-            in minutes
-          </h1>
-          
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 text-white/90">
-              <Check className="w-5 h-5 text-green-400" />
-              <span>YouTube Shorts to Burmese voiceover</span>
-            </div>
-            <div className="flex items-center gap-3 text-white/90">
-              <Check className="w-5 h-5 text-green-400" />
-              <span>AI-powered transcription & translation</span>
-            </div>
-            <div className="flex items-center gap-3 text-white/90">
-              <Check className="w-5 h-5 text-green-400" />
-              <span>Natural Burmese TTS voices</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="relative z-10 text-white/60 text-sm">
-          © 2026 RecapVideo.AI. All rights reserved.
-        </div>
-      </div>
-
-      {/* Right Panel - Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-gray-50 dark:bg-gray-900">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md"
-        >
-          {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold">RecapVideo AI</span>
-          </div>
-
-          {/* Title */}
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {mode === 'login' ? 'Welcome back' : 'Create your account'}
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              {mode === 'login' 
-                ? 'Sign in to continue creating videos' 
-                : 'Start creating amazing recap videos'}
-            </p>
-          </div>
-
-          {/* Error/Success Messages */}
+        {/* Error/Success Messages */}
+        <AnimatePresence mode="wait">
           {error && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-3"
+              initial={{ opacity: 0, y: -10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: -10, height: 0 }}
+              className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3"
             >
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-300">{error}</p>
             </motion.div>
           )}
+        </AnimatePresence>
 
+        <AnimatePresence mode="wait">
           {success && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-start gap-3"
+              initial={{ opacity: 0, y: -10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: -10, height: 0 }}
+              className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl flex items-start gap-3"
             >
-              <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-green-700 dark:text-green-300">{success}</p>
+              <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-green-300">{success}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {mode === 'signup' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              <Label htmlFor="name" className="text-gray-300">Full Name</Label>
+              <div className="relative mt-1.5">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Enter your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-violet-500/50 focus:ring-violet-500/20 transition-all"
+                  disabled={isLoading}
+                />
+              </div>
             </motion.div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === 'signup' && (
-              <div>
-                <Label htmlFor="name">Full Name</Label>
-                <div className="relative mt-1">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Enter your name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="pl-10"
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
-            )}
-
-            <div>
-              <Label htmlFor="email">Email Address</Label>
-              <div className="relative mt-1">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@gmail.com"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (emailError) validateEmail(e.target.value);
-                  }}
-                  onBlur={() => validateEmail(email)}
-                  className={`pl-10 ${emailError ? 'border-red-500' : ''}`}
-                  disabled={isLoading}
-                />
-              </div>
-              {emailError && (
-                <p className="text-sm text-red-500 mt-1">{emailError}</p>
-              )}
-              {mode === 'signup' && !emailError && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Allowed: Gmail, Yahoo, Outlook, Hotmail, Live
-                </p>
-              )}
+          <div>
+            <Label htmlFor="email" className="text-gray-300">Email Address</Label>
+            <div className="relative mt-1.5">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@gmail.com"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (emailError) validateEmail(e.target.value);
+                }}
+                onBlur={() => validateEmail(email)}
+                className={`pl-10 bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-violet-500/50 focus:ring-violet-500/20 transition-all ${emailError ? 'border-red-500/50' : ''}`}
+                disabled={isLoading}
+              />
             </div>
-
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <div className="relative mt-1">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder={mode === 'signup' ? 'Min 8 characters' : 'Enter your password'}
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (passwordError) validatePassword(e.target.value);
-                  }}
-                  onBlur={() => validatePassword(password)}
-                  className={`pl-10 pr-10 ${passwordError ? 'border-red-500' : ''}`}
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-              {passwordError && (
-                <p className="text-sm text-red-500 mt-1">{passwordError}</p>
-              )}
-            </div>
-
-            {mode === 'login' && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="remember"
-                    checked={rememberMe}
-                    onCheckedChange={(checked: boolean | 'indeterminate') => setRememberMe(checked === true)}
-                  />
-                  <label htmlFor="remember" className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
-                    Remember me
-                  </label>
-                </div>
-              </div>
+            {emailError && (
+              <p className="text-sm text-red-400 mt-1.5">{emailError}</p>
             )}
+            {mode === 'signup' && !emailError && (
+              <p className="text-xs text-gray-500 mt-1.5">
+                Allowed: Gmail, Yahoo, Outlook, Hotmail, Live
+              </p>
+            )}
+          </div>
 
-            <Button
-              type="submit"
-              className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700"
-              disabled={isLoading}
-            >
+          <div>
+            <Label htmlFor="password" className="text-gray-300">Password</Label>
+            <div className="relative mt-1.5">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder={mode === 'signup' ? 'Min 8 characters' : 'Enter your password'}
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (passwordError) validatePassword(e.target.value);
+                }}
+                onBlur={() => validatePassword(password)}
+                className={`pl-10 pr-10 bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-violet-500/50 focus:ring-violet-500/20 transition-all ${passwordError ? 'border-red-500/50' : ''}`}
+                disabled={isLoading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+            {passwordError && (
+              <p className="text-sm text-red-400 mt-1.5">{passwordError}</p>
+            )}
+          </div>
+
+          {mode === 'login' && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="remember"
+                  checked={rememberMe}
+                  onCheckedChange={(checked: boolean | 'indeterminate') => setRememberMe(checked === true)}
+                  className="border-white/20 data-[state=checked]:bg-violet-600 data-[state=checked]:border-violet-600"
+                />
+                <label htmlFor="remember" className="text-sm text-gray-400 cursor-pointer">
+                  Remember me
+                </label>
+              </div>
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white border-0 shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300 h-11 relative overflow-hidden group"
+            disabled={isLoading}
+          >
+            {/* Glow effect on hover */}
+            <span className="absolute inset-0 bg-gradient-to-r from-violet-400/0 via-white/25 to-violet-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+            <span className="relative flex items-center justify-center">
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -375,69 +371,69 @@ export function EmailAuthForm() {
               ) : (
                 mode === 'login' ? 'Sign In' : 'Create Account'
               )}
-            </Button>
-          </form>
-
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200 dark:border-gray-700" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-50 dark:bg-gray-900 text-gray-500">
-                Or continue with
-              </span>
-            </div>
-          </div>
-
-          {/* Google Sign In */}
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={handleGoogleSignIn}
-            disabled={isLoading}
-          >
-            <GoogleIcon />
-            <span className="ml-2">Continue with Google</span>
+            </span>
           </Button>
+        </form>
 
-          {/* Toggle Mode */}
-          <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">
-            {mode === 'login' ? (
-              <>
-                Don't have an account?{' '}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode('signup');
-                    setError(null);
-                    setSuccess(null);
-                  }}
-                  className="text-violet-600 hover:text-violet-700 font-medium"
-                >
-                  Sign up
-                </button>
-              </>
-            ) : (
-              <>
-                Already have an account?{' '}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode('login');
-                    setError(null);
-                    setSuccess(null);
-                  }}
-                  className="text-violet-600 hover:text-violet-700 font-medium"
-                >
-                  Sign in
-                </button>
-              </>
-            )}
-          </p>
-        </motion.div>
-      </div>
+        {/* Divider */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-white/10" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-3 bg-transparent text-gray-500">
+              Or continue with
+            </span>
+          </div>
+        </div>
+
+        {/* Google Sign In */}
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20 transition-all h-11"
+          onClick={handleGoogleSignIn}
+          disabled={isLoading}
+        >
+          <GoogleIcon />
+          <span className="ml-2">Continue with Google</span>
+        </Button>
+
+        {/* Toggle Mode */}
+        <p className="text-center text-sm text-gray-400 mt-6">
+          {mode === 'login' ? (
+            <>
+              Don't have an account?{' '}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('signup');
+                  setError(null);
+                  setSuccess(null);
+                }}
+                className="text-violet-400 hover:text-violet-300 font-medium transition-colors"
+              >
+                Sign up
+              </button>
+            </>
+          ) : (
+            <>
+              Already have an account?{' '}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('login');
+                  setError(null);
+                  setSuccess(null);
+                }}
+                className="text-violet-400 hover:text-violet-300 font-medium transition-colors"
+              >
+                Sign in
+              </button>
+            </>
+          )}
+        </p>
+      </motion.div>
     </div>
   );
 }

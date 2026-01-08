@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Film, Menu, X, Sparkles } from 'lucide-react';
+import { Film, Menu, X, Sparkles, LayoutDashboard, ArrowRight, User } from 'lucide-react';
 import { studioUrls } from '@/lib/config';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuthStore } from '@/stores/auth-store';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function MarketingLayout({
   children,
@@ -15,6 +18,8 @@ export default function MarketingLayout({
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { user, isAuthenticated, checkAuth } = useAuthStore();
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -23,6 +28,19 @@ export default function MarketingLayout({
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    // Check auth state on mount
+    const check = async () => {
+      try {
+        await checkAuth();
+      } catch (e) {
+        // User not authenticated, that's fine
+      }
+      setAuthChecked(true);
+    };
+    check();
+  }, [checkAuth]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -57,18 +75,47 @@ export default function MarketingLayout({
             </Link>
             <div className="flex items-center gap-4">
               <ThemeToggle />
-              <a
-                href={studioUrls.login}
-                className="text-sm font-medium text-muted-foreground hover:text-violet-400 transition-colors"
-              >
-                Sign In
-              </a>
-              <a href={studioUrls.signup}>
-                <Button className="bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-700 hover:to-pink-700 text-white border-0 shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300">
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Get Started
-                </Button>
-              </a>
+              {!authChecked ? (
+                // Loading skeleton
+                <Skeleton className="h-9 w-24 rounded-lg" />
+              ) : isAuthenticated ? (
+                // Logged in - Show avatar and dashboard button
+                <div className="flex items-center gap-3">
+                  <Link href="/profile">
+                    <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-violet-500 transition-all">
+                      <AvatarImage src={user?.avatar_url} />
+                      <AvatarFallback className="bg-violet-600 text-white text-sm">
+                        {user?.name?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Link>
+                  <Link href="/dashboard">
+                    <Button className="bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 text-white border-0 shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300 relative overflow-hidden group">
+                      <span className="absolute inset-0 bg-gradient-to-r from-violet-400/0 via-white/20 to-violet-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500" />
+                      <span className="relative flex items-center">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        Dashboard
+                      </span>
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                // Not logged in - Show sign in and get started
+                <>
+                  <a
+                    href={studioUrls.login}
+                    className="text-sm font-medium text-muted-foreground hover:text-violet-400 transition-colors"
+                  >
+                    Sign In
+                  </a>
+                  <a href={studioUrls.signup}>
+                    <Button className="bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-700 hover:to-pink-700 text-white border-0 shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300">
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Get Started
+                    </Button>
+                  </a>
+                </>
+              )}
             </div>
           </nav>
 
@@ -124,15 +171,44 @@ export default function MarketingLayout({
                   Contact
                 </Link>
                 <div className="flex flex-col gap-3 pt-4 border-t border-white/10">
-                  <a href={studioUrls.login}>
-                    <Button variant="outline" className="w-full glass border-white/20 hover:bg-white/10">Sign In</Button>
-                  </a>
-                  <a href={studioUrls.signup}>
-                    <Button className="w-full bg-gradient-to-r from-violet-600 to-pink-600">
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Get Started
-                    </Button>
-                  </a>
+                  {!authChecked ? (
+                    <Skeleton className="h-10 w-full rounded-lg" />
+                  ) : isAuthenticated ? (
+                    // Logged in - Show dashboard link
+                    <>
+                      <div className="flex items-center gap-3 py-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={user?.avatar_url} />
+                          <AvatarFallback className="bg-violet-600 text-white text-sm">
+                            {user?.name?.charAt(0).toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">{user?.name}</span>
+                          <span className="text-xs text-muted-foreground">{user?.email}</span>
+                        </div>
+                      </div>
+                      <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                        <Button className="w-full bg-gradient-to-r from-violet-600 to-pink-600">
+                          <LayoutDashboard className="mr-2 h-4 w-4" />
+                          Go to Dashboard
+                        </Button>
+                      </Link>
+                    </>
+                  ) : (
+                    // Not logged in
+                    <>
+                      <a href={studioUrls.login}>
+                        <Button variant="outline" className="w-full glass border-white/20 hover:bg-white/10">Sign In</Button>
+                      </a>
+                      <a href={studioUrls.signup}>
+                        <Button className="w-full bg-gradient-to-r from-violet-600 to-pink-600">
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Get Started
+                        </Button>
+                      </a>
+                    </>
+                  )}
                 </div>
               </nav>
             </motion.div>

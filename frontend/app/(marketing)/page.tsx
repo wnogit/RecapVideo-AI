@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { studioUrls } from '@/lib/config';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useAuthStore } from '@/stores/auth-store';
+import { useEffect, useState } from 'react';
 import {
   Play,
   Zap,
@@ -23,10 +26,27 @@ import {
   Layers,
   Timer,
   Users,
+  LayoutDashboard,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function LandingPage() {
+  const { user, isAuthenticated, checkAuth } = useAuthStore();
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    // Check auth state on mount
+    const check = async () => {
+      try {
+        await checkAuth();
+      } catch (e) {
+        // User not authenticated, that's fine
+      }
+      setAuthChecked(true);
+    };
+    check();
+  }, [checkAuth]);
+
   return (
     <>
       {/* Hero Section */}
@@ -81,26 +101,50 @@ export default function LandingPage() {
               transition={{ delay: 0.5 }}
               className="flex flex-col sm:flex-row gap-4 justify-center mb-8"
             >
-              <a href={studioUrls.signup}>
-                <Button 
-                  size="lg" 
-                  className="w-full sm:w-auto bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-700 hover:to-pink-700 text-white border-0 shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300 h-12 px-8 text-base"
-                >
-                  <Sparkles className="mr-2 h-5 w-5" />
-                  Start Free Trial
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </a>
-              <Link href="#demo">
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  className="w-full sm:w-auto glass border-white/20 hover:bg-white/10 h-12 px-8 text-base"
-                >
-                  <Play className="mr-2 h-5 w-5" />
-                  Watch Demo
-                </Button>
-              </Link>
+              {!authChecked ? (
+                // Loading skeleton
+                <Skeleton className="h-12 w-48 rounded-lg" />
+              ) : isAuthenticated ? (
+                // Logged in - Show Dashboard button with glow
+                <Link href="/dashboard">
+                  <Button 
+                    size="lg" 
+                    className="w-full sm:w-auto bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 text-white border-0 shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300 h-12 px-8 text-base animate-pulse-glow relative overflow-hidden group"
+                  >
+                    {/* Glow sweep effect */}
+                    <span className="absolute inset-0 bg-gradient-to-r from-violet-400/0 via-white/25 to-violet-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                    <span className="relative flex items-center">
+                      <LayoutDashboard className="mr-2 h-5 w-5" />
+                      Go to Dashboard
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </span>
+                  </Button>
+                </Link>
+              ) : (
+                // Not logged in - Show Get Started & Demo
+                <>
+                  <a href={studioUrls.signup}>
+                    <Button 
+                      size="lg" 
+                      className="w-full sm:w-auto bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-700 hover:to-pink-700 text-white border-0 shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300 h-12 px-8 text-base"
+                    >
+                      <Sparkles className="mr-2 h-5 w-5" />
+                      Start Free Trial
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </a>
+                  <Link href="#demo">
+                    <Button 
+                      size="lg" 
+                      variant="outline" 
+                      className="w-full sm:w-auto glass border-white/20 hover:bg-white/10 h-12 px-8 text-base"
+                    >
+                      <Play className="mr-2 h-5 w-5" />
+                      Watch Demo
+                    </Button>
+                  </Link>
+                </>
+              )}
             </motion.div>
 
             {/* Trust Indicators */}

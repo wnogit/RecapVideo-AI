@@ -180,4 +180,30 @@
       box-shadow: 0 0 40px rgba(139, 92, 246, 0.8), 0 0 60px rgba(236, 72, 153, 0.4);
     }
   }
+
+  /* Animate pulse glow - for dashboard button */
+  .animate-pulse-glow {
+    animation: pulseGlowSoft 3s ease-in-out infinite;
+  }
+
+  @keyframes pulseGlowSoft {
+    0%, 100% {
+      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+    }
+    50% {
+      box-shadow: 0 4px 30px rgba(139, 92, 246, 0.5), 0 0 40px rgba(236, 72, 153, 0.3);
+    }
+  }
+
+  /* Shimmer animation for skeleton loaders */
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  /* Button press effect */
+  .btn-press:active {
+    transform: scale(0.95);
+  }
 }

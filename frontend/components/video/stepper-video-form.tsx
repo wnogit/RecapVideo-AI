@@ -4,7 +4,7 @@
  * Stepper Video Form
  * Multi-step wizard for video creation with live preview
  */
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useVideoCreationStore } from '@/stores/video-creation-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useVideoStore } from '@/stores/video-store';
@@ -12,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Check, ChevronLeft, ChevronRight, Loader2, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Step Components
 import { Step1Input } from './steps/step1-input';
@@ -34,6 +35,7 @@ interface StepperVideoFormProps {
 export function StepperVideoForm({ onSuccess }: StepperVideoFormProps) {
   const { user } = useAuthStore();
   const { createVideo } = useVideoStore();
+  const [direction, setDirection] = useState(0); // -1 for back, 1 for forward
   
   const {
     currentStep,
@@ -57,6 +59,22 @@ export function StepperVideoForm({ onSuccess }: StepperVideoFormProps) {
   useEffect(() => {
     reset();
   }, []);
+
+  // Custom navigation with direction tracking
+  const handleNext = () => {
+    setDirection(1);
+    nextStep();
+  };
+
+  const handlePrev = () => {
+    setDirection(-1);
+    prevStep();
+  };
+
+  const handleSetStep = (step: 1 | 2 | 3) => {
+    setDirection(step > currentStep ? 1 : -1);
+    setStep(step);
+  };
 
   // Handle form submission
   const handleSubmit = async () => {
@@ -115,7 +133,7 @@ export function StepperVideoForm({ onSuccess }: StepperVideoFormProps) {
                 onClick={() => {
                   // Only allow going back or to completed steps
                   if (step.id < currentStep) {
-                    setStep(step.id as 1 | 2 | 3);
+                    handleSetStep(step.id as 1 | 2 | 3);
                   }
                 }}
                 className={cn(
@@ -163,54 +181,74 @@ export function StepperVideoForm({ onSuccess }: StepperVideoFormProps) {
         {/* Left: Form Steps */}
         <Card className="order-2 lg:order-1">
           <CardContent className="p-6">
-            {/* Step Content */}
-            <div className="min-h-[400px]">
-              {currentStep === 1 && <Step1Input />}
-              {currentStep === 2 && <Step2Styles />}
-              {currentStep === 3 && <Step3Branding hasCredits={hasCredits} creditsRequired={CREDITS_PER_VIDEO} />}
+            {/* Step Content with Animation */}
+            <div className="min-h-[400px] relative overflow-hidden">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={currentStep}
+                  initial={{ opacity: 0, x: direction > 0 ? 50 : -50 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: direction > 0 ? -50 : 50 }}
+                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                >
+                  {currentStep === 1 && <Step1Input />}
+                  {currentStep === 2 && <Step2Styles />}
+                  {currentStep === 3 && <Step3Branding hasCredits={hasCredits} creditsRequired={CREDITS_PER_VIDEO} />}
+                </motion.div>
+              </AnimatePresence>
             </div>
 
             {/* Navigation Buttons */}
             <div className="flex items-center justify-between pt-6 border-t mt-6">
               {/* Back Button */}
-              <Button
-                variant="outline"
-                onClick={prevStep}
-                disabled={currentStep === 1 || isSubmitting}
-                className={cn(currentStep === 1 && "invisible")}
-              >
-                <ChevronLeft className="w-4 h-4 mr-2" />
-                နောက်သို့
-              </Button>
+              <motion.div whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="outline"
+                  onClick={handlePrev}
+                  disabled={currentStep === 1 || isSubmitting}
+                  className={cn(currentStep === 1 && "invisible")}
+                >
+                  <ChevronLeft className="w-4 h-4 mr-2" />
+                  နောက်သို့
+                </Button>
+              </motion.div>
 
               {/* Next / Submit Button */}
               {currentStep < 3 ? (
-                <Button
-                  onClick={nextStep}
-                  disabled={!canProceed()}
-                  className="min-w-[120px]"
-                >
-                  ရှေ့ဆက်ရန်
-                  <ChevronRight className="w-4 h-4 ml-2" />
-                </Button>
+                <motion.div whileTap={{ scale: 0.95 }}>
+                  <Button
+                    onClick={handleNext}
+                    disabled={!canProceed()}
+                    className="min-w-[120px]"
+                  >
+                    ရှေ့ဆက်ရန်
+                    <ChevronRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </motion.div>
               ) : (
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!canProceed() || isSubmitting}
-                  className="min-w-[160px] bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-700 hover:to-pink-700"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ဖန်တီးနေသည်...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Video ဖန်တီးမည်
-                    </>
-                  )}
-                </Button>
+                <motion.div whileTap={{ scale: 0.95 }}>
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={!canProceed() || isSubmitting}
+                    className="min-w-[160px] bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-700 hover:to-pink-700 relative overflow-hidden group"
+                  >
+                    {/* Glow sweep effect */}
+                    <span className="absolute inset-0 bg-gradient-to-r from-violet-400/0 via-white/25 to-violet-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                    <span className="relative flex items-center">
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ဖန်တီးနေသည်...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Video ဖန်တီးမည်
+                        </>
+                      )}
+                    </span>
+                  </Button>
+                </motion.div>
               )}
             </div>
           </CardContent>
