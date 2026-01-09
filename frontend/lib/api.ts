@@ -456,7 +456,7 @@ export interface TelegramStatus {
 
 export const telegramApi = {
   getStatus: () => api.get<TelegramStatus>('/site-settings/telegram/status'),
-  updateConfig: (config: { admin_chat_id?: string; enabled?: boolean }) => 
+  updateConfig: (config: { bot_token?: string; admin_chat_id?: string; enabled?: boolean }) => 
     api.put('/site-settings/telegram/config', config),
   setWebhook: (webhookUrl: string) => 
     api.post('/site-settings/telegram/set-webhook', { webhook_url: webhookUrl }),

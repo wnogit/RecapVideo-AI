@@ -24,27 +24,47 @@ class TelegramService:
         self._initialized = False
     
     async def _ensure_initialized(self):
-        """Lazy load bot token from database or env."""
+        """Lazy load bot token and admin chat ID from database or env."""
         if self._initialized:
             return
         
-        # Try to get from database first
-        from app.services.api_key_service import api_key_service
-        try:
-            db_token = await api_key_service.get_telegram_bot_token()
-            if db_token:
-                self._bot_token = db_token
-                logger.info("Telegram bot token loaded from database")
-            else:
-                # Fall back to environment variable
-                self._bot_token = settings.TELEGRAM_BOT_TOKEN
-                if self._bot_token:
-                    logger.info("Telegram bot token loaded from environment")
-        except Exception as e:
-            logger.warning(f"Error loading bot token from DB, using env: {e}")
-            self._bot_token = settings.TELEGRAM_BOT_TOKEN
+        # Try to get from site settings (database) first
+        from app.core.database import async_session_maker
+        from sqlalchemy import select
         
-        self._admin_chat_id = settings.TELEGRAM_ADMIN_CHAT_ID
+        try:
+            async with async_session_maker() as session:
+                from app.models import SiteSettings
+                
+                # Get bot token
+                result = await session.execute(
+                    select(SiteSettings).where(SiteSettings.key == "telegram_bot_token")
+                )
+                token_setting = result.scalar_one_or_none()
+                if token_setting and token_setting.value:
+                    self._bot_token = token_setting.value
+                    logger.info("Telegram bot token loaded from database")
+                else:
+                    # Fall back to environment variable
+                    self._bot_token = settings.TELEGRAM_BOT_TOKEN
+                    if self._bot_token:
+                        logger.info("Telegram bot token loaded from environment")
+                
+                # Get admin chat ID
+                result = await session.execute(
+                    select(SiteSettings).where(SiteSettings.key == "telegram_admin_chat_id")
+                )
+                chat_setting = result.scalar_one_or_none()
+                if chat_setting and chat_setting.value:
+                    self._admin_chat_id = chat_setting.value
+                else:
+                    self._admin_chat_id = settings.TELEGRAM_ADMIN_CHAT_ID
+                    
+        except Exception as e:
+            logger.warning(f"Error loading Telegram config from DB, using env: {e}")
+            self._bot_token = settings.TELEGRAM_BOT_TOKEN
+            self._admin_chat_id = settings.TELEGRAM_ADMIN_CHAT_ID
+        
         self._initialized = True
     
     @property

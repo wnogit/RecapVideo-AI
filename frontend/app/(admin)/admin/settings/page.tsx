@@ -43,7 +43,6 @@ const API_KEY_TYPE_CONFIG: Record<string, { icon: string; color: string }> = {
   r2_access_key: { icon: '☁️', color: 'bg-orange-100 text-orange-700' },
   r2_secret_key: { icon: '🔐', color: 'bg-orange-100 text-orange-700' },
   resend: { icon: '📧', color: 'bg-green-100 text-green-700' },
-  telegram_bot: { icon: '✈️', color: 'bg-sky-100 text-sky-700' },
 };
 
 interface APIKeyFormData {
@@ -91,6 +90,7 @@ export default function AdminSettingsPage() {
   // Telegram state
   const [telegramStatus, setTelegramStatus] = useState<TelegramStatus | null>(null);
   const [isLoadingTelegram, setIsLoadingTelegram] = useState(false);
+  const [telegramBotToken, setTelegramBotToken] = useState('');
   const [telegramAdminChatId, setTelegramAdminChatId] = useState('');
   const [isTelegramEnabled, setIsTelegramEnabled] = useState(false);
   const [isSavingTelegram, setIsSavingTelegram] = useState(false);
@@ -217,10 +217,12 @@ export default function AdminSettingsPage() {
     setIsSavingTelegram(true);
     try {
       await telegramApi.updateConfig({
+        bot_token: telegramBotToken || undefined,
         admin_chat_id: telegramAdminChatId,
         enabled: isTelegramEnabled,
       });
       toast({ title: 'Telegram settings saved' });
+      setTelegramBotToken(''); // Clear token field after save
       fetchTelegramStatus();
     } catch (error: any) {
       toast({ title: error.response?.data?.detail || 'Failed to save Telegram settings', variant: 'destructive' });
@@ -937,13 +939,11 @@ export default function AdminSettingsPage() {
                       </div>
                       <div className="grid gap-3 md:grid-cols-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">Bot Token:</span>
+                          <span className="text-sm text-muted-foreground">Connection:</span>
                           {telegramStatus?.bot_token_configured ? (
-                            <Badge className="bg-green-100 text-green-700">Configured</Badge>
+                            <Badge className="bg-green-100 text-green-700">Connected</Badge>
                           ) : (
-                            <Badge variant="outline" className="text-orange-600 border-orange-300">
-                              Not Set - Add in API Keys tab
-                            </Badge>
+                            <Badge variant="outline">Not Connected</Badge>
                           )}
                         </div>
                         {telegramStatus?.bot_info && (
@@ -983,6 +983,20 @@ export default function AdminSettingsPage() {
                         checked={isTelegramEnabled}
                         onCheckedChange={setIsTelegramEnabled}
                       />
+                    </div>
+
+                    {/* Bot Token */}
+                    <div className="space-y-2">
+                      <Label>Bot Token</Label>
+                      <Input 
+                        type="password"
+                        placeholder="Enter your Telegram bot token from @BotFather"
+                        value={telegramBotToken}
+                        onChange={(e) => setTelegramBotToken(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Create a bot with @BotFather on Telegram to get your bot token
+                      </p>
                     </div>
 
                     {/* Admin Chat ID */}

@@ -100,10 +100,4 @@ API_KEY_TYPES = [
         "description": "R2 storage secret access key",
         "required": True,
     },
-    {
-        "key_type": "telegram_bot",
-        "name": "Telegram Bot Token",
-        "description": "Telegram bot for order notifications",
-        "required": False,
-    },
 ]

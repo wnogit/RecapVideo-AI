@@ -20,7 +20,6 @@ class APIKeyType(str, Enum):
     RESEND = "resend"                       # Resend Email
     R2_ACCESS_KEY = "r2_access_key"         # Cloudflare R2 Access Key
     R2_SECRET_KEY = "r2_secret_key"         # Cloudflare R2 Secret Key
-    TELEGRAM_BOT = "telegram_bot"           # Telegram Bot Token
     CUSTOM = "custom"                       # Custom/Other keys
 
 

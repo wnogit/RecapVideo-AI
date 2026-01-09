@@ -324,6 +324,7 @@ async def get_my_ip(request: Request):
 
 # Telegram Configuration endpoints
 class TelegramConfigUpdate(BaseModel):
+    bot_token: Optional[str] = None
     admin_chat_id: Optional[str] = None
     enabled: Optional[bool] = None
 
@@ -342,10 +343,14 @@ async def get_telegram_status(
     Returns bot info, webhook status, and configuration state.
     """
     from app.services.telegram_service import telegram_service
-    from app.services.api_key_service import api_key_service
     
-    # Check if bot token is configured
-    bot_token = await api_key_service.get_telegram_bot_token(db)
+    # Check if bot token is configured (from site settings or env)
+    bot_token = await get_setting_value(db, "telegram_bot_token", "")
+    if not bot_token:
+        # Fallback to env
+        from app.core.config import settings as app_settings
+        bot_token = app_settings.TELEGRAM_BOT_TOKEN or ""
+    
     admin_chat_id = await get_setting_value(db, "telegram_admin_chat_id", "")
     enabled = await get_setting_value(db, "telegram_enabled", "false")
     
@@ -382,6 +387,10 @@ async def update_telegram_config(
 ):
     """Update Telegram notification settings."""
     updates = []
+    
+    if config.bot_token is not None and config.bot_token.strip():
+        await set_setting(db, "telegram_bot_token", value=config.bot_token.strip(), updated_by=current_user.email)
+        updates.append("bot_token")
     
     if config.admin_chat_id is not None:
         await set_setting(db, "telegram_admin_chat_id", value=config.admin_chat_id, updated_by=current_user.email)
