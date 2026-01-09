@@ -258,7 +258,7 @@ export default function AdminOrdersPage() {
 
       {/* Order Details Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Order Details</DialogTitle>
             <DialogDescription>
@@ -266,59 +266,10 @@ export default function AdminOrdersPage() {
             </DialogDescription>
           </DialogHeader>
           {selectedOrder && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">User</p>
-                  <p className="font-medium">{selectedOrder.user_name || "N/A"}</p>
-                  <p className="text-xs text-muted-foreground">{selectedOrder.user_email}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Credits</p>
-                  <p className="font-medium">{selectedOrder.credits_amount.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Amount (USD)</p>
-                  <p className="font-medium">${Number(selectedOrder.price_usd).toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Amount (MMK)</p>
-                  <p className="font-medium">
-                    {selectedOrder.price_mmk 
-                      ? `${Number(selectedOrder.price_mmk).toLocaleString()} MMK`
-                      : "N/A"
-                    }
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Payment Method</p>
-                  <p className="font-medium">{selectedOrder.payment_method}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Status</p>
-                  <Badge variant={getStatusVariant(selectedOrder.status) as any}>
-                    {selectedOrder.status}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Created</p>
-                  <p className="font-medium">
-                    {format(new Date(selectedOrder.created_at), "MMM d, yyyy HH:mm")}
-                  </p>
-                </div>
-                {selectedOrder.completed_at && (
-                  <div>
-                    <p className="text-muted-foreground">Completed</p>
-                    <p className="font-medium">
-                      {format(new Date(selectedOrder.completed_at), "MMM d, yyyy HH:mm")}
-                    </p>
-                  </div>
-                )}
-              </div>
-              
-              {/* Payment Screenshot */}
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left: Payment Screenshot */}
+              <div className="order-2 md:order-1">
+                <p className="text-sm font-medium text-muted-foreground mb-3">
                   Payment Screenshot
                 </p>
                 {selectedOrder.screenshot_url ? (
@@ -331,17 +282,69 @@ export default function AdminOrdersPage() {
                     <img
                       src={`${process.env.NEXT_PUBLIC_API_URL}${selectedOrder.screenshot_url}`}
                       alt="Payment Screenshot"
-                      className="rounded-lg border max-h-64 object-contain w-full"
+                      className="rounded-lg border max-h-[400px] object-contain w-full hover:opacity-90 transition-opacity"
                     />
                   </a>
                 ) : (
-                  <div className="rounded-lg border bg-muted aspect-video flex items-center justify-center">
+                  <div className="rounded-lg border bg-muted h-[300px] flex items-center justify-center">
                     <div className="text-center text-muted-foreground">
                       <CreditCard className="h-12 w-12 mx-auto mb-2" />
                       <p className="text-sm">No screenshot uploaded</p>
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Right: Order Details */}
+              <div className="order-1 md:order-2 space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">User</p>
+                    <p className="font-medium">{selectedOrder.user_name || "N/A"}</p>
+                    <p className="text-xs text-muted-foreground">{selectedOrder.user_email}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Credits</p>
+                    <p className="font-medium">{selectedOrder.credits_amount.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Amount (USD)</p>
+                    <p className="font-medium">${Number(selectedOrder.price_usd).toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Amount (MMK)</p>
+                    <p className="font-medium">
+                      {selectedOrder.price_mmk 
+                        ? `${Number(selectedOrder.price_mmk).toLocaleString()} MMK`
+                        : "N/A"
+                      }
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Payment Method</p>
+                    <p className="font-medium">{selectedOrder.payment_method}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Status</p>
+                    <Badge variant={getStatusVariant(selectedOrder.status) as any}>
+                      {selectedOrder.status}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Created</p>
+                    <p className="font-medium">
+                      {format(new Date(selectedOrder.created_at), "MMM d, yyyy HH:mm")}
+                    </p>
+                  </div>
+                  {selectedOrder.completed_at && (
+                    <div>
+                      <p className="text-muted-foreground">Completed</p>
+                      <p className="font-medium">
+                        {format(new Date(selectedOrder.completed_at), "MMM d, yyyy HH:mm")}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

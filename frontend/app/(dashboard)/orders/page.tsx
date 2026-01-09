@@ -234,17 +234,94 @@ export default function OrdersPage() {
 
       {/* Screenshot Dialog */}
       <Dialog open={showScreenshot} onOpenChange={setShowScreenshot}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Payment Screenshot</DialogTitle>
+            <DialogTitle>Order Details</DialogTitle>
           </DialogHeader>
-          {selectedOrder?.screenshot_url && (
-            <div className="flex justify-center">
-              <img
-                src={selectedOrder.screenshot_url}
-                alt="Payment Screenshot"
-                className="max-w-full max-h-[60vh] object-contain rounded-lg"
-              />
+          {selectedOrder && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left: Payment Screenshot */}
+              <div className="order-2 md:order-1">
+                <p className="text-sm font-medium text-muted-foreground mb-3">
+                  Payment Screenshot
+                </p>
+                {selectedOrder.screenshot_url ? (
+                  <a
+                    href={`${process.env.NEXT_PUBLIC_API_URL}${selectedOrder.screenshot_url}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
+                    <img
+                      src={`${process.env.NEXT_PUBLIC_API_URL}${selectedOrder.screenshot_url}`}
+                      alt="Payment Screenshot"
+                      className="rounded-lg border max-h-[400px] object-contain w-full hover:opacity-90 transition-opacity"
+                    />
+                  </a>
+                ) : (
+                  <div className="rounded-lg border bg-muted h-[300px] flex items-center justify-center">
+                    <div className="text-center text-muted-foreground">
+                      <Image className="h-12 w-12 mx-auto mb-2" />
+                      <p className="text-sm">No screenshot uploaded</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Right: Order Details */}
+              <div className="order-1 md:order-2 space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Order ID</p>
+                    <p className="font-medium font-mono">#{selectedOrder.id.slice(0, 8)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Status</p>
+                    <Badge className={ORDER_STATUS_CONFIG[selectedOrder.status]?.color}>
+                      {ORDER_STATUS_CONFIG[selectedOrder.status]?.label || selectedOrder.status}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Credits</p>
+                    <p className="font-medium">{selectedOrder.credits_amount.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Amount</p>
+                    <p className="font-medium">
+                      {selectedOrder.price_mmk 
+                        ? `${Number(selectedOrder.price_mmk).toLocaleString()} MMK`
+                        : `$${Number(selectedOrder.price_usd).toFixed(2)}`
+                      }
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Payment Method</p>
+                    <p className="font-medium">
+                      {PAYMENT_TYPE_NAMES[selectedOrder.payment_method] || selectedOrder.payment_method}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Created</p>
+                    <p className="font-medium">
+                      {format(new Date(selectedOrder.created_at), "MMM d, yyyy HH:mm")}
+                    </p>
+                  </div>
+                  {selectedOrder.completed_at && (
+                    <div className="col-span-2">
+                      <p className="text-muted-foreground">Completed</p>
+                      <p className="font-medium text-green-600">
+                        ✓ {format(new Date(selectedOrder.completed_at), "MMM d, yyyy HH:mm")}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                {selectedOrder.admin_note && (
+                  <div className="border-t pt-4">
+                    <p className="text-sm text-muted-foreground">Admin Note</p>
+                    <p className="text-sm mt-1">{selectedOrder.admin_note}</p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
