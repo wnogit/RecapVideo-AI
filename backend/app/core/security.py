@@ -4,7 +4,8 @@ Security utilities for JWT and password hashing
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import PyJWTError
 from passlib.context import CryptContext
 from pydantic import BaseModel
 
@@ -94,7 +95,7 @@ def verify_token(token: str, token_type: str = "access") -> Optional[TokenPayloa
             exp=datetime.fromtimestamp(payload["exp"], tz=timezone.utc),
             iat=datetime.fromtimestamp(payload["iat"], tz=timezone.utc),
         )
-    except JWTError:
+    except PyJWTError:
         return None
 
 
@@ -134,5 +135,5 @@ def verify_password_reset_token(token: str) -> Optional[str]:
         if payload.get("type") != "password_reset":
             return None
         return payload.get("sub")
-    except JWTError:
+    except PyJWTError:
         return None
