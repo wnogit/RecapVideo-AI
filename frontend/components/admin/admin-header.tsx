@@ -16,9 +16,37 @@ import { useAuthStore } from "@/stores/auth-store"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { AdminSidebar } from "./admin-sidebar"
 import Link from "next/link"
+import { useEffect, useState } from "react"
 
 export function AdminHeader() {
   const { user, logout } = useAuthStore()
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0)
+
+  useEffect(() => {
+    const fetchPendingOrders = async () => {
+      try {
+        const token = localStorage.getItem('access_token')
+        if (!token) return
+        
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/dashboard`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setPendingOrdersCount(data.pending_orders || 0)
+        }
+      } catch (error) {
+        console.error('Failed to fetch pending orders:', error)
+      }
+    }
+
+    fetchPendingOrders()
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchPendingOrders, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   const getInitials = (name: string) => {
     return name
@@ -66,13 +94,17 @@ export function AdminHeader() {
           </Link>
         </Button>
 
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground flex items-center justify-center">
-            3
-          </span>
-          <span className="sr-only">Notifications</span>
+        {/* Notifications - shows pending orders */}
+        <Button variant="ghost" size="icon" className="relative" asChild>
+          <Link href="/admin/orders?status=pending">
+            <Bell className="h-5 w-5" />
+            {pendingOrdersCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground flex items-center justify-center">
+                {pendingOrdersCount > 9 ? '9+' : pendingOrdersCount}
+              </span>
+            )}
+            <span className="sr-only">Pending Orders</span>
+          </Link>
         </Button>
 
         {/* User Menu */}
