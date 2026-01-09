@@ -84,7 +84,7 @@ async def get_dashboard_stats(
     
     # Total revenue (completed orders)
     revenue_result = await db.execute(
-        select(func.coalesce(func.sum(Order.amount), 0)).where(Order.status == "completed")
+        select(func.coalesce(func.sum(Order.price_usd), 0)).where(Order.status == "completed")
     )
     total_revenue = float(revenue_result.scalar() or 0)
     
@@ -150,14 +150,14 @@ async def get_dashboard_stats(
     
     # Revenue growth
     revenue_last_month_result = await db.execute(
-        select(func.coalesce(func.sum(Order.amount), 0)).where(
+        select(func.coalesce(func.sum(Order.price_usd), 0)).where(
             and_(Order.status == "completed", Order.created_at >= last_month_start)
         )
     )
     revenue_last_month = float(revenue_last_month_result.scalar() or 0)
     
     revenue_prev_month_result = await db.execute(
-        select(func.coalesce(func.sum(Order.amount), 0)).where(
+        select(func.coalesce(func.sum(Order.price_usd), 0)).where(
             and_(
                 Order.status == "completed",
                 Order.created_at >= two_months_ago,
