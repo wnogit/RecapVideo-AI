@@ -3,11 +3,10 @@
 import { useEffect } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 import { useVideoStore } from '@/stores/video-store';
-import { VideoForm } from '@/components/video/video-form';
 import { VideoCard } from '@/components/video/video-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Coins, Video, Clock, CheckCircle, ShoppingCart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Coins, Video, Clock, CheckCircle, ShoppingCart, Plus, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardPage() {
@@ -97,10 +96,31 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <div className="grid gap-5 lg:grid-cols-2">
-        {/* Video Form */}
-        <div>
-          <VideoForm onSuccess={() => fetchVideos(1, 5)} />
-        </div>
+        {/* Create Video CTA */}
+        <Card className="bg-gradient-to-br from-violet-500/10 via-pink-500/10 to-orange-500/10 border-primary/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="p-4 bg-gradient-to-br from-violet-600 to-pink-600 rounded-2xl shadow-lg">
+                <Sparkles className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold">Video အသစ် ဖန်တီးမည်</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  YouTube Shorts ကို မြန်မာဘာသာ Recap Video အဖြစ် ပြောင်းလဲပါ
+                </p>
+              </div>
+              <Link href="/create" className="w-full">
+                <Button className="w-full bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-700 hover:to-pink-700 text-white">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Video ဖန်တီးရန်
+                </Button>
+              </Link>
+              <p className="text-xs text-muted-foreground">
+                Video တစ်ခုလျှင် 2 Credits ကုန်ကျပါသည်
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Recent Videos */}
         <div className="space-y-4">
