@@ -124,7 +124,10 @@ export function LivePreviewCanvas() {
                   }}
                 />
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
+                <div 
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{ transform: copyrightOptions.horizontalFlip ? 'scaleX(-1)' : 'none' }}
+                >
                   <div className="text-center text-white/50">
                     <Smartphone className="h-8 w-8 mx-auto mb-2" />
                     <p className="text-xs font-myanmar">URL ထည့်ပါ</p>

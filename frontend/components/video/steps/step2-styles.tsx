@@ -4,7 +4,7 @@
  * Step 2: Styles
  * Copyright Protection, Subtitles, and Logo settings
  */
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useVideoCreationStore } from '@/stores/video-creation-store';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -26,6 +26,8 @@ import {
   ZoomIn,
   Music,
   AlertCircle,
+  Upload,
+  X,
 } from 'lucide-react';
 
 // Position options
@@ -74,6 +76,56 @@ export function Step2Styles() {
   const [copyrightOpen, setCopyrightOpen] = useState(true);
   const [subtitleOpen, setSubtitleOpen] = useState(true);
   const [logoOpen, setLogoOpen] = useState(false);
+  
+  // Logo file input ref
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
+  // Handle logo upload
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('ကျေးဇူးပြု၍ ပုံဖိုင်သာ ရွေးချယ်ပါ');
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('ဖိုင်အရွယ်အစား 2MB ထက်မကျော်ရပါ');
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    
+    try {
+      // Convert to base64 for preview (in real app, upload to server)
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setLogoOptions({ ...logoOptions, imageUrl: base64 });
+        setIsUploadingLogo(false);
+      };
+      reader.onerror = () => {
+        alert('ဖိုင်ဖတ်ရာတွင် အမှားဖြစ်ပါသည်');
+        setIsUploadingLogo(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Logo upload error:', error);
+      setIsUploadingLogo(false);
+    }
+  };
+
+  // Remove logo
+  const handleRemoveLogo = () => {
+    setLogoOptions({ ...logoOptions, imageUrl: '' });
+    if (logoInputRef.current) {
+      logoInputRef.current.value = '';
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -340,15 +392,70 @@ export function Step2Styles() {
           {/* Logo Upload */}
           <div className="space-y-2">
             <Label className="text-sm">Logo ပုံ</Label>
-            <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 cursor-pointer transition-colors">
-              <Image className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">
-                Click to upload logo
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                PNG, JPG (Max 2MB)
-              </p>
-            </div>
+            
+            {/* Hidden file input */}
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              className="hidden"
+              onChange={handleLogoUpload}
+            />
+            
+            {/* Upload Area or Preview */}
+            {logoOptions.imageUrl ? (
+              <div className="relative border-2 border-primary/50 rounded-lg p-4 bg-primary/5">
+                <div className="flex items-center gap-4">
+                  <img
+                    src={logoOptions.imageUrl}
+                    alt="Logo preview"
+                    className="w-16 h-16 object-contain rounded-lg bg-white dark:bg-gray-800 p-1"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-green-600">Logo တင်ပြီးပါပြီ ✓</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      အခြား logo ပြောင်းလိုပါက Remove နှိပ်ပါ
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRemoveLogo}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div 
+                onClick={() => logoInputRef.current?.click()}
+                className={cn(
+                  "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all",
+                  "hover:border-primary hover:bg-primary/5",
+                  isUploadingLogo && "opacity-50 pointer-events-none"
+                )}
+              >
+                {isUploadingLogo ? (
+                  <>
+                    <div className="h-8 w-8 mx-auto mb-2 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    <p className="text-sm text-muted-foreground">Uploading...</p>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      Click to upload logo
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      PNG, JPG (Max 2MB)
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
             
             {/* Warning if logo enabled but no image */}
             {logoOptions.enabled && !logoOptions.imageUrl && (
