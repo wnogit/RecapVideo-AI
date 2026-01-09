@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, Key, Globe, Bell, Database, Plus, Pencil, Trash2, Eye, EyeOff, Loader2, Check, X, RefreshCw, TestTube } from 'lucide-react';
+import { Save, Key, Globe, Bell, Database, Plus, Pencil, Trash2, Eye, EyeOff, Loader2, Check, X, RefreshCw, TestTube, Shield, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { adminApiKeysApi, type APIKey, type APIKeyTypeInfo } from '@/lib/api';
+import { adminApiKeysApi, siteSettingsApi, siteSettingsPublicApi, type APIKey, type APIKeyTypeInfo, type AllowedIP } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 
 // API Key type display config
@@ -79,11 +79,114 @@ export default function AdminSettingsPage() {
   const [isSubmittingKey, setIsSubmittingKey] = useState(false);
   const [revealedKeys, setRevealedKeys] = useState<Record<string, string>>({});
   const [testingKey, setTestingKey] = useState<string | null>(null);
+  
+  // Site Settings state
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [siteSettings, setSiteSettings] = useState<Record<string, any>>({});
+  const [myIP, setMyIP] = useState<string>('');
+  const [newIPAddress, setNewIPAddress] = useState('');
+  const [newIPLabel, setNewIPLabel] = useState('');
+  const [isAddingIP, setIsAddingIP] = useState(false);
 
-  // Fetch API keys on mount
+  // Fetch API keys and site settings on mount
   useEffect(() => {
     fetchApiKeys();
+    fetchSiteSettings();
+    fetchMyIP();
   }, []);
+
+  const fetchSiteSettings = async () => {
+    setIsLoadingSettings(true);
+    try {
+      const res = await siteSettingsApi.getAll();
+      setSiteSettings(res.data?.settings || {});
+    } catch (error) {
+      console.error('Error fetching site settings:', error);
+      toast({ title: 'Failed to load site settings', variant: 'destructive' });
+    } finally {
+      setIsLoadingSettings(false);
+    }
+  };
+
+  const fetchMyIP = async () => {
+    try {
+      const res = await siteSettingsPublicApi.getMyIP();
+      setMyIP(res.data?.ip || '');
+    } catch (error) {
+      console.error('Error fetching IP:', error);
+    }
+  };
+
+  const getSettingValue = (key: string, defaultValue: string = ''): string => {
+    return siteSettings[key]?.value ?? defaultValue;
+  };
+
+  const getSettingBool = (key: string, defaultValue: boolean = false): boolean => {
+    const value = siteSettings[key]?.value;
+    if (value === undefined) return defaultValue;
+    return value === 'true';
+  };
+
+  const getSettingJson = (key: string, defaultValue: any[] = []): any[] => {
+    return siteSettings[key]?.value_json ?? defaultValue;
+  };
+
+  const updateSetting = async (key: string, value?: string, value_json?: any) => {
+    try {
+      await siteSettingsApi.updateSingle(key, { key, value, value_json });
+      // Update local state
+      setSiteSettings(prev => ({
+        ...prev,
+        [key]: { ...prev[key], value, value_json }
+      }));
+      return true;
+    } catch (error) {
+      console.error('Error updating setting:', error);
+      toast({ title: 'Failed to update setting', variant: 'destructive' });
+      return false;
+    }
+  };
+
+  const handleToggleSetting = async (key: string, currentValue: boolean) => {
+    const success = await updateSetting(key, (!currentValue).toString());
+    if (success) {
+      toast({ title: 'Setting updated' });
+    }
+  };
+
+  const handleAddAllowedIP = async () => {
+    if (!newIPAddress.trim()) {
+      toast({ title: 'Please enter an IP address', variant: 'destructive' });
+      return;
+    }
+    setIsAddingIP(true);
+    try {
+      await siteSettingsApi.addAllowedIP(newIPAddress.trim(), newIPLabel.trim() || undefined);
+      toast({ title: 'IP address added' });
+      setNewIPAddress('');
+      setNewIPLabel('');
+      fetchSiteSettings();
+    } catch (error: any) {
+      toast({ title: error.response?.data?.detail || 'Failed to add IP', variant: 'destructive' });
+    } finally {
+      setIsAddingIP(false);
+    }
+  };
+
+  const handleRemoveAllowedIP = async (ip: string) => {
+    try {
+      await siteSettingsApi.removeAllowedIP(ip);
+      toast({ title: 'IP address removed' });
+      fetchSiteSettings();
+    } catch (error: any) {
+      toast({ title: error.response?.data?.detail || 'Failed to remove IP', variant: 'destructive' });
+    }
+  };
+
+  const handleAddMyIP = () => {
+    setNewIPAddress(myIP);
+    setNewIPLabel('My Current IP');
+  };
 
   const fetchApiKeys = async () => {
     setIsLoadingKeys(true);
@@ -441,75 +544,221 @@ export default function AdminSettingsPage() {
 
         {/* General Settings */}
         <TabsContent value="general">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Globe className="h-5 w-5" />
-                General Settings
-              </CardTitle>
-              <CardDescription>
-                Basic configuration for your platform
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="siteName">Site Name</Label>
-                  <Input id="siteName" defaultValue="RecapVideo AI" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="siteUrl">Site URL</Label>
-                  <Input id="siteUrl" defaultValue="https://recapvideo.ai" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Site Description</Label>
-                <Textarea
-                  id="description"
-                  defaultValue="Transform YouTube videos into engaging recap content with AI"
-                />
-              </div>
-              <Separator />
-              <div className="space-y-4">
-                <h3 className="font-medium">Features</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Allow Registration</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Allow new users to sign up
-                      </p>
-                    </div>
-                    <Switch defaultChecked />
+          <div className="space-y-6">
+            {/* Maintenance Mode Card */}
+            <Card className={getSettingBool('maintenance_mode') ? 'border-orange-500 border-2' : ''}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Maintenance Mode
+                  {getSettingBool('maintenance_mode') && (
+                    <Badge variant="destructive" className="ml-2">ACTIVE</Badge>
+                  )}
+                </CardTitle>
+                <CardDescription>
+                  When enabled, only allowed IPs can access the site. Others see a maintenance page.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {isLoadingSettings ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Email Verification</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Require email verification for new accounts
-                      </p>
+                ) : (
+                  <>
+                    {/* Main Toggle */}
+                    <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                      <div className="flex items-center gap-3">
+                        {getSettingBool('maintenance_mode') ? (
+                          <WifiOff className="h-6 w-6 text-orange-500" />
+                        ) : (
+                          <Wifi className="h-6 w-6 text-green-500" />
+                        )}
+                        <div>
+                          <Label className="text-base">Enable Maintenance Mode</Label>
+                          <p className="text-sm text-muted-foreground">
+                            {getSettingBool('maintenance_mode') 
+                              ? 'Site is currently in maintenance mode' 
+                              : 'Site is accessible to all users'}
+                          </p>
+                        </div>
+                      </div>
+                      <Switch 
+                        checked={getSettingBool('maintenance_mode')}
+                        onCheckedChange={(checked) => handleToggleSetting('maintenance_mode', !checked)}
+                      />
                     </div>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Maintenance Mode</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Put the site in maintenance mode
-                      </p>
+
+                    {/* Allowed IPs Section */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-medium">Allowed IP Addresses</h3>
+                        {myIP && (
+                          <Badge variant="outline" className="font-mono">
+                            Your IP: {myIP}
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      {/* Add IP Form */}
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="IP Address (e.g., 192.168.1.1)"
+                          value={newIPAddress}
+                          onChange={(e) => setNewIPAddress(e.target.value)}
+                          className="flex-1"
+                        />
+                        <Input
+                          placeholder="Label (optional)"
+                          value={newIPLabel}
+                          onChange={(e) => setNewIPLabel(e.target.value)}
+                          className="w-40"
+                        />
+                        <Button 
+                          onClick={handleAddAllowedIP}
+                          disabled={isAddingIP || !newIPAddress.trim()}
+                        >
+                          {isAddingIP ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                        </Button>
+                        {myIP && (
+                          <Button variant="outline" onClick={handleAddMyIP}>
+                            Add My IP
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* IP List */}
+                      <div className="border rounded-lg">
+                        {getSettingJson('maintenance_allowed_ips', []).length === 0 ? (
+                          <div className="p-4 text-center text-muted-foreground">
+                            <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
+                            <p>No allowed IPs configured.</p>
+                            <p className="text-xs">If you enable maintenance mode, you won't be able to access the site!</p>
+                          </div>
+                        ) : (
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>IP Address</TableHead>
+                                <TableHead>Label</TableHead>
+                                <TableHead className="w-20">Actions</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {getSettingJson('maintenance_allowed_ips', []).map((item: any, index: number) => {
+                                const ip = typeof item === 'string' ? item : item.ip;
+                                const label = typeof item === 'string' ? '' : item.label;
+                                const isMyIP = ip === myIP;
+                                return (
+                                  <TableRow key={index}>
+                                    <TableCell className="font-mono">
+                                      {ip}
+                                      {isMyIP && (
+                                        <Badge variant="secondary" className="ml-2">You</Badge>
+                                      )}
+                                    </TableCell>
+                                    <TableCell>{label || '-'}</TableCell>
+                                    <TableCell>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-destructive"
+                                        onClick={() => handleRemoveAllowedIP(ip)}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        )}
+                      </div>
                     </div>
-                    <Switch />
+
+                    {/* Maintenance Message */}
+                    <div className="space-y-2">
+                      <Label>Maintenance Message</Label>
+                      <Textarea
+                        value={getSettingValue('maintenance_message', 'We are working on something amazing!')}
+                        onChange={(e) => {
+                          setSiteSettings(prev => ({
+                            ...prev,
+                            maintenance_message: { ...prev.maintenance_message, value: e.target.value }
+                          }));
+                        }}
+                        onBlur={(e) => updateSetting('maintenance_message', e.target.value)}
+                        placeholder="Message to show on maintenance page"
+                        rows={2}
+                      />
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Feature Toggles Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5" />
+                  Feature Settings
+                </CardTitle>
+                <CardDescription>
+                  Control site features and user access
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isLoadingSettings ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <Button onClick={handleSave} disabled={isSaving}>
-                  <Save className="mr-2 h-4 w-4" />
-                  {isSaving ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Allow Registration</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Allow new users to sign up
+                        </p>
+                      </div>
+                      <Switch 
+                        checked={getSettingBool('allow_registration', true)}
+                        onCheckedChange={(checked) => handleToggleSetting('allow_registration', !checked)}
+                      />
+                    </div>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Email Verification</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Require email verification for new accounts
+                        </p>
+                      </div>
+                      <Switch 
+                        checked={getSettingBool('require_email_verification', true)}
+                        onCheckedChange={(checked) => handleToggleSetting('require_email_verification', !checked)}
+                      />
+                    </div>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Google Login</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Allow users to sign in with Google
+                        </p>
+                      </div>
+                      <Switch 
+                        checked={getSettingBool('allow_google_login', true)}
+                        onCheckedChange={(checked) => handleToggleSetting('allow_google_login', !checked)}
+                      />
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Notifications */}

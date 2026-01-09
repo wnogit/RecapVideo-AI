@@ -396,3 +396,51 @@ export const adminOrdersApi = {
     api.post<AdminOrder>(`/admin/orders/${id}/reject`, null, { params: { reason } }),
   stats: () => api.get<OrderStats>('/admin/orders/stats/summary'),
 };
+
+// Site Settings Types
+export interface MaintenanceStatus {
+  maintenance_mode: boolean;
+  is_allowed: boolean;
+  message?: string;
+  estimated_end?: string;
+}
+
+export interface AllowedIP {
+  ip: string;
+  label?: string;
+}
+
+export interface SiteSettingsValue {
+  value?: string;
+  value_json?: any;
+  description?: string;
+  updated_at?: string;
+}
+
+export interface AllSettings {
+  settings: Record<string, SiteSettingsValue>;
+}
+
+export interface SettingUpdate {
+  key: string;
+  value?: string;
+  value_json?: any;
+}
+
+// Site Settings API (Public)
+export const siteSettingsPublicApi = {
+  getMaintenanceStatus: () => api.get<MaintenanceStatus>('/site-settings/maintenance-status'),
+  getPublicSettings: () => api.get<{ settings: Record<string, string> }>('/site-settings/public'),
+  getMyIP: () => api.get<{ ip: string }>('/site-settings/my-ip'),
+};
+
+// Site Settings API (Admin)
+export const siteSettingsApi = {
+  getAll: () => api.get<AllSettings>('/site-settings'),
+  updateMultiple: (updates: SettingUpdate[]) => api.put('/site-settings', updates),
+  updateSingle: (key: string, update: SettingUpdate) => api.put(`/site-settings/${key}`, update),
+  addAllowedIP: (ip: string, label?: string) => 
+    api.post('/site-settings/maintenance/allowed-ips', { ip, label }),
+  removeAllowedIP: (ip: string) => 
+    api.delete(`/site-settings/maintenance/allowed-ips/${encodeURIComponent(ip)}`),
+};

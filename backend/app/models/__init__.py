@@ -7,6 +7,7 @@ from app.models.order import Order, OrderStatus
 from app.models.api_key import APIKey, APIKeyType
 from app.models.device import DeviceFingerprint, IPSignupLog
 from app.models.payment_method import PaymentMethod, PAYMENT_TYPES
+from app.models.site_settings import SiteSettings, DEFAULT_SETTINGS
 
 
 __all__ = [
@@ -25,4 +26,6 @@ __all__ = [
     "IPSignupLog",
     "PaymentMethod",
     "PAYMENT_TYPES",
+    "SiteSettings",
+    "DEFAULT_SETTINGS",
 ]
