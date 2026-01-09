@@ -43,9 +43,12 @@ async def create_order(
     Create a new order for credit purchase.
     
     - **package_id**: Credit package ID (starter, basic, pro, business)
-    - **payment_method**: Payment method (paypal, kbzpay)
+    - **payment_method**: Payment type (kbzpay, wavepay, cbpay, etc)
+    - **payment_method_id**: Optional - UUID of the payment method from database
     - **promo_code**: Optional promo code for discount
     """
+    from app.models.payment_method import PaymentMethod, PAYMENT_TYPES
+    
     # Get package
     package = get_package_by_id(order_data.package_id)
     if not package:
@@ -54,13 +57,34 @@ async def create_order(
             detail="Invalid package ID",
         )
     
-    # Validate payment method
-    valid_methods = ["paypal", "kbzpay"]
+    # Validate payment method type
+    valid_methods = [t["id"] for t in PAYMENT_TYPES]
     if order_data.payment_method not in valid_methods:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid payment method. Valid options: {valid_methods}",
         )
+    
+    # Validate payment method ID exists if provided
+    if order_data.payment_method_id:
+        result = await db.execute(
+            select(PaymentMethod).where(
+                PaymentMethod.id == order_data.payment_method_id,
+                PaymentMethod.is_active == True,
+            )
+        )
+        payment_account = result.scalar_one_or_none()
+        if not payment_account:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Payment method not found or inactive",
+            )
+        # Validate the payment type is available for this account
+        if order_data.payment_method not in payment_account.payment_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Payment type {order_data.payment_method} not available for this account",
+            )
     
     # Calculate price (apply promo code discount if any)
     discount_percent = 0
@@ -86,11 +110,6 @@ async def create_order(
     db.add(order)
     await db.flush()
     await db.refresh(order)
-    
-    # TODO: Create payment with external provider (PayPal, etc.)
-    # if order_data.payment_method == "paypal":
-    #     paypal_order = await create_paypal_order(order)
-    #     order.payment_id = paypal_order.id
     
     return OrderResponse.model_validate(order)
 

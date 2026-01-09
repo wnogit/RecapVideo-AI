@@ -139,17 +139,153 @@ export const creditApi = {
   packages: () => api.get('/credits/packages'),
 };
 
-export const orderApi = {
-  create: (data: { package_id: string; payment_method: string }) =>
-    api.post('/orders', data),
-  list: () => api.get('/orders'),
-  uploadScreenshot: (orderId: string, file: File) => {
+// Credit Package types
+export interface CreditPackage {
+  id: string;
+  name: string;
+  description?: string;
+  credits: number;
+  price_usd: number;
+  price_mmk?: number;
+  is_popular: boolean;
+  discount_percent: number;
+  display_order: number;
+  is_active: boolean;
+}
+
+export const creditPackagesApi = {
+  // Public endpoint
+  getPublic: () => api.get<CreditPackage[]>('/credit-packages/public'),
+  
+  // Admin endpoints
+  list: (includeInactive: boolean = true) =>
+    api.get<{ packages: CreditPackage[]; total: number }>('/credit-packages', {
+      params: { include_inactive: includeInactive },
+    }),
+  get: (id: string) => api.get<CreditPackage>(`/credit-packages/${id}`),
+  create: (data: {
+    name: string;
+    description?: string;
+    credits: number;
+    price_usd: number;
+    price_mmk?: number;
+    is_popular?: boolean;
+    discount_percent?: number;
+    display_order?: number;
+    is_active?: boolean;
+  }) => api.post<CreditPackage>('/credit-packages', data),
+  update: (id: string, data: Partial<{
+    name: string;
+    description: string;
+    credits: number;
+    price_usd: number;
+    price_mmk: number;
+    is_popular: boolean;
+    discount_percent: number;
+    display_order: number;
+    is_active: boolean;
+  }>) => api.patch<CreditPackage>(`/credit-packages/${id}`, data),
+  delete: (id: string) => api.delete(`/credit-packages/${id}`),
+  toggle: (id: string) => api.post<CreditPackage>(`/credit-packages/${id}/toggle`),
+};
+
+// Payment Method types
+export interface PaymentType {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface PaymentMethod {
+  id: string;
+  phone: string;
+  account_name: string;
+  payment_types: string[];
+  qr_code_url?: string;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// Order types
+export interface OrderData {
+  id: string;
+  user_id: string;
+  credits_amount: number;
+  price_usd: number;
+  price_mmk?: number;
+  payment_method: string;
+  payment_id?: string;
+  payment_status?: string;
+  status: string;
+  promo_code?: string;
+  discount_percent: number;
+  screenshot_url?: string;
+  notes?: string;
+  admin_note?: string;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string;
+}
+
+export const paymentMethodsApi = {
+  // Public endpoints
+  getActive: () => api.get<PaymentMethod[]>('/payment-methods/active'),
+  getTypes: () => api.get<PaymentType[]>('/payment-methods/types'),
+  
+  // Admin endpoints
+  list: (includeInactive: boolean = true) =>
+    api.get<{ payment_methods: PaymentMethod[]; total: number }>('/payment-methods', {
+      params: { include_inactive: includeInactive },
+    }),
+  create: (data: {
+    phone: string;
+    account_name: string;
+    payment_types: string[];
+    qr_code_url?: string;
+    is_active?: boolean;
+    display_order?: number;
+  }) => api.post<PaymentMethod>('/payment-methods', data),
+  update: (id: string, data: Partial<{
+    phone: string;
+    account_name: string;
+    payment_types: string[];
+    qr_code_url: string;
+    is_active: boolean;
+    display_order: number;
+  }>) => api.patch<PaymentMethod>(`/payment-methods/${id}`, data),
+  delete: (id: string) => api.delete(`/payment-methods/${id}`),
+  uploadQrCode: (id: string, file: File) => {
     const formData = new FormData();
-    formData.append('screenshot', file);
-    return api.post(`/orders/${orderId}/upload`, formData, {
+    formData.append('qr_code', file);
+    return api.post<PaymentMethod>(`/payment-methods/${id}/qr-code`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+};
+
+export const orderApi = {
+  create: (data: { 
+    package_id: string; 
+    payment_method: string;
+    payment_method_id?: string;
+    promo_code?: string;
+  }) => api.post<OrderData>('/orders', data),
+  list: (page: number = 1, pageSize: number = 10) => 
+    api.get<{ orders: OrderData[]; total: number; page: number; page_size: number; total_pages: number }>(
+      '/orders', 
+      { params: { page, page_size: pageSize } }
+    ),
+  get: (orderId: string) => api.get<OrderData>(`/orders/${orderId}`),
+  uploadScreenshot: (orderId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('screenshot', file);
+    return api.post<OrderData>(`/orders/${orderId}/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  cancel: (orderId: string) => api.post<OrderData>(`/orders/${orderId}/cancel`),
 };
 
 // API Key types

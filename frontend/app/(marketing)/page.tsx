@@ -27,12 +27,16 @@ import {
   Timer,
   Users,
   LayoutDashboard,
+  Loader2,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { creditPackagesApi, type CreditPackage } from '@/lib/api';
 
 export default function LandingPage() {
   const { user, isAuthenticated, checkAuth } = useAuthStore();
   const [authChecked, setAuthChecked] = useState(false);
+  const [packages, setPackages] = useState<CreditPackage[]>([]);
+  const [packagesLoading, setPackagesLoading] = useState(true);
 
   useEffect(() => {
     // Check auth state on mount
@@ -46,6 +50,21 @@ export default function LandingPage() {
     };
     check();
   }, [checkAuth]);
+
+  // Fetch packages from database
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        const res = await creditPackagesApi.getPublic();
+        setPackages(res.data || []);
+      } catch (error) {
+        console.error('Failed to fetch packages:', error);
+      } finally {
+        setPackagesLoading(false);
+      }
+    };
+    fetchPackages();
+  }, []);
 
   return (
     <>
@@ -489,124 +508,106 @@ export default function LandingPage() {
             </p>
           </motion.div>
 
-          <div className="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
-            {/* Starter */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-            >
-              <Card className="glass border-white/10 h-full hover:bg-white/5 transition-all duration-300">
-                <CardHeader>
-                  <CardTitle className="text-xl">Starter</CardTitle>
-                  <CardDescription>Perfect for trying out</CardDescription>
-                  <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-5xl font-bold">$5</span>
-                    <span className="text-muted-foreground text-lg">/ 10 credits</span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3 mb-8">
-                    {['10 video creations', 'All voice options', 'Cloud storage', '720p export'].map((feature) => (
-                      <li key={feature} className="flex items-center gap-3 text-sm">
-                        <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                  <a href={studioUrls.signup} className="block">
-                    <Button variant="outline" className="w-full glass border-white/20 hover:bg-white/10">
-                      Get Started
-                    </Button>
-                  </a>
-                </CardContent>
-              </Card>
-            </motion.div>
+          {/* Loading State */}
+          {packagesLoading && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          )}
 
-            {/* Popular */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="relative"
-            >
-              <div className="absolute -inset-[1px] bg-gradient-to-r from-violet-600 to-pink-600 rounded-2xl blur-sm" />
-              <Card className="relative glass border-0 h-full bg-background/80">
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-gradient-to-r from-violet-600 to-pink-600 text-white border-0 shadow-lg">
-                    <Sparkles className="mr-1 h-3 w-3" />
-                    Most Popular
-                  </Badge>
-                </div>
-                <CardHeader className="pt-8">
-                  <CardTitle className="text-xl">Popular</CardTitle>
-                  <CardDescription>Best value for creators</CardDescription>
-                  <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-5xl font-bold gradient-text">$20</span>
-                    <span className="text-muted-foreground text-lg">/ 50 credits</span>
-                  </div>
-                  <Badge variant="secondary" className="w-fit mt-2 text-green-500 bg-green-500/10">
-                    Save 20%
-                  </Badge>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3 mb-8">
-                    {['50 video creations', 'All voice options', 'Priority processing', '1080p export', 'Faster queue'].map((feature) => (
-                      <li key={feature} className="flex items-center gap-3 text-sm">
-                        <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                  <a href={studioUrls.signup} className="block">
-                    <Button className="w-full bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-700 hover:to-pink-700 text-white border-0 shadow-lg">
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Get Started
-                    </Button>
-                  </a>
-                </CardContent>
-              </Card>
-            </motion.div>
+          {/* Empty State */}
+          {!packagesLoading && packages.length === 0 && (
+            <div className="text-center py-12 text-muted-foreground">
+              <p>Pricing packages coming soon!</p>
+            </div>
+          )}
 
-            {/* Pro */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3 }}
-            >
-              <Card className="glass border-white/10 h-full hover:bg-white/5 transition-all duration-300">
-                <CardHeader>
-                  <CardTitle className="text-xl">Pro</CardTitle>
-                  <CardDescription>For power users</CardDescription>
-                  <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-5xl font-bold">$35</span>
-                    <span className="text-muted-foreground text-lg">/ 100 credits</span>
-                  </div>
-                  <Badge variant="secondary" className="w-fit mt-2 text-green-500 bg-green-500/10">
-                    Save 30%
-                  </Badge>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3 mb-8">
-                    {['100 video creations', 'All voice options', 'Priority support', '1080p export', 'API access soon'].map((feature) => (
-                      <li key={feature} className="flex items-center gap-3 text-sm">
-                        <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                  <a href={studioUrls.signup} className="block">
-                    <Button variant="outline" className="w-full glass border-white/20 hover:bg-white/10">
-                      Get Started
-                    </Button>
-                  </a>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
+          {/* Dynamic Packages */}
+          {!packagesLoading && packages.length > 0 && (
+            <div className={`grid gap-6 max-w-5xl mx-auto ${
+              packages.length === 1 ? 'md:grid-cols-1 max-w-md' :
+              packages.length === 2 ? 'md:grid-cols-2 max-w-3xl' :
+              packages.length === 3 ? 'md:grid-cols-3' :
+              'md:grid-cols-2 lg:grid-cols-4'
+            }`}>
+              {packages.map((pkg, index) => (
+                <motion.div
+                  key={pkg.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="relative"
+                >
+                  {pkg.is_popular && (
+                    <div className="absolute -inset-[1px] bg-gradient-to-r from-violet-600 to-pink-600 rounded-2xl blur-sm" />
+                  )}
+                  <Card className={`h-full transition-all duration-300 ${
+                    pkg.is_popular 
+                      ? 'relative glass border-0 bg-background/80' 
+                      : 'glass border-white/10 hover:bg-white/5'
+                  }`}>
+                    {pkg.is_popular && (
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                        <Badge className="bg-gradient-to-r from-violet-600 to-pink-600 text-white border-0 shadow-lg">
+                          <Sparkles className="mr-1 h-3 w-3" />
+                          Most Popular
+                        </Badge>
+                      </div>
+                    )}
+                    <CardHeader className={pkg.is_popular ? 'pt-8' : ''}>
+                      <CardTitle className="text-xl">{pkg.name}</CardTitle>
+                      {pkg.description && (
+                        <CardDescription>{pkg.description}</CardDescription>
+                      )}
+                      <div className="mt-4 flex items-baseline gap-1">
+                        <span className={`text-5xl font-bold ${pkg.is_popular ? 'gradient-text' : ''}`}>
+                          {pkg.price_mmk ? `${pkg.price_mmk.toLocaleString()}` : `$${pkg.price_usd}`}
+                        </span>
+                        <span className="text-muted-foreground text-lg">
+                          / {pkg.credits} credits
+                        </span>
+                      </div>
+                      {pkg.discount_percent > 0 && (
+                        <Badge variant="secondary" className="w-fit mt-2 text-green-500 bg-green-500/10">
+                          Save {pkg.discount_percent}%
+                        </Badge>
+                      )}
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-3 mb-8">
+                        {[
+                          `${pkg.credits} video creations`,
+                          'All voice options',
+                          pkg.is_popular ? 'Priority processing' : 'Cloud storage',
+                          '1080p export',
+                          pkg.is_popular && 'Faster queue',
+                        ].filter(Boolean).map((feature) => (
+                          <li key={feature as string} className="flex items-center gap-3 text-sm">
+                            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                            {feature}
+                          </li>
+                        ))}
+                      </ul>
+                      <a href={studioUrls.signup} className="block">
+                        <Button 
+                          className={`w-full ${
+                            pkg.is_popular 
+                              ? 'bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-700 hover:to-pink-700 text-white border-0 shadow-lg' 
+                              : 'glass border-white/20 hover:bg-white/10'
+                          }`}
+                          variant={pkg.is_popular ? 'default' : 'outline'}
+                        >
+                          {pkg.is_popular && <Sparkles className="mr-2 h-4 w-4" />}
+                          Get Started
+                        </Button>
+                      </a>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

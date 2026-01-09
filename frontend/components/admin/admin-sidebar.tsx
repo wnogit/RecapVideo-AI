@@ -14,6 +14,9 @@ import {
   Bell,
   LogOut,
   ChevronLeft,
+  Package,
+  Wallet,
+  Gift,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -41,19 +44,24 @@ const adminNavItems = [
     icon: ShoppingCart,
   },
   {
-    title: "Credits",
-    href: "/admin/credits",
-    icon: CreditCard,
+    title: "Credit Packages",
+    href: "/admin/packages",
+    icon: Package,
+  },
+  {
+    title: "Payment Methods",
+    href: "/admin/payments",
+    icon: Wallet,
+  },
+  {
+    title: "Promotions",
+    href: "/admin/promotions",
+    icon: Gift,
   },
   {
     title: "Prompts",
     href: "/admin/prompts",
     icon: FileText,
-  },
-  {
-    title: "Notifications",
-    href: "/admin/notifications",
-    icon: Bell,
   },
   {
     title: "Settings",
