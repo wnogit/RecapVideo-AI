@@ -46,6 +46,7 @@ COPY --chown=appuser:appgroup . .
 RUN mkdir -p /tmp/recapvideo && chown appuser:appgroup /tmp/recapvideo
 RUN mkdir -p /app/app/assets/fonts && chown appuser:appgroup /app/app/assets/fonts
 RUN mkdir -p /app/static/payment_screenshots && chown appuser:appgroup /app/static/payment_screenshots
+RUN mkdir -p /app/static/payment_qr && chown appuser:appgroup /app/static/payment_qr
 
 USER appuser
 

@@ -41,14 +41,14 @@ const VOICES = [
     id: 'my-MM-NilarNeural', 
     name: 'Nilar', 
     gender: 'female' as const, 
-    description: 'အမျိုးသမီး အသံ (ပုံမှန်)',
+    description: 'Female Voice',
     isPopular: true,
   },
   { 
     id: 'my-MM-ThihaNeural', 
     name: 'Thiha', 
     gender: 'male' as const, 
-    description: 'အမျိုးသား အသံ',
+    description: 'Male Voice',
     isPopular: false,
   },
 ];
@@ -271,10 +271,11 @@ export function Step1Input() {
           Voice ရွေးချယ်ပါ
         </Label>
         
+        {/* Scrollable container for many voices */}
         <RadioGroup
           value={voiceId}
           onValueChange={setVoiceId}
-          className="grid grid-cols-2 gap-3"
+          className="grid grid-cols-2 gap-3 max-h-[280px] overflow-y-auto pr-1"
         >
           {VOICES.map((voice) => (
             <div key={voice.id}>

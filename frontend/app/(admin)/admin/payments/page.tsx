@@ -291,7 +291,7 @@ export default function AdminPaymentsPage() {
                   {method.qr_code_url ? (
                     <div className="flex items-center gap-2">
                       <img
-                        src={method.qr_code_url}
+                        src={method.qr_code_url.startsWith('http') ? method.qr_code_url : `/api/v1${method.qr_code_url}`}
                         alt="QR Code"
                         className="h-16 w-16 rounded object-cover"
                       />

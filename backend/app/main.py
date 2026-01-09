@@ -123,6 +123,7 @@ def create_application() -> FastAPI:
     static_dir = Path("static")
     static_dir.mkdir(exist_ok=True)
     (static_dir / "payment_screenshots").mkdir(exist_ok=True)
+    (static_dir / "payment_qr").mkdir(exist_ok=True)
     app.mount("/static", StaticFiles(directory="static"), name="static")
     
     return app

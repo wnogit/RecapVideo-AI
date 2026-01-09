@@ -480,7 +480,7 @@ export default function BuyCreditsPage() {
                   {selectedPaymentMethod.qr_code_url && (
                     <div className="flex justify-center p-4 bg-white rounded-lg">
                       <img
-                        src={selectedPaymentMethod.qr_code_url}
+                        src={selectedPaymentMethod.qr_code_url.startsWith('http') ? selectedPaymentMethod.qr_code_url : `/api/v1${selectedPaymentMethod.qr_code_url}`}
                         alt="Payment QR Code"
                         className="max-w-[200px] max-h-[200px] object-contain"
                       />
