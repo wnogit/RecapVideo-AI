@@ -101,21 +101,9 @@ API_KEY_TYPES = [
         "required": True,
     },
     {
-        "key_type": "paypal_client",
-        "name": "PayPal Client ID",
-        "description": "PayPal payment integration",
-        "required": False,
-    },
-    {
-        "key_type": "paypal_secret",
-        "name": "PayPal Secret",
-        "description": "PayPal API secret",
-        "required": False,
-    },
-    {
-        "key_type": "kbzpay_key",
-        "name": "KBZPay API Key",
-        "description": "KBZPay payment integration (Myanmar)",
+        "key_type": "telegram_bot",
+        "name": "Telegram Bot Token",
+        "description": "Telegram bot for order notifications",
         "required": False,
     },
 ]

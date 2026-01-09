@@ -199,8 +199,7 @@ class APIKeyService:
             "resend": settings.RESEND_API_KEY,
             "r2_access_key": settings.R2_ACCESS_KEY_ID,
             "r2_secret_key": settings.R2_SECRET_ACCESS_KEY,
-            "paypal_client": settings.PAYPAL_CLIENT_ID,
-            "paypal_secret": settings.PAYPAL_SECRET,
+            "telegram_bot": settings.TELEGRAM_BOT_TOKEN,
         }
         
         value = env_mapping.get(key_type)
@@ -250,14 +249,9 @@ class APIKeyService:
             "secret_key": secret_key or "",
         }
     
-    async def get_paypal_credentials(self, db: Optional[AsyncSession] = None) -> Dict[str, str]:
-        """Get PayPal client ID and secret."""
-        client_id = await self.get_key("paypal_client", db)
-        secret = await self.get_key("paypal_secret", db)
-        return {
-            "client_id": client_id or "",
-            "secret": secret or "",
-        }
+    async def get_telegram_bot_token(self, db: Optional[AsyncSession] = None) -> Optional[str]:
+        """Get Telegram bot token."""
+        return await self.get_key("telegram_bot", db)
 
 
 # Singleton instance

@@ -320,3 +320,179 @@ async def remove_allowed_ip(
 async def get_my_ip(request: Request):
     """Get the current client's IP address (useful for adding to allowed list)."""
     return {"ip": get_client_ip(request)}
+
+
+# Telegram Configuration endpoints
+class TelegramConfigUpdate(BaseModel):
+    admin_chat_id: Optional[str] = None
+    enabled: Optional[bool] = None
+
+
+class TelegramWebhookRequest(BaseModel):
+    webhook_url: str
+
+
+@router.get("/telegram/status")
+async def get_telegram_status(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """
+    Get Telegram bot configuration status.
+    Returns bot info, webhook status, and configuration state.
+    """
+    from app.services.telegram_service import telegram_service
+    from app.services.api_key_service import api_key_service
+    
+    # Check if bot token is configured
+    bot_token = await api_key_service.get_telegram_bot_token(db)
+    admin_chat_id = await get_setting_value(db, "telegram_admin_chat_id", "")
+    enabled = await get_setting_value(db, "telegram_enabled", "false")
+    
+    result = {
+        "bot_token_configured": bool(bot_token),
+        "admin_chat_id": admin_chat_id,
+        "enabled": enabled.lower() == "true",
+        "bot_info": None,
+        "webhook_info": None,
+    }
+    
+    if bot_token:
+        # Test bot connection
+        telegram_service.reset()
+        test_result = await telegram_service.test_connection()
+        if test_result.get("success"):
+            result["bot_info"] = {
+                "name": test_result.get("bot_name"),
+                "username": test_result.get("bot_username"),
+            }
+        
+        # Get webhook info
+        webhook_info = await telegram_service.get_webhook_info()
+        result["webhook_info"] = webhook_info
+    
+    return result
+
+
+@router.put("/telegram/config")
+async def update_telegram_config(
+    config: TelegramConfigUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Update Telegram notification settings."""
+    updates = []
+    
+    if config.admin_chat_id is not None:
+        await set_setting(db, "telegram_admin_chat_id", value=config.admin_chat_id, updated_by=current_user.email)
+        updates.append("admin_chat_id")
+    
+    if config.enabled is not None:
+        await set_setting(db, "telegram_enabled", value=str(config.enabled).lower(), updated_by=current_user.email)
+        updates.append("enabled")
+    
+    await db.commit()
+    
+    # Reset telegram service to reload config
+    from app.services.telegram_service import telegram_service
+    telegram_service.reset()
+    
+    return {"message": "Telegram config updated", "updated": updates}
+
+
+@router.post("/telegram/set-webhook")
+async def set_telegram_webhook(
+    request: TelegramWebhookRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """
+    Set the Telegram webhook URL.
+    This should be called after configuring the bot token.
+    
+    The webhook URL should be: https://api.recapvideo.ai/api/v1/telegram/webhook
+    """
+    from app.services.telegram_service import telegram_service
+    
+    # Reset to reload config
+    telegram_service.reset()
+    
+    result = await telegram_service.set_webhook(request.webhook_url)
+    
+    if result.get("success"):
+        return {"message": result.get("message"), "webhook_url": request.webhook_url}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result.get("message", "Failed to set webhook")
+        )
+
+
+@router.delete("/telegram/webhook")
+async def delete_telegram_webhook(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Remove the Telegram webhook."""
+    from app.services.telegram_service import telegram_service
+    
+    telegram_service.reset()
+    result = await telegram_service.delete_webhook()
+    
+    if result.get("success"):
+        return {"message": "Webhook removed"}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result.get("message", "Failed to remove webhook")
+        )
+
+
+@router.post("/telegram/test")
+async def test_telegram_connection(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Test the Telegram bot connection."""
+    from app.services.telegram_service import telegram_service
+    
+    telegram_service.reset()
+    result = await telegram_service.test_connection()
+    
+    if result.get("success"):
+        return {
+            "success": True,
+            "message": result.get("message"),
+            "bot_name": result.get("bot_name"),
+            "bot_username": result.get("bot_username"),
+        }
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result.get("message", "Bot connection failed")
+        )
+
+
+@router.post("/telegram/send-test-message")
+async def send_test_telegram_message(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Send a test message to the admin chat."""
+    from app.services.telegram_service import telegram_service
+    
+    telegram_service.reset()
+    
+    message_id = await telegram_service.send_simple_message(
+        "🔔 <b>Test Notification</b>\n\n"
+        "This is a test message from RecapVideo.AI admin panel.\n"
+        f"Sent by: {current_user.email}"
+    )
+    
+    if message_id:
+        return {"success": True, "message": "Test message sent successfully"}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to send test message. Check bot token and admin chat ID."
+        )

@@ -444,3 +444,23 @@ export const siteSettingsApi = {
   removeAllowedIP: (ip: string) => 
     api.delete(`/site-settings/maintenance/allowed-ips/${encodeURIComponent(ip)}`),
 };
+
+// Telegram Settings API (Admin)
+export interface TelegramStatus {
+  bot_token_configured: boolean;
+  admin_chat_id: string;
+  enabled: boolean;
+  bot_info: { name: string; username: string } | null;
+  webhook_info: { configured: boolean; url: string; pending_update_count: number; last_error?: string } | null;
+}
+
+export const telegramApi = {
+  getStatus: () => api.get<TelegramStatus>('/site-settings/telegram/status'),
+  updateConfig: (config: { admin_chat_id?: string; enabled?: boolean }) => 
+    api.put('/site-settings/telegram/config', config),
+  setWebhook: (webhookUrl: string) => 
+    api.post('/site-settings/telegram/set-webhook', { webhook_url: webhookUrl }),
+  deleteWebhook: () => api.delete('/site-settings/telegram/webhook'),
+  testConnection: () => api.post<{ success: boolean; message: string; bot_name?: string; bot_username?: string }>('/site-settings/telegram/test'),
+  sendTestMessage: () => api.post<{ success: boolean; message: string }>('/site-settings/telegram/send-test-message'),
+};

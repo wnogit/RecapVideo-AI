@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, Key, Globe, Bell, Database, Plus, Pencil, Trash2, Eye, EyeOff, Loader2, Check, X, RefreshCw, TestTube, Shield, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
+import { Save, Key, Globe, Bell, Database, Plus, Pencil, Trash2, Eye, EyeOff, Loader2, Check, X, RefreshCw, TestTube, Shield, Wifi, WifiOff, AlertTriangle, Send, Bot, Webhook } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,17 +33,17 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { adminApiKeysApi, siteSettingsApi, siteSettingsPublicApi, type APIKey, type APIKeyTypeInfo, type AllowedIP } from '@/lib/api';
+import { adminApiKeysApi, siteSettingsApi, siteSettingsPublicApi, telegramApi, type APIKey, type APIKeyTypeInfo, type AllowedIP, type TelegramStatus } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 
 // API Key type display config
 const API_KEY_TYPE_CONFIG: Record<string, { icon: string; color: string }> = {
   gemini: { icon: '🤖', color: 'bg-blue-100 text-blue-700' },
-  transcript: { icon: '📝', color: 'bg-purple-100 text-purple-700' },
-  r2_access: { icon: '☁️', color: 'bg-orange-100 text-orange-700' },
-  r2_secret: { icon: '🔐', color: 'bg-orange-100 text-orange-700' },
+  transcript_api: { icon: '📝', color: 'bg-purple-100 text-purple-700' },
+  r2_access_key: { icon: '☁️', color: 'bg-orange-100 text-orange-700' },
+  r2_secret_key: { icon: '🔐', color: 'bg-orange-100 text-orange-700' },
   resend: { icon: '📧', color: 'bg-green-100 text-green-700' },
-  telegram: { icon: '✈️', color: 'bg-sky-100 text-sky-700' },
+  telegram_bot: { icon: '✈️', color: 'bg-sky-100 text-sky-700' },
 };
 
 interface APIKeyFormData {
@@ -87,12 +87,22 @@ export default function AdminSettingsPage() {
   const [newIPAddress, setNewIPAddress] = useState('');
   const [newIPLabel, setNewIPLabel] = useState('');
   const [isAddingIP, setIsAddingIP] = useState(false);
+  
+  // Telegram state
+  const [telegramStatus, setTelegramStatus] = useState<TelegramStatus | null>(null);
+  const [isLoadingTelegram, setIsLoadingTelegram] = useState(false);
+  const [telegramAdminChatId, setTelegramAdminChatId] = useState('');
+  const [isTelegramEnabled, setIsTelegramEnabled] = useState(false);
+  const [isSavingTelegram, setIsSavingTelegram] = useState(false);
+  const [isTestingTelegram, setIsTestingTelegram] = useState(false);
+  const [isSettingWebhook, setIsSettingWebhook] = useState(false);
 
   // Fetch API keys and site settings on mount
   useEffect(() => {
     fetchApiKeys();
     fetchSiteSettings();
     fetchMyIP();
+    fetchTelegramStatus();
   }, []);
 
   const fetchSiteSettings = async () => {
@@ -186,6 +196,87 @@ export default function AdminSettingsPage() {
   const handleAddMyIP = () => {
     setNewIPAddress(myIP);
     setNewIPLabel('My Current IP');
+  };
+  
+  // Telegram functions
+  const fetchTelegramStatus = async () => {
+    setIsLoadingTelegram(true);
+    try {
+      const res = await telegramApi.getStatus();
+      setTelegramStatus(res.data);
+      setTelegramAdminChatId(res.data?.admin_chat_id || '');
+      setIsTelegramEnabled(res.data?.enabled || false);
+    } catch (error) {
+      console.error('Error fetching Telegram status:', error);
+    } finally {
+      setIsLoadingTelegram(false);
+    }
+  };
+  
+  const handleSaveTelegramConfig = async () => {
+    setIsSavingTelegram(true);
+    try {
+      await telegramApi.updateConfig({
+        admin_chat_id: telegramAdminChatId,
+        enabled: isTelegramEnabled,
+      });
+      toast({ title: 'Telegram settings saved' });
+      fetchTelegramStatus();
+    } catch (error: any) {
+      toast({ title: error.response?.data?.detail || 'Failed to save Telegram settings', variant: 'destructive' });
+    } finally {
+      setIsSavingTelegram(false);
+    }
+  };
+  
+  const handleTestTelegramConnection = async () => {
+    setIsTestingTelegram(true);
+    try {
+      const res = await telegramApi.testConnection();
+      toast({ 
+        title: 'Connection successful', 
+        description: res.data?.message || `Connected as @${res.data?.bot_username}` 
+      });
+      fetchTelegramStatus();
+    } catch (error: any) {
+      toast({ title: error.response?.data?.detail || 'Connection failed', variant: 'destructive' });
+    } finally {
+      setIsTestingTelegram(false);
+    }
+  };
+  
+  const handleSendTestMessage = async () => {
+    try {
+      await telegramApi.sendTestMessage();
+      toast({ title: 'Test message sent!' });
+    } catch (error: any) {
+      toast({ title: error.response?.data?.detail || 'Failed to send test message', variant: 'destructive' });
+    }
+  };
+  
+  const handleSetupWebhook = async () => {
+    setIsSettingWebhook(true);
+    try {
+      // Use the production API URL for webhook
+      const webhookUrl = `${process.env.NEXT_PUBLIC_API_URL || 'https://api.recapvideo.ai'}/api/v1/telegram/webhook`;
+      await telegramApi.setWebhook(webhookUrl);
+      toast({ title: 'Webhook configured successfully' });
+      fetchTelegramStatus();
+    } catch (error: any) {
+      toast({ title: error.response?.data?.detail || 'Failed to set webhook', variant: 'destructive' });
+    } finally {
+      setIsSettingWebhook(false);
+    }
+  };
+  
+  const handleRemoveWebhook = async () => {
+    try {
+      await telegramApi.deleteWebhook();
+      toast({ title: 'Webhook removed' });
+      fetchTelegramStatus();
+    } catch (error: any) {
+      toast({ title: error.response?.data?.detail || 'Failed to remove webhook', variant: 'destructive' });
+    }
   };
 
   const fetchApiKeys = async () => {
@@ -763,76 +854,228 @@ export default function AdminSettingsPage() {
 
         {/* Notifications */}
         <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                Notification Settings
-              </CardTitle>
-              <CardDescription>
-                Configure email and Telegram notifications
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="font-medium">Email Notifications</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>New User Registration</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Notify admin when new users register
-                      </p>
-                    </div>
-                    <Switch defaultChecked />
+          <div className="space-y-6">
+            {/* Email Notifications */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5" />
+                  Email Notifications
+                </CardTitle>
+                <CardDescription>
+                  Configure email notification preferences
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>New User Registration</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Notify admin when new users register
+                    </p>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>New Order</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Notify admin when new orders are placed
-                      </p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Video Completed</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Notify users when video processing is complete
-                      </p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
+                  <Switch 
+                    checked={getSettingBool('notify_new_user', true)}
+                    onCheckedChange={(checked) => handleToggleSetting('notify_new_user', !checked)}
+                  />
                 </div>
-              </div>
-              <Separator />
-              <div className="space-y-4">
-                <h3 className="font-medium">Telegram Notifications</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Enable Telegram Bot</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Send notifications via Telegram
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>New Order</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Notify admin when new orders are placed
+                    </p>
+                  </div>
+                  <Switch 
+                    checked={getSettingBool('notify_new_order', true)}
+                    onCheckedChange={(checked) => handleToggleSetting('notify_new_order', !checked)}
+                  />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Video Completed</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Notify users when video processing is complete
+                    </p>
+                  </div>
+                  <Switch 
+                    checked={getSettingBool('notify_video_complete', true)}
+                    onCheckedChange={(checked) => handleToggleSetting('notify_video_complete', !checked)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Telegram Notifications */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bot className="h-5 w-5" />
+                  Telegram Bot Configuration
+                </CardTitle>
+                <CardDescription>
+                  Configure Telegram bot for order notifications with approve/reject buttons
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {isLoadingTelegram ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : (
+                  <>
+                    {/* Bot Status */}
+                    <div className="p-4 rounded-lg border bg-muted/30">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-medium">Bot Status</h4>
+                        <Button variant="outline" size="sm" onClick={fetchTelegramStatus}>
+                          <RefreshCw className="h-4 w-4 mr-1" />
+                          Refresh
+                        </Button>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">Bot Token:</span>
+                          {telegramStatus?.bot_token_configured ? (
+                            <Badge className="bg-green-100 text-green-700">Configured</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-orange-600 border-orange-300">
+                              Not Set - Add in API Keys tab
+                            </Badge>
+                          )}
+                        </div>
+                        {telegramStatus?.bot_info && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">Bot:</span>
+                            <span className="text-sm font-medium">
+                              @{telegramStatus.bot_info.username}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">Webhook:</span>
+                          {telegramStatus?.webhook_info?.configured ? (
+                            <Badge className="bg-green-100 text-green-700">Active</Badge>
+                          ) : (
+                            <Badge variant="outline">Not Set</Badge>
+                          )}
+                        </div>
+                        {telegramStatus?.webhook_info?.last_error && (
+                          <div className="flex items-center gap-2 text-red-600">
+                            <AlertTriangle className="h-4 w-4" />
+                            <span className="text-sm">{telegramStatus.webhook_info.last_error}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Enable/Disable */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Enable Telegram Notifications</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Send order notifications via Telegram bot
+                        </p>
+                      </div>
+                      <Switch 
+                        checked={isTelegramEnabled}
+                        onCheckedChange={setIsTelegramEnabled}
+                      />
+                    </div>
+
+                    {/* Admin Chat ID */}
+                    <div className="space-y-2">
+                      <Label>Admin Chat ID</Label>
+                      <Input 
+                        placeholder="Enter your Telegram chat ID (e.g., 123456789)"
+                        value={telegramAdminChatId}
+                        onChange={(e) => setTelegramAdminChatId(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        To get your chat ID, message @userinfobot on Telegram
                       </p>
                     </div>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Admin Chat ID</Label>
-                    <Input placeholder="Enter Telegram chat ID for admin notifications" />
-                  </div>
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <Button onClick={handleSave} disabled={isSaving}>
-                  <Save className="mr-2 h-4 w-4" />
-                  {isSaving ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-2">
+                      <Button 
+                        onClick={handleSaveTelegramConfig}
+                        disabled={isSavingTelegram}
+                      >
+                        {isSavingTelegram && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Settings
+                      </Button>
+                      
+                      {telegramStatus?.bot_token_configured && (
+                        <>
+                          <Button 
+                            variant="outline"
+                            onClick={handleTestTelegramConnection}
+                            disabled={isTestingTelegram}
+                          >
+                            {isTestingTelegram && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                            <TestTube className="h-4 w-4 mr-2" />
+                            Test Connection
+                          </Button>
+                          
+                          <Button 
+                            variant="outline"
+                            onClick={handleSendTestMessage}
+                            disabled={!telegramAdminChatId}
+                          >
+                            <Send className="h-4 w-4 mr-2" />
+                            Send Test Message
+                          </Button>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Webhook Setup */}
+                    {telegramStatus?.bot_token_configured && (
+                      <div className="p-4 rounded-lg border">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Webhook className="h-5 w-5" />
+                          <h4 className="font-medium">Webhook Configuration</h4>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Webhook is required for receiving button callbacks (Approve/Reject orders).
+                        </p>
+                        {telegramStatus?.webhook_info?.configured ? (
+                          <div className="space-y-3">
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">URL: </span>
+                              <code className="text-xs bg-muted px-2 py-1 rounded">
+                                {telegramStatus.webhook_info.url}
+                              </code>
+                            </div>
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={handleRemoveWebhook}
+                            >
+                              Remove Webhook
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button 
+                            onClick={handleSetupWebhook}
+                            disabled={isSettingWebhook}
+                          >
+                            {isSettingWebhook && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                            <Webhook className="h-4 w-4 mr-2" />
+                            Setup Webhook Automatically
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Storage */}
