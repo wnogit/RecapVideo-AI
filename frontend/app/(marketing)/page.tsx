@@ -175,7 +175,7 @@ export default function LandingPage() {
             >
               <span className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
-                3 free credits
+                4 free credits
               </span>
               <span className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />

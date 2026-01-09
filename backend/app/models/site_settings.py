@@ -1,5 +1,5 @@
 """Site Settings Model."""
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Boolean, Column, DateTime, String, Text, JSON
 from app.core.database import Base
 
@@ -12,7 +12,7 @@ class SiteSettings(Base):
     value = Column(Text, nullable=True)
     value_json = Column(JSON, nullable=True)  # For complex settings like arrays
     description = Column(String(500), nullable=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     updated_by = Column(String(100), nullable=True)  # Admin who last updated
 
     def __repr__(self):

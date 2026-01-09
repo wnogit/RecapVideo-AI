@@ -159,7 +159,7 @@ async def process_order_action(
                 # Edit message to show approved
                 new_caption = f"""✅ <b>ORDER APPROVED</b>
 
-👤 <b>User:</b> {user.full_name or user.email}
+👤 <b>User:</b> {user.name or user.email}
 📧 <b>Email:</b> {user.email}
 🎁 <b>Credits:</b> {order.credits_amount:,}
 💰 <b>Amount:</b> ${order.price_usd:.2f}
@@ -185,7 +185,7 @@ async def process_order_action(
                 # Edit message to show rejected
                 new_caption = f"""❌ <b>ORDER REJECTED</b>
 
-👤 <b>User:</b> {user.full_name or user.email}
+👤 <b>User:</b> {user.name or user.email}
 📧 <b>Email:</b> {user.email}
 🎁 <b>Credits:</b> {order.credits_amount:,}
 💰 <b>Amount:</b> ${order.price_usd:.2f}

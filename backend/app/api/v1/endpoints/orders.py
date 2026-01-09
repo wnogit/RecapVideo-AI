@@ -384,7 +384,7 @@ async def upload_payment_screenshot(
         logger.info(f"Sending Telegram notification for order {order.id}")
         message_id = await telegram_service.send_order_notification(
             order_id=order.id,
-            username=current_user.full_name or current_user.email.split("@")[0],
+            username=current_user.name or current_user.email.split("@")[0],
             email=current_user.email,
             package_name=package_name,
             credits=order.credits_amount,

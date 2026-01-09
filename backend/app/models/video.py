@@ -139,7 +139,7 @@ class Video(Base):
     
     # Credits
     credits_used: Mapped[int] = mapped_column(Integer, default=1)
-    credits_refunded: Mapped[bool] = mapped_column(Integer, default=False)
+    credits_refunded: Mapped[bool] = mapped_column(default=False)
     
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(

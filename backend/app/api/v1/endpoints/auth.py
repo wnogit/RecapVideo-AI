@@ -161,8 +161,6 @@ class IPCheckResponse(BaseModel):
     is_datacenter: bool = False
 
 
-# ============ Helper Functions ============
-
 def get_client_ip(request: Request) -> str:
     """Get real client IP, handling proxies."""
     forwarded_for = request.headers.get("X-Forwarded-For")
