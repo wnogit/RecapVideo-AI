@@ -7,7 +7,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import select, func
 
-from app.core.dependencies import CurrentActiveUser, CurrentSuperUser, DBSession
+from app.core.dependencies import CurrentActiveUser, CurrentAdminUser, DBSession
 from app.models.credit_package import CreditPackage
 from pydantic import BaseModel, Field
 
@@ -90,7 +90,7 @@ async def get_public_packages(
 
 @router.get("", response_model=CreditPackageListResponse)
 async def list_packages(
-    current_user: CurrentSuperUser,
+    current_user: CurrentAdminUser,
     db: DBSession,
     include_inactive: bool = Query(False, description="Include inactive packages"),
 ):
@@ -120,7 +120,7 @@ async def list_packages(
 @router.post("", response_model=CreditPackageResponse, status_code=status.HTTP_201_CREATED)
 async def create_package(
     data: CreditPackageCreate,
-    current_user: CurrentSuperUser,
+    current_user: CurrentAdminUser,
     db: DBSession,
 ):
     """
@@ -148,7 +148,7 @@ async def create_package(
 @router.get("/{package_id}", response_model=CreditPackageResponse)
 async def get_package(
     package_id: UUID,
-    current_user: CurrentSuperUser,
+    current_user: CurrentAdminUser,
     db: DBSession,
 ):
     """
@@ -172,7 +172,7 @@ async def get_package(
 async def update_package(
     package_id: UUID,
     data: CreditPackageUpdate,
-    current_user: CurrentSuperUser,
+    current_user: CurrentAdminUser,
     db: DBSession,
 ):
     """
@@ -203,7 +203,7 @@ async def update_package(
 @router.delete("/{package_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_package(
     package_id: UUID,
-    current_user: CurrentSuperUser,
+    current_user: CurrentAdminUser,
     db: DBSession,
 ):
     """
@@ -229,7 +229,7 @@ async def delete_package(
 @router.post("/{package_id}/toggle", response_model=CreditPackageResponse)
 async def toggle_package_status(
     package_id: UUID,
-    current_user: CurrentSuperUser,
+    current_user: CurrentAdminUser,
     db: DBSession,
 ):
     """

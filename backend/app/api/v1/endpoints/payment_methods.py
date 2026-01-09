@@ -7,7 +7,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Query, status, UploadFile, File
 from sqlalchemy import select, func
 
-from app.core.dependencies import CurrentActiveUser, CurrentSuperUser, DBSession
+from app.core.dependencies import CurrentActiveUser, CurrentAdminUser, DBSession
 from app.models.payment_method import PaymentMethod, PAYMENT_TYPES
 from app.schemas.payment_method import (
     PaymentMethodCreate,
@@ -56,7 +56,7 @@ async def get_payment_types():
 
 @router.get("", response_model=PaymentMethodListResponse)
 async def list_payment_methods(
-    current_user: CurrentSuperUser,
+    current_user: CurrentAdminUser,
     db: DBSession,
     include_inactive: bool = Query(False, description="Include inactive methods"),
 ):
@@ -86,7 +86,7 @@ async def list_payment_methods(
 @router.post("", response_model=PaymentMethodResponse, status_code=status.HTTP_201_CREATED)
 async def create_payment_method(
     data: PaymentMethodCreate,
-    current_user: CurrentSuperUser,
+    current_user: CurrentAdminUser,
     db: DBSession,
 ):
     """
@@ -120,7 +120,7 @@ async def create_payment_method(
 @router.get("/{method_id}", response_model=PaymentMethodResponse)
 async def get_payment_method(
     method_id: UUID,
-    current_user: CurrentSuperUser,
+    current_user: CurrentAdminUser,
     db: DBSession,
 ):
     """
@@ -144,7 +144,7 @@ async def get_payment_method(
 async def update_payment_method(
     method_id: UUID,
     data: PaymentMethodUpdate,
-    current_user: CurrentSuperUser,
+    current_user: CurrentAdminUser,
     db: DBSession,
 ):
     """
@@ -185,7 +185,7 @@ async def update_payment_method(
 @router.delete("/{method_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_payment_method(
     method_id: UUID,
-    current_user: CurrentSuperUser,
+    current_user: CurrentAdminUser,
     db: DBSession,
 ):
     """
@@ -209,7 +209,7 @@ async def delete_payment_method(
 @router.post("/{method_id}/qr-code", response_model=PaymentMethodResponse)
 async def upload_qr_code(
     method_id: UUID,
-    current_user: CurrentSuperUser,
+    current_user: CurrentAdminUser,
     db: DBSession,
     qr_code: UploadFile = File(...),
 ):
