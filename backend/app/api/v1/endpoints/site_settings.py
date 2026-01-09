@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.security import get_current_admin_user
+from app.core.dependencies import get_current_admin_user
 from app.models import User, SiteSettings, DEFAULT_SETTINGS
 
 
