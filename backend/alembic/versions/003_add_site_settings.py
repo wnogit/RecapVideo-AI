@@ -1,7 +1,7 @@
 """Add site_settings table
 
-Revision ID: 003
-Revises: 002
+Revision ID: 003_add_site_settings
+Revises: 002_add_packages_payments
 Create Date: 2026-01-09
 
 """
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers
-revision = '003'
-down_revision = '002'
+revision = '003_add_site_settings'
+down_revision = '002_add_packages_payments'
 branch_labels = None
 depends_on = None
 
