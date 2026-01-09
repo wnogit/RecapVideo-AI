@@ -210,9 +210,9 @@ export default function BuyCreditsPage() {
             exit={{ opacity: 0, x: 20 }}
           >
             {/* Header */}
-            <div className="text-center max-w-2xl mx-auto mb-8">
-              <h1 className="text-3xl font-bold">💎 Buy Credits</h1>
-              <p className="text-muted-foreground mt-2">
+            <div className="text-center max-w-xl mx-auto mb-6">
+              <h1 className="text-2xl font-bold">💎 Buy Credits</h1>
+              <p className="text-muted-foreground mt-1.5 text-sm">
                 Choose a credit package that fits your needs. Each credit creates one
                 AI-powered recap video with Burmese voiceover.
               </p>
@@ -230,69 +230,69 @@ export default function BuyCreditsPage() {
             )}
 
             {/* Packages Grid */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {packages.map((pkg) => (
                 <Card
                   key={pkg.id}
                   className={cn(
-                    'relative cursor-pointer transition-all hover:shadow-lg',
+                    'relative cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-xl',
                     pkg.is_popular ? 'border-primary shadow-lg ring-2 ring-primary/20' : 'hover:border-primary/50'
                   )}
                   onClick={() => handleSelectPackage(pkg)}
                 >
                   {pkg.is_popular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                      <Badge className="bg-primary">
+                      <Badge className="bg-primary text-xs">
                         <Star className="mr-1 h-3 w-3" />
-                        Most Popular
+                        Popular
                       </Badge>
                     </div>
                   )}
 
-                  <CardHeader className="text-center pb-2">
-                    <CardTitle>{pkg.name}</CardTitle>
-                    <CardDescription>{pkg.credits} credits</CardDescription>
+                  <CardHeader className="text-center pb-2 pt-4">
+                    <CardTitle className="text-base">{pkg.name}</CardTitle>
+                    <CardDescription className="text-xs">{pkg.credits} credits</CardDescription>
                   </CardHeader>
 
-                  <CardContent className="text-center">
+                  <CardContent className="text-center pb-3">
                     <div className="mb-2">
-                      <span className="text-4xl font-bold">
+                      <span className="text-2xl font-bold">
                         {pkg.price_mmk ? `${pkg.price_mmk.toLocaleString()}` : `$${pkg.price_usd}`}
                       </span>
-                      <span className="text-muted-foreground text-sm ml-1">
+                      <span className="text-muted-foreground text-xs ml-1">
                         {pkg.price_mmk ? 'MMK' : 'USD'}
                       </span>
                     </div>
 
                     {pkg.discount_percent && pkg.discount_percent > 0 && (
-                      <Badge variant="secondary" className="mb-4">
+                      <Badge variant="secondary" className="mb-3 text-xs">
                         Save {pkg.discount_percent}%
                       </Badge>
                     )}
 
                     {pkg.description && (
-                      <p className="text-sm text-muted-foreground mb-4">{pkg.description}</p>
+                      <p className="text-xs text-muted-foreground mb-3">{pkg.description}</p>
                     )}
 
-                    <ul className="text-sm space-y-2 text-left">
+                    <ul className="text-xs space-y-1.5 text-left">
                       <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500 shrink-0" />
+                        <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
                         {pkg.credits} video creations
                       </li>
                       <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500 shrink-0" />
+                        <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
                         AI-powered scripts
                       </li>
                       <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500 shrink-0" />
+                        <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
                         Never expires
                       </li>
                     </ul>
                   </CardContent>
 
-                  <CardFooter>
-                    <Button className="w-full" variant={pkg.is_popular ? 'default' : 'outline'}>
-                      <Coins className="mr-2 h-4 w-4" />
+                  <CardFooter className="pt-0 pb-4">
+                    <Button className="w-full" size="sm" variant={pkg.is_popular ? 'default' : 'outline'}>
+                      <Coins className="mr-1.5 h-3.5 w-3.5" />
                       Select
                     </Button>
                   </CardFooter>

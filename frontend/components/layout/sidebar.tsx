@@ -48,7 +48,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-1">
         {navigation.map((item) => {
           const isActive = pathname === item.href;
           const isHighlight = 'highlight' in item && item.highlight;
@@ -57,16 +57,16 @@ export function Sidebar() {
               key={item.name}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
                 isActive
-                  ? 'bg-primary text-primary-foreground'
+                  ? 'bg-primary text-primary-foreground shadow-md'
                   : isHighlight
-                    ? 'bg-gradient-to-r from-violet-600 to-pink-600 text-white hover:from-violet-700 hover:to-pink-700'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    ? 'bg-gradient-to-r from-violet-600 to-pink-600 text-white hover:from-violet-700 hover:to-pink-700 hover:shadow-md hover:-translate-x-0.5'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:translate-x-0.5'
               )}
               onClick={() => setMobileOpen(false)}
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className="h-4 w-4" />
               {item.name}
             </Link>
           );
@@ -148,7 +148,7 @@ export function Sidebar() {
       </div>
 
       {/* Desktop sidebar */}
-      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 border-r bg-background">
+      <div className="hidden lg:flex lg:w-60 lg:flex-col lg:fixed lg:inset-y-0 border-r bg-background">
         <NavContent />
       </div>
     </>

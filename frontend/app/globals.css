@@ -83,6 +83,51 @@
   }
 }
 
+/* Button & Interactive Elements Hover Effects */
+@layer components {
+  /* Subtle lift effect for buttons */
+  .btn-hover {
+    @apply transition-all duration-200 ease-out;
+  }
+  .btn-hover:hover {
+    @apply -translate-y-0.5 shadow-lg;
+  }
+  .btn-hover:active {
+    @apply translate-y-0 shadow-md;
+  }
+
+  /* Card hover lift */
+  .card-hover {
+    @apply transition-all duration-200 ease-out;
+  }
+  .card-hover:hover {
+    @apply -translate-y-1 shadow-xl;
+  }
+
+  /* Subtle scale effect */
+  .scale-hover {
+    @apply transition-transform duration-150 ease-out;
+  }
+  .scale-hover:hover {
+    @apply scale-[1.02];
+  }
+  .scale-hover:active {
+    @apply scale-[0.98];
+  }
+
+  /* Link underline animation */
+  .link-hover {
+    @apply relative;
+  }
+  .link-hover::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-200;
+  }
+  .link-hover:hover::after {
+    @apply w-full;
+  }
+}
+
 /* Animation utilities */
 @layer utilities {
   .animate-in {
