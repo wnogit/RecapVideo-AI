@@ -24,7 +24,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { format } from "date-fns"
 import { adminOrdersApi, AdminOrder } from "@/lib/api"
-import { toast } from "sonner"
+import { toast } from "@/hooks/use-toast"
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<AdminOrder[]>([])
@@ -50,7 +50,7 @@ export default function AdminOrdersPage() {
       setTotal(response.data.total)
     } catch (error: any) {
       console.error("Failed to fetch orders:", error)
-      toast.error(error.response?.data?.detail || "Failed to fetch orders")
+      toast({ title: "Error", description: error.response?.data?.detail || "Failed to fetch orders", variant: "destructive" })
     } finally {
       setIsLoading(false)
     }
@@ -78,12 +78,12 @@ export default function AdminOrdersPage() {
     setIsProcessing(true)
     try {
       await adminOrdersApi.approve(order.id)
-      toast.success("Order approved successfully")
+      toast({ title: "Success", description: "Order approved successfully" })
       fetchOrders()
       setIsDialogOpen(false)
     } catch (error: any) {
       console.error("Failed to approve order:", error)
-      toast.error(error.response?.data?.detail || "Failed to approve order")
+      toast({ title: "Error", description: error.response?.data?.detail || "Failed to approve order", variant: "destructive" })
     } finally {
       setIsProcessing(false)
     }
@@ -93,12 +93,12 @@ export default function AdminOrdersPage() {
     setIsProcessing(true)
     try {
       await adminOrdersApi.reject(order.id)
-      toast.success("Order rejected")
+      toast({ title: "Success", description: "Order rejected" })
       fetchOrders()
       setIsDialogOpen(false)
     } catch (error: any) {
       console.error("Failed to reject order:", error)
-      toast.error(error.response?.data?.detail || "Failed to reject order")
+      toast({ title: "Error", description: error.response?.data?.detail || "Failed to reject order", variant: "destructive" })
     } finally {
       setIsProcessing(false)
     }
