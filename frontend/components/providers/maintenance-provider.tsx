@@ -25,8 +25,8 @@ export function useMaintenanceMode() {
   return useContext(MaintenanceContext);
 }
 
-// Paths that should bypass maintenance check
-const BYPASS_PATHS = ['/admin', '/login', '/auth'];
+// Paths that should bypass maintenance check - ONLY admin pages
+const BYPASS_PATHS = ['/admin'];
 
 // Film strip component
 const FilmStrip = ({ side }: { side: 'left' | 'right' }) => (
