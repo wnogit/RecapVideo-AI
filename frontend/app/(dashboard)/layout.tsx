@@ -13,7 +13,7 @@ export default function DashboardLayout({
         <Sidebar />
         <div className="lg:pl-64">
           <Header />
-          <main className="max-w-[1600px] mx-auto px-4 md:px-8 py-6">{children}</main>
+          <main className="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-6">{children}</main>
         </div>
       </div>
     </AuthGuard>
