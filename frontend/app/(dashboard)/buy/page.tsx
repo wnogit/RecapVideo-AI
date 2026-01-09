@@ -93,7 +93,7 @@ export default function BuyCreditsPage() {
       
       setCurrentOrder(response.data);
       setStep('upload');
-      toast({ title: 'Order created!', description: 'Please upload your payment screenshot.' });
+      toast({ title: 'Order reserved!', description: 'Please send payment and upload screenshot to complete your order.' });
     } catch (error: any) {
       toast({ title: error.response?.data?.detail || 'Failed to create order', variant: 'destructive' });
     } finally {
@@ -126,7 +126,7 @@ export default function BuyCreditsPage() {
     try {
       await orderApi.uploadScreenshot(currentOrder.id, screenshotFile);
       setStep('complete');
-      toast({ title: 'Screenshot uploaded!', description: 'Your order is being processed.' });
+      toast({ title: 'Order Submitted!', description: 'Admin will review and approve your order shortly.' });
     } catch (error: any) {
       toast({ title: error.response?.data?.detail || 'Failed to upload screenshot', variant: 'destructive' });
     } finally {

@@ -1,6 +1,7 @@
 """
 Order Endpoints
 """
+import logging
 from datetime import datetime, timezone
 from decimal import Decimal
 from math import ceil
@@ -22,6 +23,7 @@ from app.schemas.credit import CREDIT_PACKAGES
 from app.services.telegram_service import telegram_service
 from app.models.credit_package import CreditPackage as CreditPackageModel
 
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -377,8 +379,9 @@ async def upload_payment_screenshot(
             package_name = pkg.name
             break
     
-    # Send Telegram notification in background
-    async def send_telegram_notification():
+    # Send Telegram notification directly (not in background to ensure it runs)
+    try:
+        logger.info(f"Sending Telegram notification for order {order.id}")
         message_id = await telegram_service.send_order_notification(
             order_id=order.id,
             username=current_user.full_name or current_user.email.split("@")[0],
@@ -391,12 +394,13 @@ async def upload_payment_screenshot(
             screenshot_url=order.screenshot_url,
         )
         
-        # Update order with telegram message ID for later updates
         if message_id:
-            async with db.begin_nested():
-                order.telegram_message_id = message_id
-                await db.commit()
-    
-    background_tasks.add_task(send_telegram_notification)
+            logger.info(f"Telegram notification sent, message_id: {message_id}")
+            order.telegram_message_id = message_id
+            await db.flush()
+        else:
+            logger.warning(f"Telegram notification returned no message_id for order {order.id}")
+    except Exception as e:
+        logger.error(f"Failed to send Telegram notification for order {order.id}: {e}")
     
     return OrderResponse.model_validate(order)
