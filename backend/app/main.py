@@ -3,9 +3,11 @@ RecapVideo.AI - FastAPI Main Application
 """
 import asyncio
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from sqlalchemy import select
 
@@ -116,6 +118,12 @@ def create_application() -> FastAPI:
     @app.get("/health")
     async def health_check():
         return {"status": "healthy", "version": "3.0.0"}
+    
+    # Mount static files for payment screenshots
+    static_dir = Path("static")
+    static_dir.mkdir(exist_ok=True)
+    (static_dir / "payment_screenshots").mkdir(exist_ok=True)
+    app.mount("/static", StaticFiles(directory="static"), name="static")
     
     return app
 
