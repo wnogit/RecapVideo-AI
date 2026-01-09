@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { studioUrls } from '@/lib/config';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/stores/auth-store';
@@ -522,13 +522,13 @@ export default function LandingPage() {
             </div>
           )}
 
-          {/* Dynamic Packages */}
+          {/* Dynamic Packages - Compact cards matching buy page */}
           {!packagesLoading && packages.length > 0 && (
-            <div className={`grid gap-6 max-w-5xl mx-auto ${
-              packages.length === 1 ? 'md:grid-cols-1 max-w-md' :
-              packages.length === 2 ? 'md:grid-cols-2 max-w-3xl' :
-              packages.length === 3 ? 'md:grid-cols-3' :
-              'md:grid-cols-2 lg:grid-cols-4'
+            <div className={`grid gap-4 max-w-4xl mx-auto ${
+              packages.length === 1 ? 'sm:grid-cols-1 max-w-sm' :
+              packages.length === 2 ? 'sm:grid-cols-2 max-w-2xl' :
+              packages.length === 3 ? 'sm:grid-cols-3' :
+              'sm:grid-cols-2 lg:grid-cols-4'
             }`}>
               {packages.map((pkg, index) => (
                 <motion.div
@@ -539,70 +539,64 @@ export default function LandingPage() {
                   transition={{ delay: index * 0.1 }}
                   className="relative"
                 >
-                  {pkg.is_popular && (
-                    <div className="absolute -inset-[1px] bg-gradient-to-r from-violet-600 to-pink-600 rounded-2xl blur-sm" />
-                  )}
-                  <Card className={`h-full transition-all duration-300 ${
+                  <Card className={`h-full transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${
                     pkg.is_popular 
-                      ? 'relative glass border-0 bg-background/80' 
-                      : 'glass border-white/10 hover:bg-white/5'
+                      ? 'border-primary shadow-lg ring-2 ring-primary/20' 
+                      : 'glass border-white/10 hover:border-primary/50'
                   }`}>
                     {pkg.is_popular && (
-                      <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                        <Badge className="bg-gradient-to-r from-violet-600 to-pink-600 text-white border-0 shadow-lg">
-                          <Sparkles className="mr-1 h-3 w-3" />
-                          Most Popular
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                        <Badge className="bg-primary text-xs">
+                          <Star className="mr-1 h-3 w-3" />
+                          Popular
                         </Badge>
                       </div>
                     )}
-                    <CardHeader className={pkg.is_popular ? 'pt-8' : ''}>
-                      <CardTitle className="text-xl">{pkg.name}</CardTitle>
-                      {pkg.description && (
-                        <CardDescription>{pkg.description}</CardDescription>
-                      )}
-                      <div className="mt-4 flex items-baseline gap-1">
-                        <span className={`text-5xl font-bold ${pkg.is_popular ? 'gradient-text' : ''}`}>
+                    <CardHeader className={`text-center pb-2 ${pkg.is_popular ? 'pt-5' : 'pt-4'}`}>
+                      <CardTitle className="text-base">{pkg.name}</CardTitle>
+                      <CardDescription className="text-xs">{pkg.credits} credits</CardDescription>
+                    </CardHeader>
+                    <CardContent className="text-center pb-3">
+                      <div className="mb-2">
+                        <span className={`text-2xl font-bold ${pkg.is_popular ? 'gradient-text' : ''}`}>
                           {pkg.price_mmk ? `${pkg.price_mmk.toLocaleString()}` : `$${pkg.price_usd}`}
                         </span>
-                        <span className="text-muted-foreground text-lg">
-                          / {pkg.credits} credits
+                        <span className="text-muted-foreground text-xs ml-1">
+                          {pkg.price_mmk ? 'MMK' : 'USD'}
                         </span>
                       </div>
                       {pkg.discount_percent > 0 && (
-                        <Badge variant="secondary" className="w-fit mt-2 text-green-500 bg-green-500/10">
+                        <Badge variant="secondary" className="mb-3 text-xs text-green-500 bg-green-500/10">
                           Save {pkg.discount_percent}%
                         </Badge>
                       )}
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-3 mb-8">
-                        {[
-                          `${pkg.credits} video creations`,
-                          'All voice options',
-                          pkg.is_popular ? 'Priority processing' : 'Cloud storage',
-                          '1080p export',
-                          pkg.is_popular && 'Faster queue',
-                        ].filter(Boolean).map((feature) => (
-                          <li key={feature as string} className="flex items-center gap-3 text-sm">
-                            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                            {feature}
-                          </li>
-                        ))}
+                      <ul className="text-xs space-y-1.5 text-left mt-3">
+                        <li className="flex items-center gap-2">
+                          <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                          {pkg.credits} video creations
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                          AI-powered scripts
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                          Never expires
+                        </li>
                       </ul>
-                      <a href={studioUrls.signup} className="block">
+                    </CardContent>
+                    <CardFooter className="pt-0 pb-4">
+                      <a href={studioUrls.signup} className="block w-full">
                         <Button 
-                          className={`w-full ${
-                            pkg.is_popular 
-                              ? 'bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-700 hover:to-pink-700 text-white border-0 shadow-lg' 
-                              : 'glass border-white/20 hover:bg-white/10'
-                          }`}
+                          className="w-full"
+                          size="sm"
                           variant={pkg.is_popular ? 'default' : 'outline'}
                         >
-                          {pkg.is_popular && <Sparkles className="mr-2 h-4 w-4" />}
+                          {pkg.is_popular && <Sparkles className="mr-1.5 h-3.5 w-3.5" />}
                           Get Started
                         </Button>
                       </a>
-                    </CardContent>
+                    </CardFooter>
                   </Card>
                 </motion.div>
               ))}
