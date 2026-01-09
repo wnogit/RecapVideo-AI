@@ -1,11 +1,16 @@
 """
 User Endpoints
 """
-from fastapi import APIRouter, HTTPException, status
+from datetime import datetime, timedelta, timezone
+from typing import List
+from fastapi import APIRouter, HTTPException, status, Query
+from sqlalchemy import select, or_, desc
 
 from app.core.dependencies import CurrentActiveUser, DBSession
 from app.core.security import verify_password, get_password_hash
 from app.schemas.user import UserResponse, UserUpdate, UserPasswordUpdate
+from app.models.video import Video, VideoStatus
+from app.models.order import Order, OrderStatus
 
 
 router = APIRouter()
@@ -83,3 +88,108 @@ async def delete_current_user(
     await db.flush()
     
     return {"message": "Account deactivated successfully"}
+
+
+@router.get("/me/notifications")
+async def get_user_notifications(
+    current_user: CurrentActiveUser,
+    db: DBSession,
+    limit: int = Query(default=10, le=50),
+):
+    """
+    Get user notifications.
+    
+    Returns recent:
+    - Completed/failed videos (last 7 days)
+    - Approved/rejected/completed orders (last 7 days)
+    """
+    notifications = []
+    seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    
+    # Get recent completed/failed videos
+    videos_query = select(Video).where(
+        Video.user_id == current_user.id,
+        Video.status.in_([VideoStatus.COMPLETED.value, VideoStatus.FAILED.value]),
+        Video.updated_at >= seven_days_ago,
+    ).order_by(desc(Video.updated_at)).limit(limit)
+    
+    videos_result = await db.execute(videos_query)
+    videos = videos_result.scalars().all()
+    
+    for video in videos:
+        if video.status == VideoStatus.COMPLETED.value:
+            notifications.append({
+                "id": str(video.id),
+                "type": "video_completed",
+                "title": "Video Ready",
+                "message": f"Your video '{video.title or video.source_title or 'Untitled'}' is ready to download",
+                "timestamp": video.updated_at.isoformat() if video.updated_at else video.created_at.isoformat(),
+                "read": False,
+                "link": "/videos",
+            })
+        elif video.status == VideoStatus.FAILED.value:
+            notifications.append({
+                "id": str(video.id),
+                "type": "video_failed",
+                "title": "Video Failed",
+                "message": f"Failed to process '{video.title or video.source_title or 'Untitled'}'",
+                "timestamp": video.updated_at.isoformat() if video.updated_at else video.created_at.isoformat(),
+                "read": False,
+                "link": "/videos",
+            })
+    
+    # Get recent order updates
+    orders_query = select(Order).where(
+        Order.user_id == current_user.id,
+        Order.status.in_([
+            OrderStatus.COMPLETED.value,
+            OrderStatus.REJECTED.value,
+            OrderStatus.FAILED.value,
+        ]),
+        Order.updated_at >= seven_days_ago,
+    ).order_by(desc(Order.updated_at)).limit(limit)
+    
+    orders_result = await db.execute(orders_query)
+    orders = orders_result.scalars().all()
+    
+    for order in orders:
+        if order.status == OrderStatus.COMPLETED.value:
+            notifications.append({
+                "id": str(order.id),
+                "type": "order_approved",
+                "title": "Order Approved",
+                "message": f"Your order for {order.credits_amount} credits has been approved!",
+                "timestamp": order.updated_at.isoformat() if order.updated_at else order.created_at.isoformat(),
+                "read": False,
+                "link": "/orders",
+            })
+        elif order.status == OrderStatus.REJECTED.value:
+            notifications.append({
+                "id": str(order.id),
+                "type": "order_rejected",
+                "title": "Order Rejected",
+                "message": f"Your order for {order.credits_amount} credits was rejected",
+                "timestamp": order.updated_at.isoformat() if order.updated_at else order.created_at.isoformat(),
+                "read": False,
+                "link": "/orders",
+            })
+        elif order.status == OrderStatus.FAILED.value:
+            notifications.append({
+                "id": str(order.id),
+                "type": "order_failed",
+                "title": "Order Failed",
+                "message": f"Your order for {order.credits_amount} credits failed",
+                "timestamp": order.updated_at.isoformat() if order.updated_at else order.created_at.isoformat(),
+                "read": False,
+                "link": "/orders",
+            })
+    
+    # Sort by timestamp descending
+    notifications.sort(key=lambda x: x["timestamp"], reverse=True)
+    
+    # Return limited notifications
+    return {
+        "notifications": notifications[:limit],
+        "unread_count": len(notifications),
+    }
+

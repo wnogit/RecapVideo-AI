@@ -4,11 +4,91 @@ import { useAuthStore } from '@/stores/auth-store';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Search, Coins } from 'lucide-react';
+import { Bell, Coins, Video, CheckCircle, XCircle, AlertCircle, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+interface Notification {
+  id: string;
+  type: 'video_completed' | 'video_failed' | 'order_approved' | 'order_rejected' | 'order_failed';
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  link: string;
+}
 
 export function Header() {
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (token) {
+      fetchNotifications();
+      // Refresh notifications every 30 seconds
+      const interval = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [token]);
+
+  const fetchNotifications = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/me/notifications`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data.notifications || []);
+        setUnreadCount(data.unread_count || 0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    }
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'video_completed':
+        return <Video className="h-4 w-4 text-green-500" />;
+      case 'video_failed':
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+      case 'order_approved':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'order_rejected':
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      case 'order_failed':
+        return <AlertCircle className="h-4 w-4 text-orange-500" />;
+      default:
+        return <Bell className="h-4 w-4" />;
+    }
+  };
+
+  const formatTimeAgo = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+  };
 
   return (
     <header className="sticky top-0 z-30 border-b bg-background">
@@ -32,10 +112,71 @@ export function Header() {
         </Link>
 
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive" />
-        </Button>
+        <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive" />
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80">
+            <DropdownMenuLabel className="flex items-center justify-between">
+              <span>Notifications</span>
+              {unreadCount > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {unreadCount} new
+                </Badge>
+              )}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <ScrollArea className="h-[300px]">
+              {notifications.length === 0 ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  No notifications yet
+                </div>
+              ) : (
+                notifications.map((notification) => (
+                  <DropdownMenuItem key={notification.id} asChild>
+                    <Link
+                      href={notification.link}
+                      className="flex items-start gap-3 p-3 cursor-pointer"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <div className="mt-0.5">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm font-medium leading-none">
+                          {notification.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {notification.message}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatTimeAgo(notification.timestamp)}
+                        </p>
+                      </div>
+                    </Link>
+                  </DropdownMenuItem>
+                ))
+              )}
+            </ScrollArea>
+            {notifications.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
+                <div className="p-2">
+                  <Link href="/videos" onClick={() => setIsOpen(false)}>
+                    <Button variant="ghost" size="sm" className="w-full">
+                      View all activity
+                    </Button>
+                  </Link>
+                </div>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* User Avatar */}
         <Link href="/profile">
