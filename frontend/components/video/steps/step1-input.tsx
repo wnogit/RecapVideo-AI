@@ -10,9 +10,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
-import { Link2, AlertCircle, CheckCircle2, Mic, Volume2, Loader2, Square, ClipboardPaste } from 'lucide-react';
+import { Link2, AlertCircle, CheckCircle2, Mic, Volume2, Loader2, Square, ClipboardPaste, Languages } from 'lucide-react';
 import { isYoutubeShortsUrl, isRegularYoutubeUrl } from '@/lib/youtube';
 import { AspectRatio, FORMAT_OPTIONS } from '@/lib/types/video-options';
+
+// Output language options
+const OUTPUT_LANGUAGES = [
+  { id: 'my', name: 'မြန်မာ (Burmese)', flag: '🇲🇲' },
+  // Future languages can be added here
+  // { id: 'th', name: 'ไทย (Thai)', flag: '🇹🇭' },
+  // { id: 'vi', name: 'Tiếng Việt (Vietnamese)', flag: '🇻🇳' },
+];
 
 // Voice sample URLs - stored in backend static folder
 const VOICE_SAMPLE_URLS: Record<string, string> = {
@@ -41,9 +49,11 @@ const VOICES = [
 export function Step1Input() {
   const {
     sourceUrl,
+    outputLanguage,
     voiceId,
     aspectRatio,
     setSourceUrl,
+    setOutputLanguage,
     setVoiceId,
     setAspectRatio,
     isStep1Valid,
@@ -213,6 +223,38 @@ export function Step1Input() {
             <span>URL မှန်ကန်ပါသည် ✓</span>
           </div>
         )}
+      </div>
+
+      {/* Output Language Selection */}
+      <div className="space-y-3">
+        <Label className="text-base font-medium flex items-center gap-2">
+          <Languages className="h-4 w-4" />
+          Output Language
+        </Label>
+        
+        <div className="flex flex-wrap gap-2">
+          {OUTPUT_LANGUAGES.map((lang) => (
+            <button
+              key={lang.id}
+              type="button"
+              onClick={() => setOutputLanguage(lang.id)}
+              className={cn(
+                "px-4 py-3 rounded-lg border text-sm font-medium transition-all duration-200",
+                "hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98]",
+                "flex items-center gap-2",
+                outputLanguage === lang.id
+                  ? "border-primary bg-primary/10 text-primary shadow-sm"
+                  : "border-muted hover:border-primary/50 hover:bg-accent"
+              )}
+            >
+              <span className="text-lg">{lang.flag}</span>
+              {lang.name}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Video ကို ဘာသာပြန်မည့် ဘာသာစကား ရွေးချယ်ပါ
+        </p>
       </div>
 
       {/* Voice Selection */}

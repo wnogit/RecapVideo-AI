@@ -25,6 +25,7 @@ export interface VideoCreationState {
   
   // Step 1: Input
   sourceUrl: string;
+  outputLanguage: string;
   voiceId: string;
   aspectRatio: AspectRatio;
   
@@ -52,6 +53,7 @@ export interface VideoCreationState {
   
   // Step 1 Actions
   setSourceUrl: (url: string) => void;
+  setOutputLanguage: (lang: string) => void;
   setVoiceId: (id: string) => void;
   setAspectRatio: (ratio: AspectRatio) => void;
   
@@ -89,6 +91,7 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
   
   // Step 1
   sourceUrl: '',
+  outputLanguage: 'my',
   voiceId: 'my-MM-NilarNeural',
   aspectRatio: '9:16',
   
@@ -134,6 +137,8 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
     set({ sourceUrl: url, isStep1Valid: isValid });
   },
   
+  setOutputLanguage: (lang) => set({ outputLanguage: lang }),
+  
   setVoiceId: (id) => set({ voiceId: id }),
   
   setAspectRatio: (ratio) => set({ aspectRatio: ratio }),
@@ -160,6 +165,7 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
   reset: () => set({
     currentStep: 1,
     sourceUrl: '',
+    outputLanguage: 'my',
     voiceId: 'my-MM-NilarNeural',
     aspectRatio: '9:16',
     copyrightOptions: DEFAULT_COPYRIGHT_OPTIONS,
@@ -179,7 +185,7 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
     return {
       source_url: state.sourceUrl,
       voice_type: state.voiceId,
-      output_language: 'my',
+      output_language: state.outputLanguage,
       options: {
         aspect_ratio: state.aspectRatio,
         copyright: {

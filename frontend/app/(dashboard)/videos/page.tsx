@@ -28,7 +28,7 @@ export default function VideosPage() {
             <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Link href="/dashboard">
+          <Link href="/create">
             <Button>Create New Video</Button>
           </Link>
         </div>
@@ -47,7 +47,7 @@ export default function VideosPage() {
             <p className="text-muted-foreground text-center mb-4">
               You haven&apos;t created any videos yet. Get started by creating your first video!
             </p>
-            <Link href="/dashboard">
+            <Link href="/create">
               <Button>Create Your First Video</Button>
             </Link>
           </CardContent>
