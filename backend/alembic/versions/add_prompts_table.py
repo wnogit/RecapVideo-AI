@@ -1,7 +1,7 @@
 """add prompts table
 
 Revision ID: add_prompts_table
-Revises: 
+Revises: 003_add_site_settings
 Create Date: 2026-01-09
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'add_prompts_table'
-down_revision = None
+down_revision = '003_add_site_settings'
 branch_labels = None
 depends_on = None
 
