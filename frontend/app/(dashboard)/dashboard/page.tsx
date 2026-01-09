@@ -7,7 +7,7 @@ import { VideoForm } from '@/components/video/video-form';
 import { VideoCard } from '@/components/video/video-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Coins, Video, Clock, CheckCircle } from 'lucide-react';
+import { Coins, Video, Clock, CheckCircle, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardPage() {
@@ -37,7 +37,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Credit Balance</CardTitle>
@@ -48,6 +48,25 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground">
               <Link href="/buy" className="text-primary hover:underline">
                 Buy more credits
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">My Orders</CardTitle>
+            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              <Link href="/orders" className="hover:text-primary">
+                View
+              </Link>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              <Link href="/orders" className="text-primary hover:underline">
+                Order history
               </Link>
             </p>
           </CardContent>

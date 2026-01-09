@@ -91,7 +91,7 @@ async def list_all_orders(
     for order, user in rows:
         order_dict = OrderResponse.model_validate(order).model_dump()
         order_dict["user_email"] = user.email
-        order_dict["user_name"] = User.name
+        order_dict["user_name"] = user.name
         orders.append(AdminOrderResponse(**order_dict))
     
     return AdminOrderListResponse(
@@ -128,7 +128,7 @@ async def get_order(
     order, user = row
     order_dict = OrderResponse.model_validate(order).model_dump()
     order_dict["user_email"] = user.email
-    order_dict["user_name"] = User.name
+    order_dict["user_name"] = user.name
     
     return AdminOrderResponse(**order_dict)
 
@@ -193,7 +193,7 @@ async def approve_order(
     
     order_dict = OrderResponse.model_validate(order).model_dump()
     order_dict["user_email"] = user.email
-    order_dict["user_name"] = User.name
+    order_dict["user_name"] = user.name
     
     return AdminOrderResponse(**order_dict)
 
@@ -245,7 +245,7 @@ async def reject_order(
     
     order_dict = OrderResponse.model_validate(order).model_dump()
     order_dict["user_email"] = user.email
-    order_dict["user_name"] = User.name
+    order_dict["user_name"] = user.name
     
     return AdminOrderResponse(**order_dict)
 
