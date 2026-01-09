@@ -9,7 +9,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func, select, or_
 
-from app.core.dependencies import CurrentSuperUser, DBSession
+from app.core.dependencies import CurrentAdminUser, DBSession
 from app.models.order import Order, OrderStatus
 from app.models.user import User
 from app.models.credit import CreditTransaction, TransactionType
@@ -35,7 +35,7 @@ class AdminOrderListResponse(OrderListResponse):
 
 @router.get("", response_model=AdminOrderListResponse)
 async def list_all_orders(
-    current_user: CurrentSuperUser,
+    current_user: CurrentAdminUser,
     db: DBSession,
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
@@ -106,7 +106,7 @@ async def list_all_orders(
 @router.get("/{order_id}", response_model=AdminOrderResponse)
 async def get_order(
     order_id: UUID,
-    current_user: CurrentSuperUser,
+    current_user: CurrentAdminUser,
     db: DBSession,
 ):
     """
@@ -136,7 +136,7 @@ async def get_order(
 @router.post("/{order_id}/approve", response_model=AdminOrderResponse)
 async def approve_order(
     order_id: UUID,
-    current_user: CurrentSuperUser,
+    current_user: CurrentAdminUser,
     db: DBSession,
 ):
     """
@@ -201,7 +201,7 @@ async def approve_order(
 @router.post("/{order_id}/reject", response_model=AdminOrderResponse)
 async def reject_order(
     order_id: UUID,
-    current_user: CurrentSuperUser,
+    current_user: CurrentAdminUser,
     db: DBSession,
     reason: Optional[str] = Query(None),
 ):
@@ -252,7 +252,7 @@ async def reject_order(
 
 @router.get("/stats/summary")
 async def get_order_stats(
-    current_user: CurrentSuperUser,
+    current_user: CurrentAdminUser,
     db: DBSession,
 ):
     """
