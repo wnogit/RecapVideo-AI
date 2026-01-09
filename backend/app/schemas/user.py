@@ -78,6 +78,7 @@ class UserResponse(BaseModel):
     is_admin: bool = False
     credit_balance: int
     created_at: datetime
+    last_login_at: Optional[datetime] = None
     
     model_config = {"from_attributes": True}
 

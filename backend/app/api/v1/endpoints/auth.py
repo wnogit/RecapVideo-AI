@@ -10,12 +10,13 @@ Supports:
 """
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, HTTPException, status, Request
 from sqlalchemy import select, func
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from loguru import logger
+from user_agents import parse as parse_user_agent
 
 from app.core.config import settings
 from app.core.dependencies import DBSession
@@ -55,6 +56,50 @@ ALLOWED_EMAIL_DOMAINS = [
 
 # Trial credits for new users
 TRIAL_CREDITS = 4
+
+
+# ============ Helper Functions ============
+
+def get_device_info_from_request(request: Request) -> Dict[str, Any]:
+    """Parse user-agent header to extract device information."""
+    user_agent_string = request.headers.get("user-agent", "")
+    
+    if not user_agent_string:
+        return {
+            "browser": None,
+            "browser_version": None,
+            "os": None,
+            "os_version": None,
+            "device_type": "desktop",
+        }
+    
+    try:
+        user_agent = parse_user_agent(user_agent_string)
+        
+        # Determine device type
+        if user_agent.is_mobile:
+            device_type = "mobile"
+        elif user_agent.is_tablet:
+            device_type = "tablet"
+        else:
+            device_type = "desktop"
+        
+        return {
+            "browser": user_agent.browser.family if user_agent.browser.family else None,
+            "browser_version": user_agent.browser.version_string if user_agent.browser.version_string else None,
+            "os": user_agent.os.family if user_agent.os.family else None,
+            "os_version": user_agent.os.version_string if user_agent.os.version_string else None,
+            "device_type": device_type,
+        }
+    except Exception as e:
+        logger.warning(f"Failed to parse user-agent: {e}")
+        return {
+            "browser": None,
+            "browser_version": None,
+            "os": None,
+            "os_version": None,
+            "device_type": "desktop",
+        }
 
 
 # ============ Additional Schemas ============
@@ -324,6 +369,9 @@ async def google_auth(request: Request, body: GoogleAuthRequest, db: DBSession):
     
     # Track device fingerprint
     if body.device_id:
+        # Parse user-agent for device info
+        device_info = get_device_info_from_request(request)
+        
         result = await db.execute(
             select(DeviceFingerprint).where(
                 DeviceFingerprint.fingerprint_id == body.device_id,
@@ -336,6 +384,12 @@ async def google_auth(request: Request, body: GoogleAuthRequest, db: DBSession):
             device.last_seen = datetime.now(timezone.utc)
             device.login_count += 1
             device.ip_address = client_ip
+            # Update device info on each login
+            device.browser = device_info.get("browser") or device.browser
+            device.browser_version = device_info.get("browser_version") or device.browser_version
+            device.os = device_info.get("os") or device.os
+            device.os_version = device_info.get("os_version") or device.os_version
+            device.device_type = device_info.get("device_type") or device.device_type
         else:
             device = DeviceFingerprint(
                 fingerprint_id=body.device_id,
@@ -344,6 +398,11 @@ async def google_auth(request: Request, body: GoogleAuthRequest, db: DBSession):
                 country=ip_result.get("country"),
                 city=ip_result.get("city"),
                 isp=ip_result.get("isp"),
+                browser=device_info.get("browser"),
+                browser_version=device_info.get("browser_version"),
+                os=device_info.get("os"),
+                os_version=device_info.get("os_version"),
+                device_type=device_info.get("device_type"),
             )
             db.add(device)
             
@@ -619,6 +678,9 @@ async def email_login(request: Request, body: EmailLoginRequest, db: DBSession):
     
     # Track device fingerprint
     if body.device_id:
+        # Parse user-agent for device info
+        device_info = get_device_info_from_request(request)
+        
         result = await db.execute(
             select(DeviceFingerprint).where(
                 DeviceFingerprint.fingerprint_id == body.device_id,
@@ -631,6 +693,12 @@ async def email_login(request: Request, body: EmailLoginRequest, db: DBSession):
             device.last_seen = datetime.now(timezone.utc)
             device.login_count += 1
             device.ip_address = client_ip
+            # Update device info on each login
+            device.browser = device_info.get("browser") or device.browser
+            device.browser_version = device_info.get("browser_version") or device.browser_version
+            device.os = device_info.get("os") or device.os
+            device.os_version = device_info.get("os_version") or device.os_version
+            device.device_type = device_info.get("device_type") or device.device_type
         else:
             device = DeviceFingerprint(
                 fingerprint_id=body.device_id,
@@ -639,6 +707,11 @@ async def email_login(request: Request, body: EmailLoginRequest, db: DBSession):
                 country=ip_result.get("country"),
                 city=ip_result.get("city"),
                 isp=ip_result.get("isp"),
+                browser=device_info.get("browser"),
+                browser_version=device_info.get("browser_version"),
+                os=device_info.get("os"),
+                os_version=device_info.get("os_version"),
+                device_type=device_info.get("device_type"),
             )
             db.add(device)
     
