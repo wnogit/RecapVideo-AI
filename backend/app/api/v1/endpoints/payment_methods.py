@@ -42,6 +42,23 @@ async def get_active_payment_methods(
     return [PaymentMethodResponse.model_validate(m) for m in methods]
 
 
+@router.get("/public", response_model=List[PaymentMethodResponse])
+async def get_public_payment_methods(
+    db: DBSession,
+):
+    """
+    Alias for /active endpoint for compatibility.
+    """
+    result = await db.execute(
+        select(PaymentMethod)
+        .where(PaymentMethod.is_active == True)
+        .order_by(PaymentMethod.display_order.asc(), PaymentMethod.created_at.desc())
+    )
+    methods = result.scalars().all()
+    
+    return [PaymentMethodResponse.model_validate(m) for m in methods]
+
+
 @router.get("/types", response_model=List[PaymentTypeInfo])
 async def get_payment_types():
     """
