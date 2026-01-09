@@ -940,10 +940,12 @@ export default function AdminSettingsPage() {
                       <div className="grid gap-3 md:grid-cols-2">
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-muted-foreground">Connection:</span>
-                          {telegramStatus?.bot_token_configured ? (
+                          {telegramStatus?.bot_info ? (
                             <Badge className="bg-green-100 text-green-700">Connected</Badge>
+                          ) : telegramStatus?.bot_token_configured ? (
+                            <Badge variant="destructive">Failed to Connect</Badge>
                           ) : (
-                            <Badge variant="outline">Not Connected</Badge>
+                            <Badge variant="outline">Not Configured</Badge>
                           )}
                         </div>
                         {telegramStatus?.bot_info && (
