@@ -8,6 +8,7 @@ from app.models.api_key import APIKey, APIKeyType
 from app.models.device import DeviceFingerprint, IPSignupLog
 from app.models.payment_method import PaymentMethod, PAYMENT_TYPES
 from app.models.site_settings import SiteSettings, DEFAULT_SETTINGS
+from app.models.prompt import Prompt, PromptCategory
 
 
 __all__ = [
@@ -28,4 +29,6 @@ __all__ = [
     "PAYMENT_TYPES",
     "SiteSettings",
     "DEFAULT_SETTINGS",
+    "Prompt",
+    "PromptCategory",
 ]

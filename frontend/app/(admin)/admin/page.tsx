@@ -7,33 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
-import api from "@/lib/api"
-
-interface DashboardStats {
-  total_users: number
-  total_videos: number
-  total_orders: number
-  total_revenue: number
-  new_users_today: number
-  videos_today: number
-  pending_orders: number
-}
-
-interface RecentUser {
-  id: string
-  email: string
-  full_name: string
-  created_at: string
-  avatar_url?: string
-}
-
-interface RecentVideo {
-  id: string
-  title: string
-  status: string
-  user_email: string
-  created_at: string
-}
+import { adminDashboardApi, DashboardStats, RecentUser, RecentVideo } from "@/lib/api"
+import { toast } from "sonner"
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
@@ -44,63 +19,19 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // Simulated data - replace with actual API calls
-        setStats({
-          total_users: 1234,
-          total_videos: 5678,
-          total_orders: 890,
-          total_revenue: 45670,
-          new_users_today: 23,
-          videos_today: 67,
-          pending_orders: 12,
-        })
-
-        setRecentUsers([
-          {
-            id: "1",
-            email: "user1@example.com",
-            full_name: "John Doe",
-            created_at: new Date().toISOString(),
-          },
-          {
-            id: "2",
-            email: "user2@example.com",
-            full_name: "Jane Smith",
-            created_at: new Date().toISOString(),
-          },
-          {
-            id: "3",
-            email: "user3@example.com",
-            full_name: "Bob Wilson",
-            created_at: new Date().toISOString(),
-          },
+        // Fetch all dashboard data in parallel
+        const [statsRes, usersRes, videosRes] = await Promise.all([
+          adminDashboardApi.getStats(),
+          adminDashboardApi.getRecentUsers(5),
+          adminDashboardApi.getRecentVideos(5),
         ])
 
-        setRecentVideos([
-          {
-            id: "1",
-            title: "How to Learn Python",
-            status: "completed",
-            user_email: "user1@example.com",
-            created_at: new Date().toISOString(),
-          },
-          {
-            id: "2",
-            title: "React Tutorial",
-            status: "processing",
-            user_email: "user2@example.com",
-            created_at: new Date().toISOString(),
-          },
-          {
-            id: "3",
-            title: "Docker Guide",
-            status: "pending",
-            user_email: "user3@example.com",
-            created_at: new Date().toISOString(),
-          },
-        ])
-      } catch (error) {
+        setStats(statsRes.data)
+        setRecentUsers(usersRes.data)
+        setRecentVideos(videosRes.data)
+      } catch (error: any) {
         console.error("Failed to fetch dashboard data:", error)
+        toast.error("Failed to load dashboard data")
       } finally {
         setIsLoading(false)
       }
@@ -155,28 +86,28 @@ export default function AdminDashboardPage() {
           value={stats?.total_users.toLocaleString() || "0"}
           description="from last month"
           icon={Users}
-          trend={{ value: 12, isPositive: true }}
+          trend={stats?.users_growth !== undefined ? { value: Math.abs(stats.users_growth), isPositive: stats.users_growth >= 0 } : undefined}
         />
         <StatsCard
           title="Total Videos"
           value={stats?.total_videos.toLocaleString() || "0"}
           description="from last month"
           icon={Video}
-          trend={{ value: 8, isPositive: true }}
+          trend={stats?.videos_growth !== undefined ? { value: Math.abs(stats.videos_growth), isPositive: stats.videos_growth >= 0 } : undefined}
         />
         <StatsCard
           title="Total Orders"
           value={stats?.total_orders.toLocaleString() || "0"}
-          description="pending orders"
+          description={`${stats?.pending_orders || 0} pending orders`}
           icon={ShoppingCart}
-          trend={{ value: 5, isPositive: true }}
+          trend={stats?.orders_growth !== undefined ? { value: Math.abs(stats.orders_growth), isPositive: stats.orders_growth >= 0 } : undefined}
         />
         <StatsCard
           title="Total Revenue"
           value={`$${stats?.total_revenue.toLocaleString() || "0"}`}
           description="from last month"
           icon={CreditCard}
-          trend={{ value: 15, isPositive: true }}
+          trend={stats?.revenue_growth !== undefined ? { value: Math.abs(stats.revenue_growth), isPositive: stats.revenue_growth >= 0 } : undefined}
         />
       </div>
 
@@ -250,7 +181,7 @@ export default function AdminDashboardPage() {
                     <Video className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{video.title}</p>
+                    <p className="text-sm font-medium truncate">{video.title || "Untitled Video"}</p>
                     <p className="text-xs text-muted-foreground truncate">
                       {video.user_email}
                     </p>

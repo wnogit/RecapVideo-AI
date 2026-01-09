@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { MoreHorizontal, Play, Trash2, Download, Eye } from "lucide-react"
+import { MoreHorizontal, Play, Trash2, Download, Eye, RefreshCcw } from "lucide-react"
 import { DataTable, Column } from "@/components/admin"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -20,88 +20,99 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { format } from "date-fns"
+import { toast } from "sonner"
+import { adminVideosApi, AdminVideo } from "@/lib/api"
 
-interface Video {
-  id: string
-  title: string
-  youtube_url: string
-  user_email: string
-  status: "pending" | "processing" | "completed" | "failed"
-  progress: number
-  target_language: string
-  voice_name: string
-  credits_used: number
-  duration?: number
-  created_at: string
+// Language code to name mapping
+const LANGUAGE_NAMES: Record<string, string> = {
+  my: "Burmese",
+  th: "Thai",
+  vi: "Vietnamese",
+  id: "Indonesian",
+  en: "English",
+  zh: "Chinese",
+  ja: "Japanese",
+  ko: "Korean",
 }
 
 export default function AdminVideosPage() {
-  const [videos, setVideos] = useState<Video[]>([])
+  const [videos, setVideos] = useState<AdminVideo[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [total, setTotal] = useState(0)
   const [activeTab, setActiveTab] = useState("all")
-  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null)
+  const [selectedVideo, setSelectedVideo] = useState<AdminVideo | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [deleteVideo, setDeleteVideo] = useState<AdminVideo | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const fetchVideos = async () => {
+    setIsLoading(true)
+    try {
+      const statusFilter = activeTab !== "all" ? activeTab : undefined
+      const response = await adminVideosApi.list({
+        page,
+        page_size: pageSize,
+        status: statusFilter,
+        sort_by: "created_at",
+        sort_order: "desc",
+      })
+
+      setVideos(response.data.videos)
+      setTotal(response.data.total)
+    } catch (error: any) {
+      console.error("Failed to fetch videos:", error)
+      toast.error("Failed to load videos")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchVideos = async () => {
-      setIsLoading(true)
-      try {
-        const statuses: Video["status"][] = [
-          "pending",
-          "processing",
-          "completed",
-          "failed",
-        ]
-        const mockVideos: Video[] = Array.from({ length: 100 }, (_, i) => ({
-          id: String(i + 1),
-          title: [
-            "How to Learn Python in 2024",
-            "React Tutorial for Beginners",
-            "Docker Crash Course",
-            "Next.js 14 Full Guide",
-            "TypeScript Best Practices",
-          ][i % 5],
-          youtube_url: `https://youtube.com/watch?v=video${i + 1}`,
-          user_email: `user${(i % 20) + 1}@example.com`,
-          status: statuses[i % 4],
-          progress: statuses[i % 4] === "completed" ? 100 : Math.floor(Math.random() * 100),
-          target_language: ["Burmese", "Thai", "Vietnamese", "Indonesian"][i % 4],
-          voice_name: ["en-US-AriaNeural", "en-US-GuyNeural"][i % 2],
-          credits_used: Math.floor(Math.random() * 50) + 10,
-          duration: Math.floor(Math.random() * 600) + 60,
-          created_at: new Date(
-            Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000
-          ).toISOString(),
-        }))
-
-        let filtered = mockVideos
-        if (activeTab !== "all") {
-          filtered = mockVideos.filter((v) => v.status === activeTab)
-        }
-
-        setVideos(filtered.slice((page - 1) * pageSize, page * pageSize))
-        setTotal(filtered.length)
-      } catch (error) {
-        console.error("Failed to fetch videos:", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
     fetchVideos()
   }, [page, pageSize, activeTab])
 
-  const getStatusVariant = (status: Video["status"]) => {
+  const handleDelete = async () => {
+    if (!deleteVideo) return
+
+    setIsDeleting(true)
+    try {
+      await adminVideosApi.delete(deleteVideo.id)
+      toast.success("Video deleted successfully")
+      setDeleteVideo(null)
+      fetchVideos()
+    } catch (error: any) {
+      console.error("Failed to delete video:", error)
+      toast.error("Failed to delete video")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const getStatusVariant = (status: string) => {
     switch (status) {
       case "completed":
         return "success"
       case "processing":
+      case "extracting_transcript":
+      case "generating_script":
+      case "generating_audio":
+      case "rendering_video":
+      case "uploading":
         return "warning"
       case "failed":
         return "destructive"
@@ -110,22 +121,43 @@ export default function AdminVideosPage() {
     }
   }
 
-  const formatDuration = (seconds?: number) => {
+  const getDisplayStatus = (status: string) => {
+    switch (status) {
+      case "extracting_transcript":
+        return "Transcribing"
+      case "generating_script":
+        return "Scripting"
+      case "generating_audio":
+        return "Audio"
+      case "rendering_video":
+        return "Rendering"
+      case "uploading":
+        return "Uploading"
+      default:
+        return status
+    }
+  }
+
+  const formatDuration = (seconds?: number | null) => {
     if (!seconds) return "-"
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
-  const columns: Column<Video>[] = [
+  const getLanguageName = (code: string) => {
+    return LANGUAGE_NAMES[code] || code
+  }
+
+  const columns: Column<AdminVideo>[] = [
     {
       key: "title",
       header: "Video",
       cell: (video) => (
         <div className="max-w-xs">
-          <p className="font-medium truncate">{video.title}</p>
+          <p className="font-medium truncate">{video.title || "Untitled Video"}</p>
           <p className="text-xs text-muted-foreground truncate">
-            {video.youtube_url}
+            {video.source_url}
           </p>
         </div>
       ),
@@ -140,7 +172,9 @@ export default function AdminVideosPage() {
     {
       key: "language",
       header: "Language",
-      cell: (video) => <Badge variant="outline">{video.target_language}</Badge>,
+      cell: (video) => (
+        <Badge variant="outline">{getLanguageName(video.output_language)}</Badge>
+      ),
     },
     {
       key: "status",
@@ -148,10 +182,10 @@ export default function AdminVideosPage() {
       cell: (video) => (
         <div className="space-y-1">
           <Badge variant={getStatusVariant(video.status) as any}>
-            {video.status}
+            {getDisplayStatus(video.status)}
           </Badge>
-          {video.status === "processing" && (
-            <Progress value={video.progress} className="h-1 w-16" />
+          {video.status !== "completed" && video.status !== "failed" && video.status !== "pending" && (
+            <Progress value={video.progress_percent} className="h-1 w-16" />
           )}
         </div>
       ),
@@ -166,7 +200,7 @@ export default function AdminVideosPage() {
       header: "Duration",
       cell: (video) => (
         <span className="text-muted-foreground">
-          {formatDuration(video.duration)}
+          {formatDuration(video.duration_seconds)}
         </span>
       ),
     },
@@ -202,20 +236,23 @@ export default function AdminVideosPage() {
               <Eye className="mr-2 h-4 w-4" />
               View Details
             </DropdownMenuItem>
-            {video.status === "completed" && (
+            {video.status === "completed" && video.video_url && (
               <>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => window.open(video.video_url!, "_blank")}>
                   <Play className="mr-2 h-4 w-4" />
                   Preview
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => window.open(video.video_url!, "_blank")}>
                   <Download className="mr-2 h-4 w-4" />
                   Download
                 </DropdownMenuItem>
               </>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={() => setDeleteVideo(video)}
+            >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete
             </DropdownMenuItem>
@@ -228,15 +265,21 @@ export default function AdminVideosPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Videos</h1>
-        <p className="text-muted-foreground">
-          Monitor and manage all video processing jobs.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Videos</h1>
+          <p className="text-muted-foreground">
+            Monitor and manage all video processing jobs.
+          </p>
+        </div>
+        <Button variant="outline" onClick={fetchVideos} disabled={isLoading}>
+          <RefreshCcw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); setPage(1); }}>
         <TabsList>
           <TabsTrigger value="all">All Videos</TabsTrigger>
           <TabsTrigger value="pending">Pending</TabsTrigger>
@@ -267,12 +310,20 @@ export default function AdminVideosPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Video Details</DialogTitle>
-            <DialogDescription>{selectedVideo?.title}</DialogDescription>
+            <DialogDescription>{selectedVideo?.title || "Untitled Video"}</DialogDescription>
           </DialogHeader>
           {selectedVideo && (
             <div className="space-y-4">
               <div className="aspect-video rounded-lg bg-muted flex items-center justify-center">
-                <Play className="h-12 w-12 text-muted-foreground" />
+                {selectedVideo.video_url ? (
+                  <video
+                    src={selectedVideo.video_url}
+                    controls
+                    className="w-full h-full rounded-lg"
+                  />
+                ) : (
+                  <Play className="h-12 w-12 text-muted-foreground" />
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
@@ -282,16 +333,16 @@ export default function AdminVideosPage() {
                 <div>
                   <p className="text-muted-foreground">Status</p>
                   <Badge variant={getStatusVariant(selectedVideo.status) as any}>
-                    {selectedVideo.status}
+                    {getDisplayStatus(selectedVideo.status)}
                   </Badge>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Target Language</p>
-                  <p className="font-medium">{selectedVideo.target_language}</p>
+                  <p className="font-medium">{getLanguageName(selectedVideo.output_language)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Voice</p>
-                  <p className="font-medium">{selectedVideo.voice_name}</p>
+                  <p className="font-medium">{selectedVideo.voice_type}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Credits Used</p>
@@ -300,34 +351,62 @@ export default function AdminVideosPage() {
                 <div>
                   <p className="text-muted-foreground">Duration</p>
                   <p className="font-medium">
-                    {formatDuration(selectedVideo.duration)}
+                    {formatDuration(selectedVideo.duration_seconds)}
                   </p>
                 </div>
               </div>
-              {selectedVideo.status === "processing" && (
+              {selectedVideo.status !== "completed" && selectedVideo.status !== "failed" && selectedVideo.status !== "pending" && (
                 <div>
                   <div className="flex justify-between text-sm mb-1">
                     <span>Progress</span>
-                    <span>{selectedVideo.progress}%</span>
+                    <span>{selectedVideo.progress_percent}%</span>
                   </div>
-                  <Progress value={selectedVideo.progress} />
+                  <Progress value={selectedVideo.progress_percent} />
+                </div>
+              )}
+              {selectedVideo.error_message && (
+                <div className="p-3 bg-destructive/10 text-destructive rounded-md text-sm">
+                  <p className="font-medium">Error:</p>
+                  <p>{selectedVideo.error_message}</p>
                 </div>
               )}
               <div>
-                <p className="text-sm text-muted-foreground">YouTube URL</p>
+                <p className="text-sm text-muted-foreground">Source URL</p>
                 <a
-                  href={selectedVideo.youtube_url}
+                  href={selectedVideo.source_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-primary hover:underline"
                 >
-                  {selectedVideo.youtube_url}
+                  {selectedVideo.source_url}
                 </a>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteVideo} onOpenChange={(open) => !open && setDeleteVideo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Video</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this video? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

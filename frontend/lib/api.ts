@@ -464,3 +464,150 @@ export const telegramApi = {
   testConnection: () => api.post<{ success: boolean; message: string; bot_name?: string; bot_username?: string }>('/site-settings/telegram/test'),
   sendTestMessage: () => api.post<{ success: boolean; message: string }>('/site-settings/telegram/send-test-message'),
 };
+
+// Admin Dashboard API
+export interface DashboardStats {
+  total_users: number;
+  total_videos: number;
+  total_orders: number;
+  total_revenue: number;
+  new_users_today: number;
+  videos_today: number;
+  pending_orders: number;
+  users_growth: number;
+  videos_growth: number;
+  orders_growth: number;
+  revenue_growth: number;
+}
+
+export interface RecentUser {
+  id: string;
+  email: string;
+  full_name: string;
+  avatar_url?: string;
+  created_at: string;
+}
+
+export interface RecentVideo {
+  id: string;
+  title?: string;
+  source_url: string;
+  user_email: string;
+  status: string;
+  created_at: string;
+}
+
+export const adminDashboardApi = {
+  getStats: () => api.get<DashboardStats>('/admin/dashboard/stats'),
+  getRecentUsers: (limit: number = 5) => api.get<RecentUser[]>('/admin/dashboard/recent-users', { params: { limit } }),
+  getRecentVideos: (limit: number = 5) => api.get<RecentVideo[]>('/admin/dashboard/recent-videos', { params: { limit } }),
+};
+
+// Admin Videos API
+export interface AdminVideo {
+  id: string;
+  title?: string;
+  source_url: string;
+  youtube_id?: string;
+  user_id: string;
+  user_email: string;
+  user_name?: string;
+  status: string;
+  progress_percent: number;
+  output_language: string;
+  voice_type: string;
+  credits_used: number;
+  duration_seconds?: number;
+  video_url?: string;
+  error_message?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminVideoListResponse {
+  videos: AdminVideo[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface AdminVideoParams {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  status?: string;
+  user_id?: string;
+  sort_by?: string;
+  sort_order?: string;
+}
+
+export const adminVideosApi = {
+  list: (params?: AdminVideoParams) => api.get<AdminVideoListResponse>('/admin/videos', { params }),
+  get: (id: string) => api.get<AdminVideo>(`/admin/videos/${id}`),
+  update: (id: string, data: { status?: string; error_message?: string }) => api.patch<AdminVideo>(`/admin/videos/${id}`, data),
+  delete: (id: string) => api.delete(`/admin/videos/${id}`),
+};
+
+// Admin Prompts API
+export interface Prompt {
+  id: string;
+  name: string;
+  key: string;
+  description?: string;
+  content: string;
+  category: string;
+  is_active: boolean;
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PromptListResponse {
+  prompts: Prompt[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface PromptParams {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  category?: string;
+  is_active?: boolean;
+}
+
+export interface PromptCreate {
+  name: string;
+  key: string;
+  description?: string;
+  content: string;
+  category?: string;
+  is_active?: boolean;
+}
+
+export interface PromptUpdate {
+  name?: string;
+  description?: string;
+  content?: string;
+  category?: string;
+  is_active?: boolean;
+}
+
+export interface PromptCategory {
+  value: string;
+  label: string;
+}
+
+export const adminPromptsApi = {
+  getCategories: () => api.get<PromptCategory[]>('/admin/prompts/categories'),
+  list: (params?: PromptParams) => api.get<PromptListResponse>('/admin/prompts', { params }),
+  get: (id: string) => api.get<Prompt>(`/admin/prompts/${id}`),
+  getByKey: (key: string) => api.get<Prompt>(`/admin/prompts/by-key/${key}`),
+  create: (data: PromptCreate) => api.post<Prompt>('/admin/prompts', data),
+  update: (id: string, data: PromptUpdate) => api.patch<Prompt>(`/admin/prompts/${id}`, data),
+  toggle: (id: string) => api.post<Prompt>(`/admin/prompts/${id}/toggle`),
+  delete: (id: string) => api.delete(`/admin/prompts/${id}`),
+};

@@ -3,7 +3,7 @@ API v1 Router - Combines all endpoint routers
 """
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, users, videos, credits, orders, health, admin_api_keys, admin_orders, admin_users, telegram, voices, uploads, payment_methods, credit_packages, sessions, site_settings
+from app.api.v1.endpoints import auth, users, videos, credits, orders, health, admin_api_keys, admin_orders, admin_users, admin_dashboard, admin_videos, admin_prompts, telegram, voices, uploads, payment_methods, credit_packages, sessions, site_settings
 
 
 api_router = APIRouter()
@@ -98,6 +98,24 @@ api_router.include_router(
     admin_users.router,
     prefix="/admin/users",
     tags=["Admin - Users"],
+)
+
+api_router.include_router(
+    admin_dashboard.router,
+    prefix="/admin/dashboard",
+    tags=["Admin - Dashboard"],
+)
+
+api_router.include_router(
+    admin_videos.router,
+    prefix="/admin/videos",
+    tags=["Admin - Videos"],
+)
+
+api_router.include_router(
+    admin_prompts.router,
+    prefix="/admin/prompts",
+    tags=["Admin - Prompts"],
 )
 
 api_router.include_router(
