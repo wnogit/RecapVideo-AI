@@ -10,16 +10,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
-import { Link2, AlertCircle, CheckCircle2, Mic, Volume2, Loader2, Square, ClipboardPaste, Languages } from 'lucide-react';
+import { Link2, AlertCircle, CheckCircle2, Mic, Volume2, Loader2, Square, ClipboardPaste, Languages, ChevronDown } from 'lucide-react';
 import { isYoutubeShortsUrl, isRegularYoutubeUrl } from '@/lib/youtube';
 import { AspectRatio, FORMAT_OPTIONS } from '@/lib/types/video-options';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
-// Output language options
+// Output language options - matching backend SUPPORTED_LANGUAGES
 const OUTPUT_LANGUAGES = [
   { id: 'my', name: 'မြန်မာ (Burmese)', flag: '🇲🇲' },
-  // Future languages can be added here
-  // { id: 'th', name: 'ไทย (Thai)', flag: '🇹🇭' },
-  // { id: 'vi', name: 'Tiếng Việt (Vietnamese)', flag: '🇻🇳' },
+  { id: 'th', name: 'ไทย (Thai)', flag: '🇹🇭' },
+  { id: 'zh', name: '中文 (Chinese)', flag: '🇨🇳' },
+  { id: 'en', name: 'English (Rewrite)', flag: '🇺🇸' },
 ];
 
 // Voice sample URLs - stored in backend static folder
@@ -232,26 +239,26 @@ export function Step1Input() {
           Output Language
         </Label>
         
-        <div className="flex flex-wrap gap-2">
-          {OUTPUT_LANGUAGES.map((lang) => (
-            <button
-              key={lang.id}
-              type="button"
-              onClick={() => setOutputLanguage(lang.id)}
-              className={cn(
-                "px-4 py-3 rounded-lg border text-sm font-medium transition-all duration-200",
-                "hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98]",
-                "flex items-center gap-2",
-                outputLanguage === lang.id
-                  ? "border-primary bg-primary/10 text-primary shadow-sm"
-                  : "border-muted hover:border-primary/50 hover:bg-accent"
-              )}
-            >
-              <span className="text-lg">{lang.flag}</span>
-              {lang.name}
-            </button>
-          ))}
-        </div>
+        <Select value={outputLanguage} onValueChange={setOutputLanguage}>
+          <SelectTrigger className="h-12 text-base">
+            <SelectValue>
+              <span className="flex items-center gap-2">
+                <span className="text-lg">{OUTPUT_LANGUAGES.find(l => l.id === outputLanguage)?.flag}</span>
+                <span>{OUTPUT_LANGUAGES.find(l => l.id === outputLanguage)?.name}</span>
+              </span>
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {OUTPUT_LANGUAGES.map((lang) => (
+              <SelectItem key={lang.id} value={lang.id} className="py-3">
+                <span className="flex items-center gap-2">
+                  <span className="text-lg">{lang.flag}</span>
+                  <span>{lang.name}</span>
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <p className="text-xs text-muted-foreground">
           Video ကို ဘာသာပြန်မည့် ဘာသာစကား ရွေးချယ်ပါ
         </p>
@@ -267,7 +274,7 @@ export function Step1Input() {
         <RadioGroup
           value={voiceId}
           onValueChange={setVoiceId}
-          className="grid grid-cols-2 gap-4"
+          className="grid grid-cols-2 gap-3"
         >
           {VOICES.map((voice) => (
             <div key={voice.id}>
@@ -279,7 +286,7 @@ export function Step1Input() {
               <Label
                 htmlFor={voice.id}
                 className={cn(
-                  "flex flex-col items-center justify-center rounded-xl border-2 p-4 cursor-pointer transition-all",
+                  "flex items-center gap-3 rounded-xl border-2 p-3 cursor-pointer transition-all",
                   "hover:bg-accent hover:border-accent-foreground/20",
                   "peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5",
                   voiceId === voice.id && "border-primary bg-primary/5"
@@ -287,52 +294,54 @@ export function Step1Input() {
               >
                 {/* Avatar */}
                 <div className={cn(
-                  "w-14 h-14 rounded-full flex items-center justify-center text-2xl mb-2",
+                  "w-12 h-12 rounded-full flex items-center justify-center text-xl flex-shrink-0",
                   voice.gender === 'female' 
-                    ? "bg-pink-100 dark:bg-pink-950" 
-                    : "bg-blue-100 dark:bg-blue-950"
+                    ? "bg-pink-100 dark:bg-pink-900/50" 
+                    : "bg-blue-100 dark:bg-blue-900/50"
                 )}>
                   {voice.gender === 'female' ? '👩' : '👨'}
                 </div>
                 
-                {/* Name */}
-                <span className="font-medium text-base">{voice.name}</span>
-                <span className="text-xs text-muted-foreground mt-1">
-                  {voice.description}
-                </span>
-                
-                {/* Popular Badge */}
-                {voice.isPopular && (
-                  <span className="mt-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                    ⭐ လူကြိုက်များ
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{voice.name}</span>
+                    {voice.isPopular && (
+                      <span className="text-[10px] bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded">
+                        ⭐ Popular
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-muted-foreground block mt-0.5">
+                    {voice.description}
                   </span>
-                )}
-                
-                {/* Play Sample Button */}
-                <button
-                  type="button"
-                  className={cn(
-                    "mt-3 flex items-center gap-1 text-xs transition-colors",
-                    playingVoice === voice.id 
-                      ? "text-primary font-medium" 
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handlePlayVoiceSample(voice.id);
-                  }}
-                  disabled={loadingVoice === voice.id}
-                >
-                  {loadingVoice === voice.id ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : playingVoice === voice.id ? (
-                    <Square className="h-3 w-3 fill-current" />
-                  ) : (
-                    <Volume2 className="h-3 w-3" />
-                  )}
-                  {playingVoice === voice.id ? 'ရပ်မည်' : 'နမူနာ နားထောင်ရန်'}
-                </button>
+                  
+                  {/* Play Sample Button */}
+                  <button
+                    type="button"
+                    className={cn(
+                      "mt-1.5 flex items-center gap-1 text-xs transition-colors",
+                      playingVoice === voice.id 
+                        ? "text-primary font-medium" 
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handlePlayVoiceSample(voice.id);
+                    }}
+                    disabled={loadingVoice === voice.id}
+                  >
+                    {loadingVoice === voice.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : playingVoice === voice.id ? (
+                      <Square className="h-3 w-3 fill-current" />
+                    ) : (
+                      <Volume2 className="h-3 w-3" />
+                    )}
+                    {playingVoice === voice.id ? 'Stop' : 'Preview'}
+                  </button>
+                </div>
               </Label>
             </div>
           ))}
