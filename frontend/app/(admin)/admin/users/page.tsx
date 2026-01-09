@@ -1,11 +1,12 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { MoreHorizontal, UserPlus, Mail, Shield, Ban, Coins, RefreshCw, Search, Monitor, Smartphone, Tablet, Globe, MapPin } from "lucide-react"
+import { MoreHorizontal, Shield, Ban, Coins, RefreshCw, Search, Monitor, Smartphone, Tablet, Globe, MapPin, Eye, Calendar, Video, CreditCard, Clock, Mail, Phone } from "lucide-react"
 import { DataTable, Column } from "@/components/admin"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Separator } from "@/components/ui/separator"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,6 +74,7 @@ export default function AdminUsersPage() {
   
   // Dialog states
   const [isCreditsDialogOpen, setIsCreditsDialogOpen] = useState(false)
+  const [isUserInfoDialogOpen, setIsUserInfoDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [creditsAmount, setCreditsAmount] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
@@ -231,6 +233,22 @@ export default function AdminUsersPage() {
     setIsCreditsDialogOpen(true)
   }
 
+  const openUserInfoDialog = (user: User) => {
+    setSelectedUser(user)
+    setIsUserInfoDialogOpen(true)
+  }
+
+  const getDeviceIcon = (deviceType?: string) => {
+    switch (deviceType?.toLowerCase()) {
+      case 'mobile':
+        return <Smartphone className="h-5 w-5" />
+      case 'tablet':
+        return <Tablet className="h-5 w-5" />
+      default:
+        return <Monitor className="h-5 w-5" />
+    }
+  }
+
   const columns: Column<User>[] = [
     {
       key: "user",
@@ -308,47 +326,6 @@ export default function AdminUsersPage() {
       ),
     },
     {
-      key: "last_device",
-      header: "Last Device / IP",
-      cell: (user) => {
-        if (!user.last_device) {
-          return <span className="text-muted-foreground text-sm">No data</span>
-        }
-        
-        const device = user.last_device
-        const getDeviceIcon = () => {
-          switch (device.device_type?.toLowerCase()) {
-            case 'mobile':
-              return <Smartphone className="h-4 w-4" />
-            case 'tablet':
-              return <Tablet className="h-4 w-4" />
-            default:
-              return <Monitor className="h-4 w-4" />
-          }
-        }
-        
-        return (
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1.5 text-sm">
-              {getDeviceIcon()}
-              <span className="font-medium">{device.browser || "Unknown"}</span>
-              <span className="text-muted-foreground">{device.os || ""}</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Globe className="h-3 w-3" />
-              <span>{device.ip_address || "N/A"}</span>
-              {device.city && (
-                <>
-                  <MapPin className="h-3 w-3 ml-1" />
-                  <span>{device.city}{device.country ? `, ${device.country}` : ""}</span>
-                </>
-              )}
-            </div>
-          </div>
-        )
-      },
-    },
-    {
       key: "actions",
       header: "Actions",
       cell: (user) => (
@@ -369,6 +346,10 @@ export default function AdminUsersPage() {
             <DropdownMenuItem onClick={() => handleToggleAdmin(user)}>
               <Shield className="mr-2 h-4 w-4" />
               {user.is_admin ? "Remove Admin" : "Make Admin"}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openUserInfoDialog(user)}>
+              <Eye className="mr-2 h-4 w-4" />
+              Full Info
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
@@ -474,6 +455,194 @@ export default function AdminUsersPage() {
             </Button>
             <Button onClick={handleAddCredits} disabled={isProcessing || !creditsAmount}>
               {isProcessing ? "Adding..." : "Add Credits"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Full Info Dialog */}
+      <Dialog open={isUserInfoDialogOpen} onOpenChange={setIsUserInfoDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>User Details</DialogTitle>
+            <DialogDescription>
+              Full information for {selectedUser?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedUser && (
+            <div className="space-y-6">
+              {/* User Profile Section */}
+              <div className="flex items-start gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={selectedUser.avatar_url} />
+                  <AvatarFallback className="text-xl">
+                    {selectedUser.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase()
+                      .slice(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 space-y-1">
+                  <h3 className="text-lg font-semibold">{selectedUser.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={selectedUser.is_active ? "success" : "destructive"}>
+                      {selectedUser.is_active ? "Active" : "Inactive"}
+                    </Badge>
+                    {selectedUser.is_admin && <Badge variant="secondary">Admin</Badge>}
+                    {selectedUser.is_verified && (
+                      <Badge variant="outline" className="text-green-600">Verified</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* User Info Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Mail className="h-4 w-4" />
+                    Email
+                  </div>
+                  <p className="font-medium">{selectedUser.email}</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Phone className="h-4 w-4" />
+                    Phone
+                  </div>
+                  <p className="font-medium">{selectedUser.phone || "Not provided"}</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <CreditCard className="h-4 w-4" />
+                    Credit Balance
+                  </div>
+                  <p className="font-medium text-lg">{selectedUser.credit_balance.toLocaleString()} credits</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Video className="h-4 w-4" />
+                    Videos Created
+                  </div>
+                  <p className="font-medium text-lg">{selectedUser.video_count}</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    Joined
+                  </div>
+                  <p className="font-medium">{format(new Date(selectedUser.created_at), "PPP")}</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    Last Login
+                  </div>
+                  <p className="font-medium">
+                    {selectedUser.last_login_at 
+                      ? format(new Date(selectedUser.last_login_at), "PPP 'at' p")
+                      : "Never"
+                    }
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Last Device / IP Section */}
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                  Last Login Device & IP
+                </h4>
+                
+                {selectedUser.last_device ? (
+                  <div className="bg-muted/50 rounded-lg p-4">
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 rounded-full bg-background">
+                        {getDeviceIcon(selectedUser.last_device.device_type)}
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Device Type:</span>
+                            <p className="font-medium capitalize">
+                              {selectedUser.last_device.device_type || "Desktop"}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Browser:</span>
+                            <p className="font-medium">
+                              {selectedUser.last_device.browser || "Unknown"}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Operating System:</span>
+                            <p className="font-medium">
+                              {selectedUser.last_device.os || "Unknown"}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Last Seen:</span>
+                            <p className="font-medium">
+                              {selectedUser.last_device.last_seen 
+                                ? format(new Date(selectedUser.last_device.last_seen), "PPP 'at' p")
+                                : "Unknown"
+                              }
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <Separator className="my-2" />
+                        
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                              <Globe className="h-3 w-3" />
+                              IP Address
+                            </div>
+                            <p className="font-mono font-medium text-primary">
+                              {selectedUser.last_device.ip_address || "N/A"}
+                            </p>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                              <MapPin className="h-3 w-3" />
+                              Location
+                            </div>
+                            <p className="font-medium">
+                              {selectedUser.last_device.city 
+                                ? `${selectedUser.last_device.city}${selectedUser.last_device.country ? `, ${selectedUser.last_device.country}` : ""}`
+                                : "Unknown"
+                              }
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-muted/50 rounded-lg p-6 text-center text-muted-foreground">
+                    <Monitor className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No device information available</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsUserInfoDialogOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

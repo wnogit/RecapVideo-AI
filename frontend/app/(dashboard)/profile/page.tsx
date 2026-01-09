@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { 
   Loader2, 
   User, 
@@ -26,7 +27,11 @@ import {
   RefreshCw,
   Trash2,
   LogOut,
-  CheckCircle2
+  CheckCircle2,
+  Calendar,
+  Clock,
+  CreditCard,
+  AlertTriangle
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
@@ -209,315 +214,313 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Profile</h1>
-        <p className="text-muted-foreground mt-1">
-          Manage your account settings
-        </p>
+    <div className="space-y-8 max-w-5xl mx-auto pb-8">
+      {/* Header Section with Avatar */}
+      <div className="relative">
+        {/* Background Gradient */}
+        <div className="h-32 bg-gradient-to-r from-primary/20 via-primary/10 to-secondary/20 rounded-xl" />
+        
+        {/* Profile Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 -mt-12 px-6">
+          <div className="relative">
+            <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
+              <AvatarImage src={user?.avatar_url} />
+              <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
+                {user?.name?.charAt(0).toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <button className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 shadow-md transition-colors">
+              <Camera className="h-4 w-4" />
+            </button>
+          </div>
+          
+          <div className="flex-1 pb-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl font-bold">{user?.name || 'User'}</h1>
+              {user?.is_admin && (
+                <Badge variant="secondary" className="gap-1">
+                  <Shield className="h-3 w-3" />
+                  Admin
+                </Badge>
+              )}
+              <Badge variant={user?.is_verified ? 'success' : 'warning'}>
+                {user?.is_verified ? 'Verified' : 'Unverified'}
+              </Badge>
+            </div>
+            <p className="text-muted-foreground">{user?.email}</p>
+          </div>
+
+          {!isEditing && (
+            <Button onClick={() => setIsEditing(true)} className="shrink-0">
+              Edit Profile
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Profile Card */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Personal Information</CardTitle>
-              <CardDescription>Update your profile details</CardDescription>
-            </div>
-            {!isEditing && (
-              <Button variant="outline" onClick={() => setIsEditing(true)}>
-                Edit Profile
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-6">
-            {/* Avatar */}
-            <div className="flex flex-col items-center">
-              <div className="relative">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src={user?.avatar_url} />
-                  <AvatarFallback className="text-2xl">
-                    {user?.name?.charAt(0).toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <button className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90">
-                  <Camera className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="mt-4 text-center">
-                {user?.is_admin && (
-                  <Badge variant="secondary">
-                    <Shield className="mr-1 h-3 w-3" />
-                    Admin
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleSubmit(onSubmit)} className="flex-1 space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="name"
-                    className="pl-10"
-                    disabled={!isEditing}
-                    {...register('name')}
-                  />
-                </div>
-                {errors.name && (
-                  <p className="text-sm text-destructive">{errors.name.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    value={user?.email || ''}
-                    className="pl-10"
-                    disabled
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Email cannot be changed
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="phone"
-                    placeholder="+95 9 xxx xxx xxx"
-                    className="pl-10"
-                    disabled={!isEditing}
-                    {...register('phone')}
-                  />
-                </div>
-              </div>
-
-              {isEditing && (
-                <div className="flex gap-2 pt-4">
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Save Changes
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsEditing(false)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              )}
-            </form>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Account Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Account Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-muted-foreground">Account Status</span>
-              <Badge variant={user?.is_active ? 'success' : 'destructive'}>
-                {user?.is_active ? 'Active' : 'Inactive'}
-              </Badge>
-            </div>
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-muted-foreground">Email Verified</span>
-              <Badge variant={user?.is_verified ? 'success' : 'warning'}>
-                {user?.is_verified ? 'Verified' : 'Not Verified'}
-              </Badge>
-            </div>
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-muted-foreground">Member Since</span>
-              <span>
-                {user?.created_at
-                  ? formatDistanceToNow(new Date(user.created_at), { addSuffix: true })
-                  : 'N/A'}
-              </span>
-            </div>
-            <div className="flex justify-between py-2">
-              <span className="text-muted-foreground">Last Login</span>
-              <span>
-                {user?.last_login_at
-                  ? formatDistanceToNow(new Date(user.last_login_at), { addSuffix: true })
-                  : 'N/A'}
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Login Sessions */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Login Sessions
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Profile Info */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Personal Information Card */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" />
+                Personal Information
               </CardTitle>
-              <CardDescription>
-                Manage your active sessions and devices
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={fetchSessions}
-                disabled={isLoadingSessions}
-              >
-                <RefreshCw className={`h-4 w-4 mr-1 ${isLoadingSessions ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-              {sessions.length > 1 && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => setShowRevokeAllDialog(true)}
-                >
-                  <LogOut className="h-4 w-4 mr-1" />
-                  Sign Out All
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoadingSessions ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : sessions.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No active sessions found
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {sessions.map((session) => (
-                <div 
-                  key={session.id} 
-                  className={`flex items-start justify-between p-4 rounded-lg border ${
-                    session.is_current 
-                      ? 'bg-primary/5 border-primary/20' 
-                      : 'bg-muted/30 hover:bg-muted/50'
-                  }`}
-                >
-                  <div className="flex gap-4">
-                    {/* Device Icon */}
-                    <div className={`p-3 rounded-full ${
-                      session.is_current 
-                        ? 'bg-primary/10 text-primary' 
-                        : 'bg-muted text-muted-foreground'
-                    }`}>
-                      {getDeviceIcon(session.device_type)}
-                    </div>
-                    
-                    {/* Session Info */}
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">
-                          {session.browser || 'Unknown Browser'}
-                          {session.browser_version && ` ${session.browser_version}`}
-                        </span>
-                        {session.is_current && (
-                          <Badge variant="default" className="text-xs gap-1">
-                            <CheckCircle2 className="h-3 w-3" />
-                            Current
-                          </Badge>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>{session.os || 'Unknown OS'}</span>
-                        {session.os_version && <span>• {session.os_version}</span>}
-                      </div>
-                      
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Globe className="h-3 w-3" />
-                          <span>{session.ip_address || 'Unknown IP'}</span>
-                        </div>
-                        {session.city && (
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            <span>
-                              {session.city}
-                              {session.country && `, ${session.country}`}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Last active: {session.last_seen 
-                          ? formatDistanceToNow(new Date(session.last_seen), { addSuffix: true })
-                          : 'Unknown'
-                        }
-                        {session.login_count > 1 && (
-                          <span className="ml-2">• {session.login_count} logins</span>
-                        )}
-                      </div>
-                    </div>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
+                      id="name"
+                      disabled={!isEditing}
+                      {...register('name')}
+                      className={!isEditing ? 'bg-muted/50' : ''}
+                    />
+                    {errors.name && (
+                      <p className="text-sm text-destructive">{errors.name.message}</p>
+                    )}
                   </div>
-                  
-                  {/* Revoke Button */}
-                  {!session.is_current && (
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
+                      id="email"
+                      value={user?.email || ''}
+                      disabled
+                      className="bg-muted/50"
+                    />
+                  </div>
+
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      placeholder="+95 9 xxx xxx xxx"
+                      disabled={!isEditing}
+                      {...register('phone')}
+                      className={!isEditing ? 'bg-muted/50' : ''}
+                    />
+                  </div>
+                </div>
+
+                {isEditing && (
+                  <div className="flex gap-2 pt-2">
+                    <Button type="submit" disabled={isLoading}>
+                      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Save Changes
+                    </Button>
                     <Button
-                      variant="ghost"
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsEditing(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                )}
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Login Sessions Card */}
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-primary" />
+                    Active Sessions
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    Devices where you&apos;re currently logged in
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={fetchSessions}
+                    disabled={isLoadingSessions}
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isLoadingSessions ? 'animate-spin' : ''}`} />
+                  </Button>
+                  {sessions.length > 1 && (
+                    <Button 
+                      variant="ghost" 
                       size="sm"
                       className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleRevokeSession(session.id)}
-                      disabled={isRevokingSession === session.id}
+                      onClick={() => setShowRevokeAllDialog(true)}
                     >
-                      {isRevokingSession === session.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Revoke
-                        </>
-                      )}
+                      <LogOut className="h-4 w-4 mr-1" />
+                      Sign Out All
                     </Button>
                   )}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoadingSessions ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : sessions.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Monitor className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No active sessions found</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {sessions.map((session) => (
+                    <div 
+                      key={session.id} 
+                      className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                        session.is_current 
+                          ? 'bg-primary/5 border-primary/30' 
+                          : 'bg-muted/30 hover:bg-muted/50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Device Icon */}
+                        <div className={`p-2 rounded-lg ${
+                          session.is_current 
+                            ? 'bg-primary/15 text-primary' 
+                            : 'bg-muted text-muted-foreground'
+                        }`}>
+                          {getDeviceIcon(session.device_type)}
+                        </div>
+                        
+                        {/* Session Details */}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm truncate">
+                              {session.browser || 'Unknown Browser'} • {session.os || 'Unknown OS'}
+                            </span>
+                            {session.is_current && (
+                              <Badge variant="default" className="text-xs shrink-0">
+                                Current
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                            <span className="flex items-center gap-1">
+                              <Globe className="h-3 w-3" />
+                              {session.ip_address || 'Unknown IP'}
+                            </span>
+                            {session.city && (
+                              <span className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                {session.city}
+                              </span>
+                            )}
+                            <span>
+                              {session.last_seen 
+                                ? formatDistanceToNow(new Date(session.last_seen), { addSuffix: true })
+                                : 'Unknown'
+                              }
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Revoke Button */}
+                      {!session.is_current && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0 h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleRevokeSession(session.id)}
+                          disabled={isRevokingSession === session.id}
+                        >
+                          {isRevokingSession === session.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Danger Zone */}
-      <Card className="border-destructive">
-        <CardHeader>
-          <CardTitle className="text-destructive">Danger Zone</CardTitle>
-          <CardDescription>
-            Irreversible and destructive actions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button variant="destructive">Delete Account</Button>
-        </CardContent>
-      </Card>
+        {/* Right Column - Account Stats & Settings */}
+        <div className="space-y-6">
+          {/* Account Stats Card */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-primary" />
+                Account
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between py-2">
+                <span className="text-muted-foreground text-sm">Status</span>
+                <Badge variant={user?.is_active ? 'success' : 'destructive'}>
+                  {user?.is_active ? 'Active' : 'Inactive'}
+                </Badge>
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between py-2">
+                <span className="text-muted-foreground text-sm">Credit Balance</span>
+                <span className="font-semibold text-lg">
+                  {user?.credit_balance?.toLocaleString() || 0}
+                </span>
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between py-2">
+                <span className="text-muted-foreground text-sm flex items-center gap-1">
+                  <Calendar className="h-4 w-4" />
+                  Member Since
+                </span>
+                <span className="text-sm">
+                  {user?.created_at
+                    ? format(new Date(user.created_at), 'MMM d, yyyy')
+                    : 'N/A'}
+                </span>
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between py-2">
+                <span className="text-muted-foreground text-sm flex items-center gap-1">
+                  <Clock className="h-4 w-4" />
+                  Last Login
+                </span>
+                <span className="text-sm">
+                  {user?.last_login_at
+                    ? formatDistanceToNow(new Date(user.last_login_at), { addSuffix: true })
+                    : 'N/A'}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Danger Zone Card */}
+          <Card className="border-destructive/30">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                Danger Zone
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Permanently delete your account and all associated data.
+              </p>
+              <Button variant="destructive" size="sm" className="w-full">
+                Delete Account
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Revoke All Sessions Dialog */}
       <AlertDialog open={showRevokeAllDialog} onOpenChange={setShowRevokeAllDialog}>
