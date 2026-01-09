@@ -11,9 +11,21 @@ from datetime import datetime
 
 from app.core.dependencies import CurrentAdminUser, DBSession
 from app.models.user import User
+from app.models.device import DeviceFingerprint
 
 
 router = APIRouter()
+
+
+class LastDeviceInfo(BaseModel):
+    """Last device info for admin view."""
+    device_type: Optional[str] = None
+    browser: Optional[str] = None
+    os: Optional[str] = None
+    ip_address: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+    last_seen: Optional[datetime] = None
 
 
 class AdminUserResponse(BaseModel):
@@ -31,6 +43,7 @@ class AdminUserResponse(BaseModel):
     updated_at: datetime
     last_login_at: Optional[datetime] = None
     video_count: int = 0
+    last_device: Optional[LastDeviceInfo] = None
 
     class Config:
         from_attributes = True
@@ -125,15 +138,32 @@ async def list_users(
     user_responses = []
     for user in users:
         # Count videos
-        video_count_result = await db.execute(
-            select(func.count()).select_from(User).where(User.id == user.id)
-        )
-        # Actually count from videos table
         from app.models.video import Video
         video_count_result = await db.execute(
             select(func.count(Video.id)).where(Video.user_id == user.id)
         )
         video_count = video_count_result.scalar() or 0
+        
+        # Get last device info
+        last_device_result = await db.execute(
+            select(DeviceFingerprint)
+            .where(DeviceFingerprint.user_id == user.id)
+            .order_by(desc(DeviceFingerprint.last_seen))
+            .limit(1)
+        )
+        last_device_row = last_device_result.scalar_one_or_none()
+        
+        last_device = None
+        if last_device_row:
+            last_device = LastDeviceInfo(
+                device_type=last_device_row.device_type,
+                browser=last_device_row.browser,
+                os=last_device_row.os,
+                ip_address=last_device_row.ip_address,
+                city=last_device_row.city,
+                country=last_device_row.country,
+                last_seen=last_device_row.last_seen,
+            )
         
         user_responses.append(AdminUserResponse(
             id=str(user.id),
@@ -149,6 +179,7 @@ async def list_users(
             updated_at=user.updated_at,
             last_login_at=user.last_login_at,
             video_count=video_count,
+            last_device=last_device,
         ))
     
     total_pages = (total + page_size - 1) // page_size
@@ -189,6 +220,27 @@ async def get_user(
     )
     video_count = video_count_result.scalar() or 0
     
+    # Get last device info
+    last_device_result = await db.execute(
+        select(DeviceFingerprint)
+        .where(DeviceFingerprint.user_id == user.id)
+        .order_by(desc(DeviceFingerprint.last_seen))
+        .limit(1)
+    )
+    last_device_row = last_device_result.scalar_one_or_none()
+    
+    last_device = None
+    if last_device_row:
+        last_device = LastDeviceInfo(
+            device_type=last_device_row.device_type,
+            browser=last_device_row.browser,
+            os=last_device_row.os,
+            ip_address=last_device_row.ip_address,
+            city=last_device_row.city,
+            country=last_device_row.country,
+            last_seen=last_device_row.last_seen,
+        )
+    
     return AdminUserResponse(
         id=str(user.id),
         email=user.email,
@@ -203,6 +255,7 @@ async def get_user(
         updated_at=user.updated_at,
         last_login_at=user.last_login_at,
         video_count=video_count,
+        last_device=last_device,
     )
 
 
@@ -254,6 +307,27 @@ async def update_user(
     )
     video_count = video_count_result.scalar() or 0
     
+    # Get last device info
+    last_device_result = await db.execute(
+        select(DeviceFingerprint)
+        .where(DeviceFingerprint.user_id == user.id)
+        .order_by(desc(DeviceFingerprint.last_seen))
+        .limit(1)
+    )
+    last_device_row = last_device_result.scalar_one_or_none()
+    
+    last_device = None
+    if last_device_row:
+        last_device = LastDeviceInfo(
+            device_type=last_device_row.device_type,
+            browser=last_device_row.browser,
+            os=last_device_row.os,
+            ip_address=last_device_row.ip_address,
+            city=last_device_row.city,
+            country=last_device_row.country,
+            last_seen=last_device_row.last_seen,
+        )
+    
     return AdminUserResponse(
         id=str(user.id),
         email=user.email,
@@ -268,6 +342,7 @@ async def update_user(
         updated_at=user.updated_at,
         last_login_at=user.last_login_at,
         video_count=video_count,
+        last_device=last_device,
     )
 
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { MoreHorizontal, UserPlus, Mail, Shield, Ban, Coins, RefreshCw, Search } from "lucide-react"
+import { MoreHorizontal, UserPlus, Mail, Shield, Ban, Coins, RefreshCw, Search, Monitor, Smartphone, Tablet, Globe, MapPin } from "lucide-react"
 import { DataTable, Column } from "@/components/admin"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -27,6 +27,16 @@ import { Label } from "@/components/ui/label"
 import { format } from "date-fns"
 import { toast } from "@/hooks/use-toast"
 
+interface LastDevice {
+  device_type?: string
+  browser?: string
+  os?: string
+  ip_address?: string
+  city?: string
+  country?: string
+  last_seen?: string
+}
+
 interface User {
   id: string
   email: string
@@ -41,6 +51,7 @@ interface User {
   avatar_url?: string
   phone?: string
   video_count: number
+  last_device?: LastDevice
 }
 
 interface UsersResponse {
@@ -295,6 +306,47 @@ export default function AdminUsersPage() {
           }
         </span>
       ),
+    },
+    {
+      key: "last_device",
+      header: "Last Device / IP",
+      cell: (user) => {
+        if (!user.last_device) {
+          return <span className="text-muted-foreground text-sm">No data</span>
+        }
+        
+        const device = user.last_device
+        const getDeviceIcon = () => {
+          switch (device.device_type?.toLowerCase()) {
+            case 'mobile':
+              return <Smartphone className="h-4 w-4" />
+            case 'tablet':
+              return <Tablet className="h-4 w-4" />
+            default:
+              return <Monitor className="h-4 w-4" />
+          }
+        }
+        
+        return (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1.5 text-sm">
+              {getDeviceIcon()}
+              <span className="font-medium">{device.browser || "Unknown"}</span>
+              <span className="text-muted-foreground">{device.os || ""}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Globe className="h-3 w-3" />
+              <span>{device.ip_address || "N/A"}</span>
+              {device.city && (
+                <>
+                  <MapPin className="h-3 w-3 ml-1" />
+                  <span>{device.city}{device.country ? `, ${device.country}` : ""}</span>
+                </>
+              )}
+            </div>
+          </div>
+        )
+      },
     },
     {
       key: "actions",
