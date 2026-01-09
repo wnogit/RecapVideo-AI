@@ -346,3 +346,53 @@ export const adminApiKeysApi = {
   delete: (id: string) => api.delete(`/admin/api-keys/${id}`),
   test: (id: string) => api.post<{ status: string; message: string }>(`/admin/api-keys/${id}/test`),
 };
+
+// Admin Order types
+export interface AdminOrder {
+  id: string;
+  user_id: string;
+  user_email: string;
+  user_name?: string;
+  credits_amount: number;
+  price_usd: number;
+  price_mmk?: number;
+  payment_method: string;
+  status: 'pending' | 'processing' | 'completed' | 'cancelled' | 'rejected';
+  screenshot_url?: string;
+  promo_code?: string;
+  discount_percent: number;
+  admin_note?: string;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string;
+}
+
+export interface AdminOrderListResponse {
+  orders: AdminOrder[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface OrderStats {
+  status_counts: Record<string, number>;
+  total_revenue_usd: number;
+  total_credits_sold: number;
+  total_orders: number;
+}
+
+// Admin Orders API
+export const adminOrdersApi = {
+  list: (params?: { 
+    page?: number; 
+    page_size?: number; 
+    status?: string;
+    search?: string;
+  }) => api.get<AdminOrderListResponse>('/admin/orders', { params }),
+  get: (id: string) => api.get<AdminOrder>(`/admin/orders/${id}`),
+  approve: (id: string) => api.post<AdminOrder>(`/admin/orders/${id}/approve`),
+  reject: (id: string, reason?: string) => 
+    api.post<AdminOrder>(`/admin/orders/${id}/reject`, null, { params: { reason } }),
+  stats: () => api.get<OrderStats>('/admin/orders/stats/summary'),
+};
