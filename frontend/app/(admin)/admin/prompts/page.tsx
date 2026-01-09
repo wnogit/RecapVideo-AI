@@ -38,7 +38,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { toast } from "sonner"
+import { toast } from "@/hooks/use-toast"
 import { adminPromptsApi, Prompt, PromptCategory } from "@/lib/api"
 
 const defaultCategories = [
@@ -81,7 +81,7 @@ export default function AdminPromptsPage() {
       }
     } catch (error: any) {
       console.error("Failed to fetch prompts:", error)
-      toast.error("Failed to load prompts")
+      toast({ title: "Error", description: "Failed to load prompts", variant: "destructive" })
     } finally {
       setIsLoading(false)
     }
@@ -98,7 +98,7 @@ export default function AdminPromptsPage() {
 
   const handleSave = async () => {
     if (!formData.name || !formData.key || !formData.content) {
-      toast.error("Please fill in all required fields")
+      toast({ title: "Error", description: "Please fill in all required fields", variant: "destructive" })
       return
     }
 
@@ -113,7 +113,7 @@ export default function AdminPromptsPage() {
           category: formData.category,
           is_active: formData.is_active,
         })
-        toast.success("Prompt updated successfully")
+        toast({ title: "Success", description: "Prompt updated successfully" })
       } else {
         // Create new prompt
         await adminPromptsApi.create({
@@ -124,7 +124,7 @@ export default function AdminPromptsPage() {
           category: formData.category,
           is_active: formData.is_active,
         })
-        toast.success("Prompt created successfully")
+        toast({ title: "Success", description: "Prompt created successfully" })
       }
 
       setIsDialogOpen(false)
@@ -133,7 +133,7 @@ export default function AdminPromptsPage() {
     } catch (error: any) {
       console.error("Failed to save prompt:", error)
       const message = error.response?.data?.detail || "Failed to save prompt"
-      toast.error(message)
+      toast({ title: "Error", description: message, variant: "destructive" })
     } finally {
       setIsSaving(false)
     }
@@ -156,11 +156,11 @@ export default function AdminPromptsPage() {
     setDeletingId(promptId)
     try {
       await adminPromptsApi.delete(promptId)
-      toast.success("Prompt deleted successfully")
+      toast({ title: "Success", description: "Prompt deleted successfully" })
       fetchPrompts()
     } catch (error: any) {
       console.error("Failed to delete prompt:", error)
-      toast.error("Failed to delete prompt")
+      toast({ title: "Error", description: "Failed to delete prompt", variant: "destructive" })
     } finally {
       setDeletingId(null)
     }
@@ -169,11 +169,11 @@ export default function AdminPromptsPage() {
   const handleToggle = async (prompt: Prompt) => {
     try {
       await adminPromptsApi.toggle(prompt.id)
-      toast.success(`Prompt ${prompt.is_active ? "deactivated" : "activated"}`)
+      toast({ title: "Success", description: `Prompt ${prompt.is_active ? "deactivated" : "activated"}` })
       fetchPrompts()
     } catch (error: any) {
       console.error("Failed to toggle prompt:", error)
-      toast.error("Failed to toggle prompt status")
+      toast({ title: "Error", description: "Failed to toggle prompt status", variant: "destructive" })
     }
   }
 

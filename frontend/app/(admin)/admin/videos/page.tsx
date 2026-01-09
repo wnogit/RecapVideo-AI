@@ -33,7 +33,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { format } from "date-fns"
-import { toast } from "sonner"
+import { toast } from "@/hooks/use-toast"
 import { adminVideosApi, AdminVideo } from "@/lib/api"
 
 // Language code to name mapping
@@ -76,7 +76,7 @@ export default function AdminVideosPage() {
       setTotal(response.data.total)
     } catch (error: any) {
       console.error("Failed to fetch videos:", error)
-      toast.error("Failed to load videos")
+      toast({ title: "Error", description: "Failed to load videos", variant: "destructive" })
     } finally {
       setIsLoading(false)
     }
@@ -92,12 +92,12 @@ export default function AdminVideosPage() {
     setIsDeleting(true)
     try {
       await adminVideosApi.delete(deleteVideo.id)
-      toast.success("Video deleted successfully")
+      toast({ title: "Success", description: "Video deleted successfully" })
       setDeleteVideo(null)
       fetchVideos()
     } catch (error: any) {
       console.error("Failed to delete video:", error)
-      toast.error("Failed to delete video")
+      toast({ title: "Error", description: "Failed to delete video", variant: "destructive" })
     } finally {
       setIsDeleting(false)
     }

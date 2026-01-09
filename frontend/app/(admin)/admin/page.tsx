@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { adminDashboardApi, DashboardStats, RecentUser, RecentVideo } from "@/lib/api"
-import { toast } from "sonner"
+import { toast } from "@/hooks/use-toast"
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
@@ -31,7 +31,7 @@ export default function AdminDashboardPage() {
         setRecentVideos(videosRes.data)
       } catch (error: any) {
         console.error("Failed to fetch dashboard data:", error)
-        toast.error("Failed to load dashboard data")
+        toast({ title: "Error", description: "Failed to load dashboard data", variant: "destructive" })
       } finally {
         setIsLoading(false)
       }
