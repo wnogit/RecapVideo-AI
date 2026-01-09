@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
     # CORS - store as string to avoid pydantic_settings JSON parsing issues
-    CORS_ORIGINS_STR: str = "http://localhost:3000,https://studio.recapvideo.ai"
+    CORS_ORIGINS_STR: str = "http://localhost:3000,https://studio.recapvideo.ai,https://recapvideo.ai,https://www.recapvideo.ai"
     
     @computed_field
     @property
