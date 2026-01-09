@@ -1,7 +1,7 @@
 """
 Admin Dashboard Endpoints
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from pydantic import BaseModel
 
@@ -67,7 +67,7 @@ async def get_dashboard_stats(
     """
     Get dashboard statistics (Admin only).
     """
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     last_month_start = (now - timedelta(days=30)).replace(hour=0, minute=0, second=0, microsecond=0)
     two_months_ago = (now - timedelta(days=60)).replace(hour=0, minute=0, second=0, microsecond=0)

@@ -37,7 +37,7 @@ const faqCategories = [
       },
       {
         q: 'How do I get started?',
-        a: 'Getting started is easy! Just sign up for a free account, and you\'ll receive 3 free credits to try out our service. Paste any YouTube URL into the dashboard, customize your settings, and click generate. Your recap video will be ready in a few minutes.'
+        a: 'Getting started is easy! Just sign up for a free account, and you\'ll receive 4 free credits to try out our service. Paste any YouTube URL into the dashboard, customize your settings, and click generate. Your recap video will be ready in a few minutes.'
       },
       {
         q: 'Do I need any technical skills?',
@@ -53,7 +53,7 @@ const faqCategories = [
     questions: [
       {
         q: 'How does the credit system work?',
-        a: 'Each video creation uses 1 credit, regardless of the video length or complexity. When you sign up, you get 3 free credits to try our service. You can purchase more credits in packages: 10 credits for $5, 50 credits for $20 (save 20%), or 100 credits for $35 (save 30%).'
+        a: 'Each video creation uses 1 credit, regardless of the video length or complexity. When you sign up, you get 4 free credits to try our service. You can purchase more credits in packages: 10 credits for $5, 50 credits for $20 (save 20%), or 100 credits for $35 (save 30%).'
       },
       {
         q: 'What payment methods do you accept?',

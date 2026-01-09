@@ -653,7 +653,7 @@ export default function LandingPage() {
               </a>
             </div>
             <p className="mt-6 text-sm text-muted-foreground">
-              🎉 Get 3 free credits when you sign up today
+              🎉 Get 4 free credits when you sign up today
             </p>
           </motion.div>
         </div>

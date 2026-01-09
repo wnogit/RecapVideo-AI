@@ -159,7 +159,7 @@ export function GoogleAuthForm() {
             <span className="text-white font-semibold">Free Trial Included</span>
           </div>
           <p className="text-white/70 text-sm">
-            Get 100 free credits when you sign up. No credit card required.
+            Get 4 free credits when you sign up. No credit card required.
           </p>
         </motion.div>
       </div>
@@ -283,7 +283,7 @@ export function GoogleAuthForm() {
                   <div className="flex items-center gap-2 mb-1">
                     <Check className="w-4 h-4 text-green-500" />
                     <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                      100 Free Credits
+                      4 Free Credits
                     </span>
                   </div>
                   <p className="text-xs text-gray-600 dark:text-gray-400">
