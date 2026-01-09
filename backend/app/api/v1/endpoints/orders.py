@@ -20,17 +20,34 @@ from app.schemas.order import (
 )
 from app.schemas.credit import CREDIT_PACKAGES
 from app.services.telegram_service import telegram_service
+from app.models.credit_package import CreditPackage as CreditPackageModel
 
 
 router = APIRouter()
 
 
-def get_package_by_id(package_id: str):
-    """Get credit package by ID."""
+def get_legacy_package_by_id(package_id: str):
+    """Get legacy hardcoded credit package by ID (for backward compatibility)."""
     for package in CREDIT_PACKAGES:
         if package.id == package_id:
             return package
     return None
+
+
+async def get_db_package_by_id(db, package_id: str):
+    """Get credit package from database by UUID."""
+    try:
+        from uuid import UUID as PyUUID
+        pkg_uuid = PyUUID(package_id)
+        result = await db.execute(
+            select(CreditPackageModel).where(
+                CreditPackageModel.id == pkg_uuid,
+                CreditPackageModel.is_active == True
+            )
+        )
+        return result.scalar_one_or_none()
+    except ValueError:
+        return None
 
 
 @router.post("", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
@@ -49,13 +66,25 @@ async def create_order(
     """
     from app.models.payment_method import PaymentMethod, PAYMENT_TYPES
     
-    # Get package
-    package = get_package_by_id(order_data.package_id)
-    if not package:
+    # Get package - try database first, then fall back to legacy hardcoded packages
+    db_package = await get_db_package_by_id(db, order_data.package_id)
+    legacy_package = get_legacy_package_by_id(order_data.package_id) if not db_package else None
+    
+    if not db_package and not legacy_package:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid package ID",
         )
+    
+    # Use database package if available, otherwise use legacy
+    if db_package:
+        package_credits = db_package.credits
+        package_price_usd = db_package.price_usd
+        package_price_mmk = db_package.price_mmk
+    else:
+        package_credits = legacy_package.credits
+        package_price_usd = legacy_package.price_usd
+        package_price_mmk = legacy_package.price_mmk
     
     # Validate payment method type
     valid_methods = [t["id"] for t in PAYMENT_TYPES]
@@ -92,16 +121,16 @@ async def create_order(
         # TODO: Validate promo code and get discount
         pass
     
-    price_usd = Decimal(str(package.price_usd))
+    price_usd = Decimal(str(package_price_usd))
     if discount_percent > 0:
         price_usd = price_usd * (100 - discount_percent) / 100
     
     # Create order
     order = Order(
         user_id=current_user.id,
-        credits_amount=package.credits,
+        credits_amount=package_credits,
         price_usd=price_usd,
-        price_mmk=Decimal(str(package.price_mmk)) if package.price_mmk else None,
+        price_mmk=Decimal(str(package_price_mmk)) if package_price_mmk else None,
         payment_method=order_data.payment_method,
         promo_code=order_data.promo_code,
         discount_percent=discount_percent,

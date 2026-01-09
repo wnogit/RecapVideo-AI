@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 class OrderCreate(BaseModel):
     """Schema for order creation."""
-    package_id: str = Field(..., description="Credit package ID")
+    package_id: str = Field(..., description="Credit package ID (UUID from database or legacy ID)")
     payment_method_id: Optional[UUID] = Field(None, description="Payment method ID from database")
     payment_method: str = Field(..., description="Payment type (kbzpay, wavepay, etc)")
     promo_code: Optional[str] = Field(None, max_length=50)
