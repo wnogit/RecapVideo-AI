@@ -17,6 +17,10 @@ export interface User {
   credit_balance: number;
   created_at: string;
   last_login_at?: string;
+  // Auth provider info
+  auth_provider: 'google' | 'email';
+  has_password: boolean;
+  has_google: boolean;
 }
 
 interface AuthState {

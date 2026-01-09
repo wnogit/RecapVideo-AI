@@ -79,6 +79,10 @@ class UserResponse(BaseModel):
     credit_balance: int
     created_at: datetime
     last_login_at: Optional[datetime] = None
+    # Auth provider info
+    auth_provider: str = "email"  # "google" or "email"
+    has_password: bool = True
+    has_google: bool = False
     
     model_config = {"from_attributes": True}
 

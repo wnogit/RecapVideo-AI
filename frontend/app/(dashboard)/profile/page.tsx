@@ -31,7 +31,11 @@ import {
   Calendar,
   Clock,
   CreditCard,
-  AlertTriangle
+  AlertTriangle,
+  Link2,
+  Unlink,
+  Key,
+  Lock
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
@@ -70,7 +74,7 @@ interface Session {
 }
 
 export default function ProfilePage() {
-  const { user, updateUser } = useAuthStore();
+  const { user, updateUser, fetchUser } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -80,6 +84,13 @@ export default function ProfilePage() {
   const [isRevokingSession, setIsRevokingSession] = useState<string | null>(null);
   const [showRevokeAllDialog, setShowRevokeAllDialog] = useState(false);
   const [isRevokingAll, setIsRevokingAll] = useState(false);
+  
+  // Account linking state
+  const [showSetPasswordDialog, setShowSetPasswordDialog] = useState(false);
+  const [isSettingPassword, setIsSettingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isDisconnectingGoogle, setIsDisconnectingGoogle] = useState(false);
 
   const {
     register,
@@ -198,6 +209,108 @@ export default function ProfilePage() {
       default:
         return <Monitor className="h-5 w-5" />;
     }
+  };
+
+  // Set password for OAuth-only users
+  const handleSetPassword = async () => {
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: 'Passwords do not match',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (newPassword.length < 8) {
+      toast({
+        title: 'Password must be at least 8 characters',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setIsSettingPassword(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/me/set-password`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            new_password: newPassword,
+            confirm_password: confirmPassword,
+          }),
+        }
+      );
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to set password');
+      }
+      
+      toast({ title: 'Password set successfully!' });
+      setShowSetPasswordDialog(false);
+      setNewPassword('');
+      setConfirmPassword('');
+      // Refresh user data
+      if (fetchUser) fetchUser();
+    } catch (error: any) {
+      toast({
+        title: error.message || 'Failed to set password',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSettingPassword(false);
+    }
+  };
+
+  // Disconnect Google account
+  const handleDisconnectGoogle = async () => {
+    setIsDisconnectingGoogle(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/me/disconnect-google`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to disconnect Google');
+      }
+      
+      toast({ title: 'Google account disconnected' });
+      // Refresh user data
+      if (fetchUser) fetchUser();
+    } catch (error: any) {
+      toast({
+        title: error.message || 'Failed to disconnect Google',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDisconnectingGoogle(false);
+    }
+  };
+
+  // Connect Google account
+  const handleConnectGoogle = () => {
+    // Redirect to Google OAuth
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    const redirectUri = `${window.location.origin}/auth/google/callback?action=connect`;
+    const scope = 'openid email profile';
+    
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent`;
+    
+    window.location.href = googleAuthUrl;
   };
 
   const onSubmit = async (data: ProfileForm) => {
@@ -502,6 +615,113 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
+          {/* Connected Accounts Card */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Link2 className="h-5 w-5 text-primary" />
+                Connected Accounts
+              </CardTitle>
+              <CardDescription>
+                Manage your login methods
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Email/Password */}
+              <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
+                    <Mail className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Email & Password</p>
+                    <p className="text-xs text-muted-foreground">{user?.email}</p>
+                  </div>
+                </div>
+                {user?.has_password ? (
+                  <Badge variant="success" className="gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Connected
+                  </Badge>
+                ) : (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => setShowSetPasswordDialog(true)}
+                  >
+                    <Key className="h-4 w-4 mr-1" />
+                    Set Password
+                  </Button>
+                )}
+              </div>
+              
+              {/* Google */}
+              <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-red-500/10 text-red-500">
+                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Google</p>
+                    <p className="text-xs text-muted-foreground">
+                      {user?.has_google ? 'Connected' : 'Not connected'}
+                    </p>
+                  </div>
+                </div>
+                {user?.has_google ? (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="success" className="gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Connected
+                    </Badge>
+                    {user?.has_password && (
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={handleDisconnectGoogle}
+                        disabled={isDisconnectingGoogle}
+                      >
+                        {isDisconnectingGoogle ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Unlink className="h-4 w-4" />
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={handleConnectGoogle}
+                  >
+                    <Link2 className="h-4 w-4 mr-1" />
+                    Connect
+                  </Button>
+                )}
+              </div>
+              
+              {/* Info text */}
+              <p className="text-xs text-muted-foreground text-center pt-2">
+                {!user?.has_password && user?.has_google && (
+                  "Set a password to enable email login"
+                )}
+                {user?.has_password && !user?.has_google && (
+                  "Connect Google for faster login"
+                )}
+                {user?.has_password && user?.has_google && (
+                  "You can login with either method"
+                )}
+              </p>
+            </CardContent>
+          </Card>
+
           {/* Danger Zone Card */}
           <Card className="border-destructive/30">
             <CardHeader className="pb-4">
@@ -544,6 +764,60 @@ export default function ProfilePage() {
               ) : null}
               Sign Out All
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Set Password Dialog */}
+      <AlertDialog open={showSetPasswordDialog} onOpenChange={setShowSetPasswordDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5" />
+              Set Password
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Create a password to enable email login. You can then login with either Google or email/password.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                placeholder="Enter password (min 8 characters)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirm Password</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                placeholder="Confirm password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setNewPassword('');
+              setConfirmPassword('');
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <Button 
+              onClick={handleSetPassword}
+              disabled={isSettingPassword || !newPassword || !confirmPassword}
+            >
+              {isSettingPassword ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Set Password
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

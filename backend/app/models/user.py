@@ -118,6 +118,23 @@ class User(Base):
         return f"<User {self.email}>"
     
     @property
+    def has_password(self) -> bool:
+        """Check if user has a password set (not just OAuth)."""
+        return bool(self.hashed_password and self.hashed_password != "OAUTH_ONLY")
+    
+    @property
+    def has_google(self) -> bool:
+        """Check if user has Google account connected."""
+        return self.oauth_provider == "google" and bool(self.oauth_id)
+    
+    @property
+    def auth_provider(self) -> str:
+        """Get primary auth provider."""
+        if self.oauth_provider == "google":
+            return "google"
+        return "email"
+    
+    @property
     def has_credits(self) -> bool:
         """Check if user has any credits."""
         return self.credit_balance > 0

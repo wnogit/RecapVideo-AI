@@ -2,11 +2,14 @@
 User Endpoints
 """
 from datetime import datetime, timedelta, timezone
-from typing import List
-from fastapi import APIRouter, HTTPException, status, Query
+from typing import List, Optional
+from fastapi import APIRouter, HTTPException, status, Query, Request
 from sqlalchemy import select, or_, desc
+from pydantic import BaseModel, Field
+import httpx
 
 from app.core.dependencies import CurrentActiveUser, DBSession
+from app.core.config import settings
 from app.core.security import verify_password, get_password_hash
 from app.schemas.user import UserResponse, UserUpdate, UserPasswordUpdate
 from app.models.video import Video, VideoStatus
@@ -14,6 +17,26 @@ from app.models.order import Order, OrderStatus
 
 
 router = APIRouter()
+
+
+# ============ Schemas for Account Linking ============
+
+class SetPasswordRequest(BaseModel):
+    """Schema for setting password (for OAuth-only users)."""
+    new_password: str = Field(..., min_length=8, max_length=128)
+    confirm_password: str = Field(..., min_length=8, max_length=128)
+
+
+class ConnectGoogleRequest(BaseModel):
+    """Schema for connecting Google account."""
+    code: str
+    redirect_uri: str
+
+
+class DisconnectAccountRequest(BaseModel):
+    """Schema for disconnecting an account."""
+    account_type: str  # "google" or "password"
+    current_password: Optional[str] = None  # Required if disconnecting password
 
 
 @router.get("/me", response_model=UserResponse)
@@ -192,4 +215,173 @@ async def get_user_notifications(
         "notifications": notifications[:limit],
         "unread_count": len(notifications),
     }
+
+
+# ============ Account Linking Endpoints ============
+
+@router.post("/me/set-password", status_code=status.HTTP_200_OK)
+async def set_password(
+    body: SetPasswordRequest,
+    current_user: CurrentActiveUser,
+    db: DBSession,
+):
+    """
+    Set password for OAuth-only users.
+    
+    This allows users who signed up with Google to also use email/password login.
+    """
+    # Check if passwords match
+    if body.new_password != body.confirm_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Passwords do not match",
+        )
+    
+    # Check if user already has a password
+    if current_user.has_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You already have a password set. Use change-password endpoint instead.",
+        )
+    
+    # Set the password
+    current_user.hashed_password = get_password_hash(body.new_password)
+    await db.commit()
+    
+    return {
+        "message": "Password set successfully. You can now login with email and password.",
+        "has_password": True,
+    }
+
+
+@router.post("/me/connect-google", response_model=UserResponse)
+async def connect_google_account(
+    body: ConnectGoogleRequest,
+    current_user: CurrentActiveUser,
+    db: DBSession,
+):
+    """
+    Connect Google account to existing user.
+    
+    This allows email/password users to also use Google login.
+    """
+    # Check if already connected
+    if current_user.has_google:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google account is already connected.",
+        )
+    
+    # Exchange code for tokens
+    try:
+        async with httpx.AsyncClient() as client:
+            token_response = await client.post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "code": body.code,
+                    "client_id": settings.GOOGLE_CLIENT_ID,
+                    "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                    "redirect_uri": body.redirect_uri,
+                    "grant_type": "authorization_code",
+                },
+            )
+            
+            if token_response.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Failed to connect Google account. Please try again.",
+                )
+            
+            tokens = token_response.json()
+            access_token = tokens.get("access_token")
+            
+            # Get user info from Google
+            userinfo_response = await client.get(
+                "https://www.googleapis.com/oauth2/v2/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            
+            if userinfo_response.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Failed to get Google account info.",
+                )
+            
+            google_user = userinfo_response.json()
+            google_id = google_user.get("id")
+            google_email = google_user.get("email", "").lower()
+            
+            # Verify email matches
+            if google_email != current_user.email.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Google account email ({google_email}) doesn't match your account email ({current_user.email}). Please use the same email.",
+                )
+            
+            # Check if this Google account is already linked to another user
+            from app.models.user import User
+            existing = await db.execute(
+                select(User).where(
+                    User.oauth_id == google_id,
+                    User.id != current_user.id,
+                )
+            )
+            if existing.scalar_one_or_none():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="This Google account is already linked to another user.",
+                )
+            
+            # Connect Google account
+            current_user.oauth_provider = "google"
+            current_user.oauth_id = google_id
+            if google_user.get("picture") and not current_user.avatar_url:
+                current_user.avatar_url = google_user["picture"]
+            
+            await db.commit()
+            await db.refresh(current_user)
+            
+            return UserResponse.model_validate(current_user)
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to connect Google account: {str(e)}",
+        )
+
+
+@router.post("/me/disconnect-google", response_model=UserResponse)
+async def disconnect_google_account(
+    current_user: CurrentActiveUser,
+    db: DBSession,
+):
+    """
+    Disconnect Google account from user.
+    
+    User must have a password set before disconnecting Google.
+    """
+    # Check if Google is connected
+    if not current_user.has_google:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google account is not connected.",
+        )
+    
+    # Check if user has a password (must have at least one login method)
+    if not current_user.has_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You must set a password before disconnecting Google. Otherwise, you won't be able to login.",
+        )
+    
+    # Disconnect Google
+    current_user.oauth_provider = None
+    current_user.oauth_id = None
+    
+    await db.commit()
+    await db.refresh(current_user)
+    
+    return UserResponse.model_validate(current_user)
 
