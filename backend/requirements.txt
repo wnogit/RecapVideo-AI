@@ -29,7 +29,7 @@ email-validator==2.1.0
 
 # HTTP Client
 httpx==0.26.0
-aiohttp==3.9.3
+aiohttp==3.13.3
 
 # TTS & Processing
 edge-tts==6.1.9
