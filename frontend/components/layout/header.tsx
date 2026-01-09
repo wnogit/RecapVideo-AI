@@ -28,21 +28,22 @@ interface Notification {
 }
 
 export function Header() {
-  const { user, token } = useAuthStore();
+  const { user } = useAuthStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
+    const token = localStorage.getItem('access_token');
     if (token) {
-      fetchNotifications();
+      fetchNotifications(token);
       // Refresh notifications every 30 seconds
-      const interval = setInterval(fetchNotifications, 30000);
+      const interval = setInterval(() => fetchNotifications(token), 30000);
       return () => clearInterval(interval);
     }
-  }, [token]);
+  }, [user]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (token: string) => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/me/notifications`, {
         headers: {
