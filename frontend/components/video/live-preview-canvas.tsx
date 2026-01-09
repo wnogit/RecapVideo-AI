@@ -127,7 +127,7 @@ export function LivePreviewCanvas() {
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center text-white/50">
                     <Smartphone className="h-8 w-8 mx-auto mb-2" />
-                    <p className="text-xs">URL ထည့်ပါ</p>
+                    <p className="text-xs font-myanmar">URL ထည့်ပါ</p>
                   </div>
                 </div>
               )}
@@ -190,13 +190,12 @@ export function LivePreviewCanvas() {
                 >
                   <div 
                     className={cn(
-                      "inline-block px-2 py-1 rounded",
+                      "inline-block px-2 py-1 rounded font-myanmar",
                       getSubtitleBackground(),
                       getSubtitleSize()
                     )}
                     style={{ 
                       color: subtitleOptions.color,
-                      fontFamily: 'Pyidaungsu, Noto Sans Myanmar, sans-serif',
                     }}
                   >
                     မြန်မာဘာသာ စာတန်း နမူနာ

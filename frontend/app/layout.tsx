@@ -1,10 +1,17 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Noto_Sans_Myanmar } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/providers';
 import { Toaster } from '@/components/ui/toaster';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+
+const notoSansMyanmar = Noto_Sans_Myanmar({ 
+  subsets: ['myanmar'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-myanmar',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'RecapVideo.AI - Transform YouTube Shorts to Burmese',
@@ -27,7 +34,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${notoSansMyanmar.variable} font-sans antialiased`}>
         <Providers>
           {children}
           <Toaster />

@@ -7,6 +7,9 @@
 export const YOUTUBE_SHORTS_PATTERNS = [
   /^https?:\/\/(?:www\.)?youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})(?:\?.*)?$/,
   /^https?:\/\/m\.youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})(?:\?.*)?$/,
+  // Support URLs without protocol
+  /^(?:www\.)?youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})(?:\?.*)?$/,
+  /^m\.youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})(?:\?.*)?$/,
 ];
 
 // Regular YouTube URL patterns (not Shorts)
@@ -14,6 +17,9 @@ export const REGULAR_YOUTUBE_PATTERNS = [
   /^https?:\/\/(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
   /^https?:\/\/youtu\.be\/([a-zA-Z0-9_-]{11})/,
   /^https?:\/\/(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+  // Support URLs without protocol
+  /^(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+  /^youtu\.be\/([a-zA-Z0-9_-]{11})/,
 ];
 
 /**
