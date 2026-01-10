@@ -235,7 +235,7 @@ export function StepperVideoForm({ onSuccess }: StepperVideoFormProps) {
               <span className="text-4xl">❌</span>
               <h2 className="text-xl font-bold mt-2 text-destructive">Video ဖန်တီးမှု မအောင်မြင်ပါ</h2>
               <p className="text-sm text-muted-foreground mt-2">
-                {displayVideo.error_message || 'အမှားတစ်ခုခု ဖြစ်သွားပါသည်'}
+                ဝန်ဆောင်မှုတွင် ပြဿနာတစ်ခုရှိနေပါသည်။ ခေတ္တစောင့်ပြီး ပြန်လည်ကြိုးစားပါ။
               </p>
             </div>
 

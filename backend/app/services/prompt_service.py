@@ -9,7 +9,7 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.database import async_session_maker
+from app.core.database import async_session_maker
 from app.models.prompt import Prompt
 
 
