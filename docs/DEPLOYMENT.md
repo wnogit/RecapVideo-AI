@@ -1,515 +1,299 @@
-# Deployment Guide
+# RecapVideo.AI - Deployment Guide
 
-## 📋 Overview
-
-This guide covers deploying RecapVideo.AI on a VPS using Docker Compose.
+> Production deployment guide for RecapVideo.AI v3
 
 ---
 
-## 🏗️ Architecture
+## 🖥️ Server Requirements
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    PRODUCTION ARCHITECTURE                       │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│                     ┌─────────────────┐                         │
-│                     │   Cloudflare    │                         │
-│                     │   (CDN + DNS)   │                         │
-│                     └────────┬────────┘                         │
-│                              │                                   │
-│              ┌───────────────┼───────────────┐                  │
-│              │               │               │                  │
-│              ▼               ▼               ▼                  │
-│    ┌─────────────┐  ┌─────────────┐  ┌─────────────┐           │
-│    │   Nginx     │  │   Nginx     │  │ Cloudflare  │           │
-│    │  (Backend)  │  │ (Frontend)  │  │     R2      │           │
-│    └──────┬──────┘  └──────┬──────┘  │  (Storage)  │           │
-│           │                │          └─────────────┘           │
-│           ▼                ▼                                     │
-│    ┌─────────────┐  ┌─────────────┐                             │
-│    │   FastAPI   │  │   Next.js   │                             │
-│    │   Backend   │  │  Frontend   │                             │
-│    └──────┬──────┘  └─────────────┘                             │
-│           │                                                      │
-│     ┌─────┴─────┐                                               │
-│     ▼           ▼                                                │
-│ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐                     │
-│ │Postgres│ │ Redis  │ │ Celery │ │ Celery │                     │
-│ │  DB    │ │ Queue  │ │Worker 1│ │Worker 2│                     │
-│ └────────┘ └────────┘ └────────┘ └────────┘                     │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+### Recommended Specs
+| Resource | Minimum | Recommended |
+|----------|---------|-------------|
+| CPU | 4 cores | 8+ cores |
+| RAM | 8 GB | 16+ GB |
+| Storage | 100 GB SSD | 500+ GB NVMe |
+| OS | Ubuntu 22.04 | Ubuntu 22.04 LTS |
+
+### Required Software
+- Docker 24+
+- Docker Compose 2.20+
+- Nginx (for reverse proxy)
+- Certbot (for SSL)
 
 ---
 
-## 📋 Prerequisites
-
-- **VPS**: Ubuntu 22.04+ (IONOS 12 CPU / 24GB RAM recommended)
-- **Docker**: 24.0+
-- **Docker Compose**: 2.20+
-- **Domain**: With Cloudflare DNS
-
----
-
-## 🚀 Quick Start
+## 🚀 Deployment Steps
 
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/yourrepo/recapvideo-v3.git
-cd recapvideo-v3
+cd /opt
+git clone https://github.com/wnogit/RecapVideo-AI.git
+cd RecapVideo-AI/recapvideo-v3
 ```
 
-### 2. Create Environment File
+### 2. Configure Environment
 
 ```bash
-cp .env.example .env
-nano .env
-```
-
-### 3. Configure Environment
-
-```env
-# App
-APP_NAME=RecapVideo
-APP_ENV=production
-APP_DEBUG=false
-SECRET_KEY=your-super-secret-key-generate-with-openssl
-
-# Database
-POSTGRES_HOST=postgres
-POSTGRES_PORT=5432
-POSTGRES_DB=recapvideo
-POSTGRES_USER=recapvideo
-POSTGRES_PASSWORD=strong-database-password
-
-# Redis
-REDIS_URL=redis://redis:6379/0
-
-# JWT
-JWT_SECRET_KEY=your-jwt-secret-key
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-REFRESH_TOKEN_EXPIRE_DAYS=7
-
-# External APIs
-GEMINI_API_KEY=your-gemini-api-key
-TRANSCRIPT_API_KEY=your-transcript-api-key
-
-# Cloudflare R2
-R2_ACCOUNT_ID=your-account-id
-R2_ACCESS_KEY_ID=your-access-key
-R2_SECRET_ACCESS_KEY=your-secret-key
-R2_BUCKET_NAME=recapvideo
-R2_PUBLIC_URL=https://videos.recapvideo.ai
-
-# Email (Resend)
-RESEND_API_KEY=your-resend-api-key
-EMAIL_FROM=noreply@recapvideo.ai
+# Backend
+cp backend/.env.example backend/.env
+nano backend/.env
 
 # Frontend
-NEXT_PUBLIC_API_URL=https://api.recapvideo.ai
-NEXT_PUBLIC_APP_URL=https://recapvideo.ai
+cp frontend/.env.example frontend/.env.local
+nano frontend/.env.local
 ```
 
-### 4. Start Services
+**Important `.env` settings:**
+```env
+# MUST CHANGE IN PRODUCTION
+JWT_SECRET_KEY=generate-a-long-random-string-here
+ENVIRONMENT=production
+
+# Database (use strong password)
+DATABASE_URL=postgresql+asyncpg://recapvideo:STRONG_PASSWORD@postgres:5432/recapvideo
+
+# External services
+GEMINI_API_KEY=your-key
+TRANSCRIPT_API_KEY=your-key
+R2_ACCESS_KEY_ID=your-key
+R2_SECRET_ACCESS_KEY=your-secret
+
+# OAuth
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-secret
+
+# Telegram notifications
+TELEGRAM_BOT_TOKEN=your-bot-token
+TELEGRAM_ADMIN_CHAT_ID=your-chat-id
+```
+
+### 3. Build and Start Services
 
 ```bash
 # Build and start all services
-docker compose up -d
+docker-compose up -d --build
 
 # Check status
-docker compose ps
+docker-compose ps
 
 # View logs
-docker compose logs -f
+docker-compose logs -f backend
 ```
 
----
+### 4. Run Database Migrations
 
-## 📁 Docker Configuration
-
-### docker-compose.yml
-
-```yaml
-version: '3.8'
-
-services:
-  # Backend API
-  backend:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.backend
-    ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - REDIS_URL=${REDIS_URL}
-    depends_on:
-      - postgres
-      - redis
-    volumes:
-      - ./backend:/app
-    restart: unless-stopped
-
-  # Frontend
-  frontend:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.frontend
-    ports:
-      - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-    depends_on:
-      - backend
-    restart: unless-stopped
-
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    ports:
-      - "5432:5432"
-    restart: unless-stopped
-
-  # Redis
-  redis:
-    image: redis:7-alpine
-    volumes:
-      - redis_data:/data
-    ports:
-      - "6379:6379"
-    restart: unless-stopped
-
-  # Celery Worker
-  celery_worker:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.backend
-    command: celery -A app.processing.celery_config worker --loglevel=info --concurrency=4
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - REDIS_URL=${REDIS_URL}
-    depends_on:
-      - postgres
-      - redis
-    restart: unless-stopped
-
-  # Celery Beat (Scheduler)
-  celery_beat:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.backend
-    command: celery -A app.processing.celery_config beat --loglevel=info
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - REDIS_URL=${REDIS_URL}
-    depends_on:
-      - postgres
-      - redis
-    restart: unless-stopped
-
-  # Nginx Reverse Proxy
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./nginx/ssl:/etc/nginx/ssl
-    depends_on:
-      - backend
-      - frontend
-    restart: unless-stopped
-
-volumes:
-  postgres_data:
-  redis_data:
+```bash
+docker-compose exec backend alembic upgrade head
 ```
 
-### docker-compose.workers.yml (Scaling Workers)
+### 5. Configure Nginx
 
-```yaml
-version: '3.8'
-
-services:
-  celery_worker:
-    deploy:
-      replicas: 4
-      resources:
-        limits:
-          cpus: '2'
-          memory: 4G
-```
-
----
-
-## 🐳 Dockerfiles
-
-### Backend (docker/Dockerfile.backend)
-
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpq-dev \
-    ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python dependencies
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application
-COPY backend/ .
-
-# Run
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-### Frontend (docker/Dockerfile.frontend)
-
-```dockerfile
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-# Install dependencies
-COPY frontend/package*.json ./
-RUN npm ci
-
-# Build
-COPY frontend/ .
-RUN npm run build
-
-# Production image
-FROM node:20-alpine AS runner
-
-WORKDIR /app
-
-ENV NODE_ENV=production
-
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
-
-EXPOSE 3000
-
-CMD ["node", "server.js"]
-```
-
----
-
-## 🌐 Nginx Configuration
-
-### nginx/nginx.conf
+Create `/etc/nginx/sites-available/recapvideo`:
 
 ```nginx
-events {
-    worker_connections 1024;
+# API Backend
+server {
+    listen 80;
+    server_name api.recapvideo.ai;
+
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        
+        # Increase timeouts for video processing
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 75s;
+    }
+
+    # File upload size
+    client_max_body_size 50M;
 }
-
-http {
-    # Gzip compression
-    gzip on;
-    gzip_types text/plain application/json application/javascript text/css;
-
-    # Rate limiting
-    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
-
-    # Backend API
-    upstream backend {
-        server backend:8000;
-    }
-
-    # Frontend
-    upstream frontend {
-        server frontend:3000;
-    }
-
-    # API Server
-    server {
-        listen 80;
-        server_name api.recapvideo.ai;
-
-        location / {
-            limit_req zone=api burst=20 nodelay;
-            
-            proxy_pass http://backend;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-        }
-    }
-
-    # Frontend Server
-    server {
-        listen 80;
-        server_name recapvideo.ai www.recapvideo.ai;
-
-        location / {
-            proxy_pass http://frontend;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-        }
-    }
-}
-```
-
----
-
-## 🗄️ Database Migrations
-
-```bash
-# Enter backend container
-docker compose exec backend bash
-
-# Create migration
-alembic revision --autogenerate -m "Description"
-
-# Run migrations
-alembic upgrade head
-
-# Rollback
-alembic downgrade -1
-```
-
----
-
-## 📊 Monitoring & Logs
-
-### View Logs
-
-```bash
-# All services
-docker compose logs -f
-
-# Specific service
-docker compose logs -f backend
-docker compose logs -f celery_worker
-
-# Last 100 lines
-docker compose logs --tail=100 backend
-```
-
-### Health Checks
-
-```bash
-# Backend health
-curl http://localhost:8000/api/v1/health
 
 # Frontend
-curl http://localhost:3000
+server {
+    listen 80;
+    server_name studio.recapvideo.ai recapvideo.ai www.recapvideo.ai;
 
-# Database
-docker compose exec postgres pg_isready
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+```bash
+# Enable site
+sudo ln -s /etc/nginx/sites-available/recapvideo /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### 6. Setup SSL with Certbot
+
+```bash
+sudo apt install certbot python3-certbot-nginx
+sudo certbot --nginx -d api.recapvideo.ai -d studio.recapvideo.ai -d recapvideo.ai -d www.recapvideo.ai
 ```
 
 ---
 
-## 🔄 Updates & Maintenance
+## 🔧 Maintenance
+
+### View Logs
+```bash
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f backend
+docker-compose logs -f frontend
+docker-compose logs -f postgres
+```
+
+### Restart Services
+```bash
+# All
+docker-compose restart
+
+# Specific
+docker-compose restart backend
+```
 
 ### Update Application
-
 ```bash
-# Pull latest code
+cd /opt/RecapVideo-AI/recapvideo-v3
 git pull origin main
-
-# Rebuild and restart
-docker compose build
-docker compose up -d
-
-# Run migrations
-docker compose exec backend alembic upgrade head
+docker-compose up -d --build
+docker-compose exec backend alembic upgrade head
 ```
 
-### Backup Database
-
+### Database Backup
 ```bash
-# Create backup
-docker compose exec postgres pg_dump -U recapvideo recapvideo > backup_$(date +%Y%m%d).sql
+# Backup
+docker-compose exec postgres pg_dump -U recapvideo recapvideo > backup_$(date +%Y%m%d).sql
 
-# Restore backup
-docker compose exec -T postgres psql -U recapvideo recapvideo < backup_20240105.sql
+# Restore
+cat backup.sql | docker-compose exec -T postgres psql -U recapvideo recapvideo
+```
+
+### Clear Cache
+```bash
+docker-compose exec redis redis-cli FLUSHALL
 ```
 
 ---
 
-## ⚡ Scaling Guide
+## 📊 Monitoring
 
-### IONOS VPS (12 CPU / 24GB RAM)
-
-| Service | Instances | CPU | Memory |
-|---------|-----------|-----|--------|
-| Backend | 2 | 2 | 2GB |
-| Frontend | 2 | 1 | 1GB |
-| Celery Workers | 4 | 2 | 4GB |
-| PostgreSQL | 1 | 2 | 4GB |
-| Redis | 1 | 1 | 2GB |
-| Nginx | 1 | 1 | 512MB |
-
-### Scale Workers
-
+### Check Container Resources
 ```bash
-# Scale to 4 workers
-docker compose up -d --scale celery_worker=4
+docker stats
+```
+
+### Check Disk Usage
+```bash
+df -h
+docker system df
+```
+
+### Clean Unused Docker Resources
+```bash
+docker system prune -a
 ```
 
 ---
 
 ## 🔒 Security Checklist
 
-- [ ] Change all default passwords
-- [ ] Use strong JWT secret key
-- [ ] Enable HTTPS with SSL certificates
-- [ ] Configure firewall (ufw)
-- [ ] Set up fail2ban
-- [ ] Enable Cloudflare proxy
+- [ ] Change default JWT secret key
+- [ ] Use strong database password
+- [ ] Enable firewall (only 80, 443, 22)
+- [ ] Setup SSL certificates
+- [ ] Configure rate limiting
+- [ ] Enable fail2ban
 - [ ] Regular security updates
-- [ ] Database backups
+
+### Firewall Setup
+```bash
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow ssh
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+```
 
 ---
 
-## 🌍 Cloudflare Setup
+## 🐛 Troubleshooting
 
-### DNS Records
+### Backend Won't Start
+```bash
+# Check logs
+docker-compose logs backend
 
-| Type | Name | Content | Proxy |
-|------|------|---------|-------|
-| A | @ | VPS_IP | ✅ |
-| A | api | VPS_IP | ✅ |
-| A | www | VPS_IP | ✅ |
+# Common issues:
+# - Database connection failed: Check DATABASE_URL
+# - Missing env vars: Check .env file
+# - Port already in use: Check other services
+```
 
-### R2 Storage
+### Database Connection Issues
+```bash
+# Check if postgres is running
+docker-compose ps postgres
 
-1. Create R2 bucket: `recapvideo`
-2. Set up custom domain: `videos.recapvideo.ai`
-3. Configure CORS for frontend access
+# Connect manually
+docker-compose exec postgres psql -U recapvideo -d recapvideo
+```
+
+### Video Processing Fails
+```bash
+# Check temp directory permissions
+ls -la /tmp/recapvideo/
+
+# Check FFmpeg
+docker-compose exec backend ffmpeg -version
+
+# Check worker logs
+docker-compose logs celery_worker
+```
 
 ---
 
-## 📂 Related Files
+## 📈 Scaling
 
-- `docker-compose.yml` - Main compose file
-- `docker-compose.workers.yml` - Worker scaling
-- `docker/Dockerfile.backend` - Backend image
-- `docker/Dockerfile.frontend` - Frontend image
-- `nginx/nginx.conf` - Nginx config
-- `backend/alembic.ini` - Alembic config
-- `.env.example` - Environment template
+For high traffic, consider:
+
+1. **Multiple Backend Workers**
+```yaml
+# docker-compose.override.yml
+services:
+  backend:
+    deploy:
+      replicas: 3
+```
+
+2. **Separate Celery Workers**
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.workers.yml up -d
+```
+
+3. **External Database**
+   - Use managed PostgreSQL (AWS RDS, DigitalOcean, etc.)
+
+4. **CDN for Static Files**
+   - Configure Cloudflare R2 with CDN
