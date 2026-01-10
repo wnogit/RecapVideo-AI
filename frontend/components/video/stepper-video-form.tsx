@@ -4,10 +4,10 @@
  * Stepper Video Form
  * Multi-step wizard for video creation with live preview
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useVideoCreationStore } from '@/stores/video-creation-store';
 import { useAuthStore } from '@/stores/auth-store';
-import { useVideoStore } from '@/stores/video-store';
+import { useVideoStore, Video, VideoStatus } from '@/stores/video-store';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,8 @@ import { Step1Input } from './steps/step1-input';
 import { Step2Styles } from './steps/step2-styles';
 import { Step3Branding } from './steps/step3-branding';
 import { LivePreviewCanvas } from './live-preview-canvas';
+import { ProcessingView } from './processing-view';
+import { videoApi } from '@/lib/api';
 
 const CREDITS_PER_VIDEO = 2;
 
@@ -33,9 +35,11 @@ interface StepperVideoFormProps {
 }
 
 export function StepperVideoForm({ onSuccess }: StepperVideoFormProps) {
-  const { user } = useAuthStore();
+  const { user, refreshUser } = useAuthStore();
   const { createVideo } = useVideoStore();
   const [direction, setDirection] = useState(0); // -1 for back, 1 for forward
+  const [createdVideo, setCreatedVideo] = useState<Video | null>(null);
+  const [pollingVideo, setPollingVideo] = useState<Video | null>(null);
   
   const {
     currentStep,
@@ -58,7 +62,39 @@ export function StepperVideoForm({ onSuccess }: StepperVideoFormProps) {
   // Reset form on mount
   useEffect(() => {
     reset();
+    setCreatedVideo(null);
+    setPollingVideo(null);
   }, []);
+
+  // Poll for video status when video is created
+  useEffect(() => {
+    if (!createdVideo) return;
+
+    const pollStatus = async () => {
+      try {
+        const response = await videoApi.get(createdVideo.id);
+        const video = response.data;
+        setPollingVideo(video);
+
+        // Check if completed or failed
+        if (video.status === 'completed' || video.status === 'failed') {
+          // Refresh user credits
+          refreshUser();
+          return; // Stop polling
+        }
+      } catch (err) {
+        console.error('Failed to poll video status:', err);
+      }
+    };
+
+    // Initial poll
+    pollStatus();
+
+    // Poll every 3 seconds
+    const interval = setInterval(pollStatus, 3000);
+
+    return () => clearInterval(interval);
+  }, [createdVideo, refreshUser]);
 
   // Custom navigation with direction tracking
   const handleNext = () => {
@@ -88,14 +124,37 @@ export function StepperVideoForm({ onSuccess }: StepperVideoFormProps) {
 
     try {
       const data = getSubmissionData();
-      await createVideo(data);
-      reset();
-      onSuccess?.();
+      const video = await createVideo(data);
+      setCreatedVideo(video);
+      setPollingVideo(video);
+      // Don't reset or call onSuccess - show processing view instead
     } catch (err: any) {
       setError(err.message || 'Video ဖန်တီးရာတွင် အမှားရှိပါသည်');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Handle cancel video
+  const handleCancelVideo = async () => {
+    if (!createdVideo) return;
+    
+    try {
+      await videoApi.delete(createdVideo.id);
+      setCreatedVideo(null);
+      setPollingVideo(null);
+      reset();
+      refreshUser();
+    } catch (err) {
+      console.error('Failed to cancel video:', err);
+    }
+  };
+
+  // Handle create another
+  const handleCreateAnother = () => {
+    setCreatedVideo(null);
+    setPollingVideo(null);
+    reset();
   };
 
   // Check if can proceed to next step
@@ -107,6 +166,90 @@ export function StepperVideoForm({ onSuccess }: StepperVideoFormProps) {
       default: return false;
     }
   };
+
+  // Get current video for display
+  const displayVideo = pollingVideo || createdVideo;
+
+  // Show Processing View if video is being created/processed
+  if (displayVideo && displayVideo.status !== 'completed' && displayVideo.status !== 'failed') {
+    return (
+      <div className="w-full max-w-6xl mx-auto">
+        <ProcessingView
+          videoId={displayVideo.id}
+          thumbnail={displayVideo.source_thumbnail}
+          title={displayVideo.source_title || displayVideo.title}
+          progress={displayVideo.progress_percent || 0}
+          currentStatus={displayVideo.status}
+          statusMessage={displayVideo.status_message}
+          onCancel={handleCancelVideo}
+        />
+      </div>
+    );
+  }
+
+  // Show Completed View
+  if (displayVideo && displayVideo.status === 'completed') {
+    return (
+      <div className="w-full max-w-6xl mx-auto">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="p-6 space-y-6">
+            <div className="text-center">
+              <span className="text-4xl">🎉</span>
+              <h2 className="text-xl font-bold mt-2">Video ပြီးပါပြီ!</h2>
+            </div>
+
+            {displayVideo.video_url && (
+              <div className="relative aspect-[9/16] max-h-96 bg-black rounded-lg overflow-hidden mx-auto">
+                <video
+                  src={displayVideo.video_url}
+                  controls
+                  className="w-full h-full object-contain"
+                  poster={displayVideo.source_thumbnail}
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {displayVideo.video_url && (
+                <Button 
+                  className="w-full" 
+                  onClick={() => window.open(displayVideo.video_url, '_blank')}
+                >
+                  ⬇️ Download Video
+                </Button>
+              )}
+              <Button variant="outline" className="w-full" onClick={handleCreateAnother}>
+                ➕ Video အသစ်ဖန်တီးမည်
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show Failed View
+  if (displayVideo && displayVideo.status === 'failed') {
+    return (
+      <div className="w-full max-w-6xl mx-auto">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="p-6 space-y-6">
+            <div className="text-center">
+              <span className="text-4xl">❌</span>
+              <h2 className="text-xl font-bold mt-2 text-destructive">Video ဖန်တီးမှု မအောင်မြင်ပါ</h2>
+              <p className="text-sm text-muted-foreground mt-2">
+                {displayVideo.error_message || 'အမှားတစ်ခုခု ဖြစ်သွားပါသည်'}
+              </p>
+            </div>
+
+            <Button className="w-full" onClick={handleCreateAnother}>
+              🔄 ပြန်ကြိုးစားမည်
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-6xl mx-auto">
