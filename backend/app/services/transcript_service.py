@@ -64,10 +64,12 @@ class TranscriptService:
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.get(
-                    f"{self.base_url}/v1/transcript",
+                    f"{self.base_url}/api/v2/youtube/transcript",
                     params={
-                        "video_id": video_id,
-                        "lang": language,
+                        "video_url": video_id,
+                        "format": "json",
+                        "include_timestamp": "true",
+                        "send_metadata": "true",
                     },
                     headers={
                         "Authorization": f"Bearer {api_key}",

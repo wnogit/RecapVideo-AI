@@ -386,7 +386,7 @@ async def test_api_key(
             import httpx
             async with httpx.AsyncClient() as client:
                 response = await client.get(
-                    "https://api.transcriptapi.com/v1/health",
+                    "https://transcriptapi.com/api/v2/youtube/transcript?video_url=test",
                     headers={"Authorization": f"Bearer {api_key.key_value}"},
                     timeout=10.0,
                 )

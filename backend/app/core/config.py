@@ -56,7 +56,7 @@ class Settings(BaseSettings):
     
     # TranscriptAPI.com
     TRANSCRIPT_API_KEY: str = ""
-    TRANSCRIPT_API_URL: str = "https://api.transcriptapi.com"
+    TRANSCRIPT_API_URL: str = "https://transcriptapi.com"
     
     # Google Gemini (TTS fallback)
     GEMINI_API_KEY: str = ""
