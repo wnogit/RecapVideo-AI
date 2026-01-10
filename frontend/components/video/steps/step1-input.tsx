@@ -37,17 +37,17 @@ const VOICE_SAMPLE_URLS: Record<string, string> = {
 
 // Available voices (Burmese)
 const VOICES = [
-  { 
-    id: 'my-MM-NilarNeural', 
-    name: 'Nilar', 
-    gender: 'female' as const, 
+  {
+    id: 'my-MM-NilarNeural',
+    name: 'Nilar',
+    gender: 'female' as const,
     description: 'Female Voice',
     isPopular: true,
   },
-  { 
-    id: 'my-MM-ThihaNeural', 
-    name: 'Thiha', 
-    gender: 'male' as const, 
+  {
+    id: 'my-MM-ThihaNeural',
+    name: 'Thiha',
+    gender: 'male' as const,
     description: 'Male Voice',
     isPopular: false,
   },
@@ -70,7 +70,7 @@ export function Step1Input() {
   const [playingVoice, setPlayingVoice] = useState<string | null>(null);
   const [loadingVoice, setLoadingVoice] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  
+
   const isValidShorts = isYoutubeShortsUrl(sourceUrl);
   const isRegularYoutube = isRegularYoutubeUrl(sourceUrl) && !isValidShorts;
   const showError = urlTouched && sourceUrl && !isValidShorts;
@@ -137,31 +137,31 @@ export function Step1Input() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 lg:space-y-4">
       {/* Section Header */}
       <div>
-        <h2 className="text-xl font-semibold flex items-center gap-2">
+        <h2 className="text-lg lg:text-base font-semibold flex items-center gap-2">
           🎬 Video အချက်အလက်
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           YouTube Shorts URL ထည့်ပြီး Voice ရွေးချယ်ပါ
         </p>
       </div>
 
       {/* YouTube URL Input */}
-      <div className="space-y-3">
-        <Label htmlFor="url" className="text-base font-medium">
+      <div className="space-y-2">
+        <Label htmlFor="url" className="text-sm font-medium">
           YouTube Shorts URL
         </Label>
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Link2 className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+            <Link2 className="absolute left-3 top-2.5 lg:top-2 h-4 w-4 text-muted-foreground" />
             <Input
               id="url"
               type="url"
               placeholder="https://www.youtube.com/shorts/..."
               className={cn(
-                "pl-10 h-12 text-base",
+                "pl-9 h-10 lg:h-9 text-sm",
                 isValidShorts && "border-green-500 focus-visible:ring-green-500",
                 showError && "border-destructive focus-visible:ring-destructive"
               )}
@@ -203,7 +203,7 @@ export function Step1Input() {
             <span className="hidden sm:inline text-sm">Paste</span>
           </button>
         </div>
-        
+
         {/* Error Messages */}
         {showError && (
           <div className="flex items-start gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
@@ -233,14 +233,14 @@ export function Step1Input() {
       </div>
 
       {/* Output Language Selection */}
-      <div className="space-y-3">
-        <Label className="text-base font-medium flex items-center gap-2">
+      <div className="space-y-2">
+        <Label className="text-sm font-medium flex items-center gap-2">
           <Languages className="h-4 w-4" />
           Output Language
         </Label>
-        
+
         <Select value={outputLanguage} onValueChange={setOutputLanguage}>
-          <SelectTrigger className="h-12 text-base">
+          <SelectTrigger className="h-10 lg:h-9 text-sm">
             <SelectValue>
               <span className="flex items-center gap-2">
                 <span className="text-lg">{OUTPUT_LANGUAGES.find(l => l.id === outputLanguage)?.flag}</span>
@@ -265,17 +265,17 @@ export function Step1Input() {
       </div>
 
       {/* Voice Selection */}
-      <div className="space-y-3">
-        <Label className="text-base font-medium flex items-center gap-2">
+      <div className="space-y-2">
+        <Label className="text-sm font-medium flex items-center gap-2">
           <Mic className="h-4 w-4" />
           Voice ရွေးချယ်ပါ
         </Label>
-        
+
         {/* Scrollable container for many voices */}
         <RadioGroup
           value={voiceId}
           onValueChange={setVoiceId}
-          className="grid grid-cols-2 gap-3 max-h-[280px] overflow-y-auto pr-1"
+          className="grid grid-cols-2 gap-2 max-h-[220px] lg:max-h-[180px] overflow-y-auto pr-1"
         >
           {VOICES.map((voice) => (
             <div key={voice.id}>
@@ -296,13 +296,13 @@ export function Step1Input() {
                 {/* Avatar */}
                 <div className={cn(
                   "w-12 h-12 rounded-full flex items-center justify-center text-xl flex-shrink-0",
-                  voice.gender === 'female' 
-                    ? "bg-pink-100 dark:bg-pink-900/50" 
+                  voice.gender === 'female'
+                    ? "bg-pink-100 dark:bg-pink-900/50"
                     : "bg-blue-100 dark:bg-blue-900/50"
                 )}>
                   {voice.gender === 'female' ? '👩' : '👨'}
                 </div>
-                
+
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -316,14 +316,14 @@ export function Step1Input() {
                   <span className="text-xs text-muted-foreground block mt-0.5">
                     {voice.description}
                   </span>
-                  
+
                   {/* Play Sample Button */}
                   <button
                     type="button"
                     className={cn(
                       "mt-1.5 flex items-center gap-1 text-xs transition-colors",
-                      playingVoice === voice.id 
-                        ? "text-primary font-medium" 
+                      playingVoice === voice.id
+                        ? "text-primary font-medium"
                         : "text-muted-foreground hover:text-foreground"
                     )}
                     onClick={(e) => {
@@ -350,11 +350,11 @@ export function Step1Input() {
       </div>
 
       {/* Aspect Ratio (Quick Select) */}
-      <div className="space-y-3">
-        <Label className="text-base font-medium">
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">
           📐 Video Format
         </Label>
-        
+
         <div className="flex flex-wrap gap-2">
           {FORMAT_OPTIONS.map((format) => (
             <button

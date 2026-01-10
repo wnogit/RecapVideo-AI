@@ -16,10 +16,10 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
-import { 
-  Shield, 
-  Type, 
-  Image, 
+import {
+  Shield,
+  Type,
+  Image,
   ChevronDown,
   Palette,
   FlipHorizontal,
@@ -76,7 +76,7 @@ export function Step2Styles() {
   const [copyrightOpen, setCopyrightOpen] = useState(true);
   const [subtitleOpen, setSubtitleOpen] = useState(true);
   const [logoOpen, setLogoOpen] = useState(false);
-  
+
   // Logo file input ref
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -99,7 +99,7 @@ export function Step2Styles() {
     }
 
     setIsUploadingLogo(true);
-    
+
     try {
       // Convert to base64 for preview (in real app, upload to server)
       const reader = new FileReader();
@@ -141,7 +141,7 @@ export function Step2Styles() {
 
       {/* Copyright Protection Section */}
       <Collapsible open={copyrightOpen} onOpenChange={setCopyrightOpen}>
-        <CollapsibleTrigger className="flex items-center justify-between w-full p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 lg:p-2.5 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-100 dark:bg-green-950 rounded-lg">
               <Shield className="h-5 w-5 text-green-600" />
@@ -158,7 +158,7 @@ export function Step2Styles() {
             copyrightOpen && "rotate-180"
           )} />
         </CollapsibleTrigger>
-        
+
         <CollapsibleContent className="pt-4 space-y-4">
           {/* Color Adjust */}
           <div className="flex items-center justify-between p-3 rounded-lg border">
@@ -171,7 +171,7 @@ export function Step2Styles() {
             </div>
             <Switch
               checked={copyrightOptions.colorAdjust}
-              onCheckedChange={(checked) => 
+              onCheckedChange={(checked) =>
                 setCopyrightOptions({ ...copyrightOptions, colorAdjust: checked })
               }
             />
@@ -188,7 +188,7 @@ export function Step2Styles() {
             </div>
             <Switch
               checked={copyrightOptions.horizontalFlip}
-              onCheckedChange={(checked) => 
+              onCheckedChange={(checked) =>
                 setCopyrightOptions({ ...copyrightOptions, horizontalFlip: checked })
               }
             />
@@ -205,7 +205,7 @@ export function Step2Styles() {
             </div>
             <Switch
               checked={copyrightOptions.slightZoom}
-              onCheckedChange={(checked) => 
+              onCheckedChange={(checked) =>
                 setCopyrightOptions({ ...copyrightOptions, slightZoom: checked })
               }
             />
@@ -222,7 +222,7 @@ export function Step2Styles() {
             </div>
             <Switch
               checked={copyrightOptions.audioPitchShift}
-              onCheckedChange={(checked) => 
+              onCheckedChange={(checked) =>
                 setCopyrightOptions({ ...copyrightOptions, audioPitchShift: checked })
               }
             />
@@ -232,7 +232,7 @@ export function Step2Styles() {
 
       {/* Subtitle Section */}
       <Collapsible open={subtitleOpen} onOpenChange={setSubtitleOpen}>
-        <CollapsibleTrigger className="flex items-center justify-between w-full p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 lg:p-2.5 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 dark:bg-blue-950 rounded-lg">
               <Type className="h-5 w-5 text-blue-600" />
@@ -247,7 +247,7 @@ export function Step2Styles() {
           <div className="flex items-center gap-2">
             <Switch
               checked={subtitleOptions.enabled}
-              onCheckedChange={(checked) => 
+              onCheckedChange={(checked) =>
                 setSubtitleOptions({ ...subtitleOptions, enabled: checked })
               }
               onClick={(e) => e.stopPropagation()}
@@ -258,7 +258,7 @@ export function Step2Styles() {
             )} />
           </div>
         </CollapsibleTrigger>
-        
+
         <CollapsibleContent className="pt-4 space-y-4">
           {/* Position */}
           <div className="space-y-2">
@@ -268,9 +268,9 @@ export function Step2Styles() {
                 <button
                   key={pos.value}
                   type="button"
-                  onClick={() => setSubtitleOptions({ 
-                    ...subtitleOptions, 
-                    position: pos.value as any 
+                  onClick={() => setSubtitleOptions({
+                    ...subtitleOptions,
+                    position: pos.value as any
                   })}
                   className={cn(
                     "flex-1 py-2 px-3 rounded-lg border text-sm transition-all",
@@ -293,9 +293,9 @@ export function Step2Styles() {
                 <button
                   key={size.value}
                   type="button"
-                  onClick={() => setSubtitleOptions({ 
-                    ...subtitleOptions, 
-                    size: size.value as any 
+                  onClick={() => setSubtitleOptions({
+                    ...subtitleOptions,
+                    size: size.value as any
                   })}
                   className={cn(
                     "flex-1 py-2 px-3 rounded-lg border text-sm transition-all",
@@ -318,9 +318,9 @@ export function Step2Styles() {
                 <button
                   key={bg.value}
                   type="button"
-                  onClick={() => setSubtitleOptions({ 
-                    ...subtitleOptions, 
-                    background: bg.value as any 
+                  onClick={() => setSubtitleOptions({
+                    ...subtitleOptions,
+                    background: bg.value as any
                   })}
                   className={cn(
                     "flex-1 py-2 px-3 rounded-lg border text-sm transition-all",
@@ -361,7 +361,7 @@ export function Step2Styles() {
 
       {/* Logo Section */}
       <Collapsible open={logoOpen} onOpenChange={setLogoOpen}>
-        <CollapsibleTrigger className="flex items-center justify-between w-full p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 lg:p-2.5 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-purple-100 dark:bg-purple-950 rounded-lg">
               <Image className="h-5 w-5 text-purple-600" />
@@ -376,7 +376,7 @@ export function Step2Styles() {
           <div className="flex items-center gap-2">
             <Switch
               checked={logoOptions.enabled}
-              onCheckedChange={(checked) => 
+              onCheckedChange={(checked) =>
                 setLogoOptions({ ...logoOptions, enabled: checked })
               }
               onClick={(e) => e.stopPropagation()}
@@ -387,12 +387,12 @@ export function Step2Styles() {
             )} />
           </div>
         </CollapsibleTrigger>
-        
+
         <CollapsibleContent className="pt-4 space-y-4">
           {/* Logo Upload */}
           <div className="space-y-2">
             <Label className="text-sm">Logo ပုံ</Label>
-            
+
             {/* Hidden file input */}
             <input
               ref={logoInputRef}
@@ -401,7 +401,7 @@ export function Step2Styles() {
               className="hidden"
               onChange={handleLogoUpload}
             />
-            
+
             {/* Upload Area or Preview */}
             {logoOptions.imageUrl ? (
               <div className="relative border-2 border-primary/50 rounded-lg p-4 bg-primary/5">
@@ -430,7 +430,7 @@ export function Step2Styles() {
                 </div>
               </div>
             ) : (
-              <div 
+              <div
                 onClick={() => logoInputRef.current?.click()}
                 className={cn(
                   "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all",
@@ -456,7 +456,7 @@ export function Step2Styles() {
                 )}
               </div>
             )}
-            
+
             {/* Warning if logo enabled but no image */}
             {logoOptions.enabled && !logoOptions.imageUrl && (
               <div className="flex items-start gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg">
@@ -479,9 +479,9 @@ export function Step2Styles() {
                 <button
                   key={pos.value}
                   type="button"
-                  onClick={() => setLogoOptions({ 
-                    ...logoOptions, 
-                    position: pos.value as any 
+                  onClick={() => setLogoOptions({
+                    ...logoOptions,
+                    position: pos.value as any
                   })}
                   className={cn(
                     "py-2 px-3 rounded-lg border text-sm transition-all",
@@ -504,9 +504,9 @@ export function Step2Styles() {
                 <button
                   key={size.value}
                   type="button"
-                  onClick={() => setLogoOptions({ 
-                    ...logoOptions, 
-                    size: size.value as any 
+                  onClick={() => setLogoOptions({
+                    ...logoOptions,
+                    size: size.value as any
                   })}
                   className={cn(
                     "flex-1 py-2 px-3 rounded-lg border text-sm transition-all",
