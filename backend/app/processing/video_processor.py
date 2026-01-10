@@ -85,7 +85,7 @@ class VideoProcessor:
             outro=OutroOptions(
                 enabled=outro_opts.get("enabled", False),
                 platform=outro_opts.get("platform", "youtube"),
-                channel_name=outro_opts.get("channel_name", ""),
+                channel_name=outro_opts.get("channel_name", "") or "RecapVideo",  # Default if empty
                 logo_path=logo_opts.get("image_url") if outro_opts.get("use_logo") else None,
                 duration=outro_opts.get("duration", 5),
             ),
@@ -288,8 +288,8 @@ class VideoProcessor:
         options = video.options or {}
         voice_settings = options.get("voice_settings", {})
         
-        # Default: slow down speech by 10% for better clarity
-        rate = voice_settings.get("rate", "-10%")
+        # Default: normal speech rate (was -10% but too slow)
+        rate = voice_settings.get("rate", "+0%")
         volume = voice_settings.get("volume", "+0%")
         pitch = voice_settings.get("pitch", "+0Hz")
         

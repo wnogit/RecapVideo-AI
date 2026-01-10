@@ -91,133 +91,147 @@ export function LivePreviewCanvas() {
       </CardHeader>
       
       <CardContent className="flex flex-col items-center pb-4">
-        {/* Device Frame */}
+        {/* Clean Preview (no phone frame) */}
         <div className="relative">
-          {/* Phone Frame */}
-          <div className="relative bg-gray-900 rounded-[24px] p-2 shadow-xl">
-            {/* Notch */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-5 bg-gray-900 rounded-b-xl z-10" />
+          {/* Glow effect behind */}
+          <div 
+            className="absolute -inset-3 bg-gradient-to-r from-violet-600/30 to-pink-600/30 blur-xl rounded-3xl"
+            style={{ width: dimensions.width + 24, height: dimensions.height + 24 }}
+          />
+          
+          {/* Video Preview */}
+          <div 
+            className={cn(
+              "relative overflow-hidden shadow-2xl border-2 border-white/10",
+              aspectRatio === '9:16' && "rounded-[20px]",  // Mobile look
+              aspectRatio === '16:9' && "rounded-lg",       // Desktop look
+              aspectRatio === '1:1' && "rounded-xl",        // Instagram square
+              aspectRatio === '4:5' && "rounded-xl",        // Portrait look
+              copyrightOptions.horizontalFlip && "scale-x-[-1]"
+            )}
+            style={{ 
+              width: dimensions.width, 
+              height: dimensions.height,
+              filter: copyrightOptions.colorAdjust 
+                ? 'brightness(1.05) contrast(1.05) saturate(1.1)' 
+                : 'none',
+              transform: `${copyrightOptions.horizontalFlip ? 'scaleX(-1)' : ''} ${copyrightOptions.slightZoom ? 'scale(1.05)' : ''}`,
+            }}
+          >
+            {/* Background gradient */}
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-900 to-pink-900" />
             
-            {/* Screen */}
-            <div 
-              className={cn(
-                "relative rounded-[16px] overflow-hidden bg-gradient-to-br from-violet-900 to-pink-900",
-                copyrightOptions.horizontalFlip && "scale-x-[-1]"
-              )}
-              style={{ 
-                width: dimensions.width, 
-                height: dimensions.height,
-                filter: copyrightOptions.colorAdjust 
-                  ? 'brightness(1.05) contrast(1.05) saturate(1.1)' 
-                  : 'none',
-                transform: `${copyrightOptions.horizontalFlip ? 'scaleX(-1)' : ''} ${copyrightOptions.slightZoom ? 'scale(1.05)' : ''}`,
-              }}
-            >
-              {/* Video Thumbnail or Placeholder */}
-              {thumbnailUrl ? (
-                <img
-                  src={thumbnailUrl}
-                  alt="Video preview"
-                  className="absolute inset-0 w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-              ) : (
-                <div 
-                  className="absolute inset-0 flex items-center justify-center"
-                  style={{ transform: copyrightOptions.horizontalFlip ? 'scaleX(-1)' : 'none' }}
-                >
-                  <div className="text-center text-white/50">
-                    <Smartphone className="h-8 w-8 mx-auto mb-2" />
-                    <p className="text-xs font-myanmar">URL ထည့်ပါ</p>
-                  </div>
+            {/* Video Thumbnail or Placeholder */}
+            {thumbnailUrl ? (
+              <img
+                src={thumbnailUrl}
+                alt="Video preview"
+                className="absolute inset-0 w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            ) : (
+              <div 
+                className="absolute inset-0 flex items-center justify-center"
+                style={{ transform: copyrightOptions.horizontalFlip ? 'scaleX(-1)' : 'none' }}
+              >
+                <div className="text-center text-white/50">
+                  <Smartphone className="h-8 w-8 mx-auto mb-2" />
+                  <p className="text-xs font-myanmar">URL ထည့်ပါ</p>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Copyright Effects Indicator */}
-              {copyrightOptions.horizontalFlip && (
-                <div 
-                  className="absolute top-2 left-2 bg-black/50 text-white text-[8px] px-1.5 py-0.5 rounded flex items-center gap-1"
-                  style={{ transform: 'scaleX(-1)' }} // Flip back for readability
-                >
-                  <FlipHorizontal className="h-2 w-2" />
-                  Flipped
-                </div>
-              )}
+            {/* Copyright Effects Indicator */}
+            {copyrightOptions.horizontalFlip && (
+              <div 
+                className="absolute top-2 left-2 bg-black/50 text-white text-[8px] px-1.5 py-0.5 rounded flex items-center gap-1"
+                style={{ transform: 'scaleX(-1)' }}
+              >
+                <FlipHorizontal className="h-2 w-2" />
+                Flipped
+              </div>
+            )}
 
-              {/* Logo Overlay */}
-              {logoOptions.enabled && (
-                <div 
-                  className={cn(
-                    "absolute z-10",
-                    getLogoPosition()
-                  )}
-                  style={{ 
-                    opacity: logoOptions.opacity / 100,
-                    transform: copyrightOptions.horizontalFlip ? 'scaleX(-1)' : 'none',
-                  }}
-                >
-                  {logoOptions.imageUrl ? (
-                    <img
-                      src={logoOptions.imageUrl}
-                      alt="Logo"
-                      className={cn(
-                        "rounded",
-                        logoOptions.size === 'small' && 'w-6 h-6',
-                        logoOptions.size === 'medium' && 'w-8 h-8',
-                        logoOptions.size === 'large' && 'w-12 h-12',
-                      )}
-                    />
-                  ) : (
-                    <div className={cn(
-                      "bg-white/20 backdrop-blur-sm rounded flex items-center justify-center text-white text-[6px]",
+            {/* Logo Overlay */}
+            {logoOptions.enabled && (
+              <div 
+                className={cn(
+                  "absolute z-10",
+                  getLogoPosition()
+                )}
+                style={{ 
+                  opacity: logoOptions.opacity / 100,
+                  transform: copyrightOptions.horizontalFlip ? 'scaleX(-1)' : 'none',
+                }}
+              >
+                {logoOptions.imageUrl ? (
+                  <img
+                    src={logoOptions.imageUrl}
+                    alt="Logo"
+                    className={cn(
+                      "rounded",
                       logoOptions.size === 'small' && 'w-6 h-6',
                       logoOptions.size === 'medium' && 'w-8 h-8',
                       logoOptions.size === 'large' && 'w-12 h-12',
-                    )}>
-                      LOGO
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Subtitle Overlay */}
-              {subtitleOptions.enabled && (
-                <div 
-                  className={cn(
-                    "absolute left-2 right-2 z-10 text-center",
-                    getSubtitlePosition()
-                  )}
-                  style={{ transform: copyrightOptions.horizontalFlip ? 'scaleX(-1)' : 'none' }}
-                >
-                  <div 
-                    className={cn(
-                      "inline-block px-2 py-1 rounded font-myanmar",
-                      getSubtitleBackground(),
-                      getSubtitleSize()
                     )}
-                    style={{ 
-                      color: subtitleOptions.color,
-                    }}
-                  >
-                    မြန်မာဘာသာ စာတန်း နမူနာ
+                  />
+                ) : (
+                  <div className={cn(
+                    "bg-white/20 backdrop-blur-sm rounded flex items-center justify-center text-white text-[6px]",
+                    logoOptions.size === 'small' && 'w-6 h-6',
+                    logoOptions.size === 'medium' && 'w-8 h-8',
+                    logoOptions.size === 'large' && 'w-12 h-12',
+                  )}>
+                    LOGO
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            )}
 
-              {/* Voice Indicator */}
+            {/* Subtitle Overlay */}
+            {subtitleOptions.enabled && (
               <div 
-                className="absolute bottom-2 left-2 bg-black/50 text-white text-[8px] px-1.5 py-0.5 rounded flex items-center gap-1"
+                className={cn(
+                  "absolute left-2 right-2 z-10 text-center",
+                  getSubtitlePosition()
+                )}
                 style={{ transform: copyrightOptions.horizontalFlip ? 'scaleX(-1)' : 'none' }}
               >
-                🎤 {voiceId.includes('Nilar') ? 'Nilar' : 'Thiha'}
+                <div 
+                  className={cn(
+                    "inline-block px-2 py-1 rounded font-myanmar",
+                    getSubtitleBackground(),
+                    getSubtitleSize()
+                  )}
+                  style={{ 
+                    color: subtitleOptions.color,
+                  }}
+                >
+                  မြန်မာဘာသာ စာတန်း နမူနာ
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Home Indicator */}
-            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-16 h-1 bg-gray-600 rounded-full" />
+            {/* Voice Indicator */}
+            <div 
+              className="absolute bottom-2 left-2 bg-black/50 text-white text-[8px] px-1.5 py-0.5 rounded flex items-center gap-1"
+              style={{ transform: copyrightOptions.horizontalFlip ? 'scaleX(-1)' : 'none' }}
+            >
+              🎤 {voiceId.includes('Nilar') ? 'Nilar' : 'Thiha'}
+            </div>
           </div>
+        </div>
+
+        {/* Platform Label */}
+        <div className="mt-4 text-center">
+          <span className="px-3 py-1.5 bg-muted rounded-full text-xs font-medium">
+            {aspectRatio === '9:16' && '📱 TikTok / Shorts'}
+            {aspectRatio === '16:9' && '🖥️ YouTube'}
+            {aspectRatio === '1:1' && '⬜ Instagram Square'}
+            {aspectRatio === '4:5' && '📷 Instagram Portrait'}
+          </span>
         </div>
 
         {/* Preview Info */}
