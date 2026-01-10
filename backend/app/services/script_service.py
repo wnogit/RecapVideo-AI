@@ -1,5 +1,5 @@
 """
-Script Generation Service - Using Google Gemini
+Script Generation Service - Using Groq (Llama) with Gemini fallback
 
 Generates recap/summary scripts from YouTube transcripts.
 """
@@ -11,7 +11,7 @@ from app.services.api_key_service import api_key_service
 
 
 class ScriptService:
-    """Service for generating recap scripts using Google Gemini."""
+    """Service for generating recap scripts using Groq or Gemini."""
     
     SYSTEM_PROMPT = """You are an expert video content creator specializing in creating 
 engaging recap and summary videos. Your task is to take a YouTube video transcript and 
@@ -30,15 +30,26 @@ Output the script ONLY - no additional commentary or formatting."""
 
     def __init__(self):
         """Initialize script generation service."""
-        self._client = None
+        self._groq_client = None
+        self._gemini_client = None
     
-    async def _get_client(self):
-        """Lazy-load Gemini client with API key from database."""
+    async def _get_groq_client(self):
+        """Lazy-load Groq client with API key from database."""
+        from groq import AsyncGroq
+        
+        api_key = await api_key_service.get_groq_key()
+        if not api_key:
+            return None
+        
+        return AsyncGroq(api_key=api_key)
+    
+    async def _get_gemini_client(self):
+        """Lazy-load Gemini client with API key from database (fallback)."""
         import google.generativeai as genai
         
         api_key = await api_key_service.get_gemini_key()
         if not api_key:
-            raise ValueError("Gemini API key not configured")
+            return None
         
         genai.configure(api_key=api_key)
         return genai.GenerativeModel('gemini-2.0-flash')
@@ -95,16 +106,33 @@ Generate the recap script:
 """
         
         try:
-            # Get client with API key from database
-            client = await self._get_client()
+            # Try Groq first (faster and better free tier)
+            groq_client = await self._get_groq_client()
+            if groq_client:
+                logger.info("Using Groq (Llama 3.3) for script generation")
+                response = await groq_client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[
+                        {"role": "system", "content": self.SYSTEM_PROMPT},
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=2000,
+                    temperature=0.7,
+                )
+                script = response.choices[0].message.content.strip()
+                logger.info(f"Script generated successfully with Groq: {len(script)} chars")
+                return script
             
-            # Call Gemini API
-            response = await client.generate_content_async(prompt)
+            # Fallback to Gemini
+            gemini_client = await self._get_gemini_client()
+            if gemini_client:
+                logger.info("Using Gemini for script generation (fallback)")
+                response = await gemini_client.generate_content_async(prompt)
+                script = response.text.strip()
+                logger.info(f"Script generated successfully with Gemini: {len(script)} chars")
+                return script
             
-            script = response.text.strip()
-            
-            logger.info(f"Script generated successfully: {len(script)} chars")
-            return script
+            raise ValueError("No AI API key configured (Groq or Gemini)")
             
         except Exception as e:
             logger.error(f"Script generation failed: {e}")
@@ -139,9 +167,23 @@ Output the improved script ONLY:
 """
         
         try:
-            client = await self._get_client()
-            response = await client.generate_content_async(prompt)
-            return response.text.strip()
+            # Try Groq first
+            groq_client = await self._get_groq_client()
+            if groq_client:
+                response = await groq_client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=2000,
+                )
+                return response.choices[0].message.content.strip()
+            
+            # Fallback to Gemini
+            gemini_client = await self._get_gemini_client()
+            if gemini_client:
+                response = await gemini_client.generate_content_async(prompt)
+                return response.text.strip()
+            
+            raise ValueError("No AI API key configured")
         except Exception as e:
             logger.error(f"Script improvement failed: {e}")
             raise
