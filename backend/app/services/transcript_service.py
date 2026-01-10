@@ -102,6 +102,8 @@ class TranscriptService:
         """
         Get basic video information.
         
+        Uses TranscriptAPI with metadata first, falls back to yt-dlp if needed.
+        
         Returns:
             Dict with video info including title, thumbnail, duration
         """
@@ -110,8 +112,39 @@ class TranscriptService:
         if not video_id:
             raise ValueError("Invalid YouTube URL")
         
-        # For now, use yt-dlp for video info
-        # TranscriptAPI might also provide this
+        # Try TranscriptAPI with metadata first (avoids YouTube bot detection)
+        try:
+            api_key = await self._get_api_key()
+            
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(
+                    f"{self.base_url}/api/v2/youtube/transcript",
+                    params={
+                        "video_url": video_id,
+                        "format": "json",
+                        "include_timestamp": "true",
+                        "send_metadata": "true",
+                    },
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                    },
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    # TranscriptAPI returns metadata when send_metadata=true
+                    return {
+                        "video_id": video_id,
+                        "title": data.get("title", f"YouTube Video {video_id}"),
+                        "thumbnail": data.get("thumbnail", f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg"),
+                        "duration": data.get("duration", 0),
+                        "uploader": data.get("channel_name", data.get("uploader")),
+                        "view_count": data.get("view_count"),
+                    }
+        except Exception as e:
+            logger.warning(f"TranscriptAPI metadata fetch failed, trying yt-dlp: {e}")
+        
+        # Fallback to yt-dlp (may fail due to bot detection)
         try:
             import yt_dlp
             
@@ -134,8 +167,16 @@ class TranscriptService:
                 }
                 
         except Exception as e:
-            logger.error(f"Failed to get video info: {e}")
-            raise
+            logger.warning(f"yt-dlp also failed: {e}")
+            # Return basic info if both fail
+            return {
+                "video_id": video_id,
+                "title": f"YouTube Video {video_id}",
+                "thumbnail": f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg",
+                "duration": 0,
+                "uploader": None,
+                "view_count": None,
+            }
 
 
 # Singleton instance
