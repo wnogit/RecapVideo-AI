@@ -4,9 +4,17 @@
  * Video Creation Page - Multi-Step Stepper
  * A dedicated page for creating new videos with a streamlined 3-step process
  */
+import { useRouter } from 'next/navigation';
 import { StepperVideoForm } from '@/components/video/stepper-video-form';
 
 export default function CreateVideoPage() {
+  const router = useRouter();
+
+  const handleSuccess = () => {
+    // Video ဖန်တီးပြီးရင် dashboard ကို redirect လုပ်မယ်
+    router.push('/dashboard');
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -18,7 +26,7 @@ export default function CreateVideoPage() {
       </div>
 
       {/* Stepper Video Form */}
-      <StepperVideoForm />
+      <StepperVideoForm onSuccess={handleSuccess} />
     </div>
   );
 }
