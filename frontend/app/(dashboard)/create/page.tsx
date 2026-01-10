@@ -8,16 +8,8 @@ import { StepperVideoForm } from '@/components/video/stepper-video-form';
 
 export default function CreateVideoPage() {
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold">🎬 Video အသစ်ဖန်တီးရန်</h1>
-        <p className="text-muted-foreground mt-1">
-          YouTube Shorts ကို မြန်မာဘာသာ ပြန်ဆို Video အဖြစ် ပြောင်းလဲပါ
-        </p>
-      </div>
-
-      {/* Stepper Video Form */}
+    <div className="space-y-4">
+      {/* Stepper Video Form (header is now inside) */}
       <StepperVideoForm />
     </div>
   );

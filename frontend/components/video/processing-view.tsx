@@ -74,101 +74,106 @@ export function ProcessingView({
   };
 
   return (
-    <Card className="max-w-md mx-auto">
-      <CardContent className="p-6 space-y-6">
+    <Card className="max-w-4xl mx-auto">
+      <CardContent className="p-4 lg:p-6">
         {/* Header */}
-        <div className="text-center">
+        <div className="text-center mb-4">
           <h3 className="text-lg font-semibold">🎬 Video ဖန်တီးနေပါတယ်</h3>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-1 truncate">
             {title || 'သင့် Video ကို ပြင်ဆင်နေပါတယ်...'}
           </p>
         </div>
 
-        {/* Skeleton Video Preview */}
-        <div className="relative aspect-[9/16] max-h-64 bg-muted rounded-lg overflow-hidden mx-auto">
-          {thumbnail ? (
-            <Image
-              src={thumbnail}
-              alt={title || 'Video'}
-              fill
-              className="object-cover opacity-50"
-              unoptimized
-            />
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/20 to-pink-500/20 animate-pulse" />
-          )}
-          {/* Overlay with loading animation */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-black/50 backdrop-blur-sm rounded-full p-4">
-              <Loader2 className="h-8 w-8 animate-spin text-white" />
+        {/* Main Content - Desktop: Side by Side, Mobile: Stacked */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Left: Processing Steps */}
+          <div className="order-2 lg:order-1 space-y-3">
+            {/* Step Indicators */}
+            <div className="space-y-1.5">
+              {PROCESSING_STEPS.map((step, index) => {
+                const isCompleted = index < currentStepIndex;
+                const isCurrent = index === currentStepIndex;
+
+                return (
+                  <div
+                    key={step.status}
+                    className={`flex items-center gap-2 py-1.5 px-2 rounded-lg transition-all ${isCurrent ? 'bg-primary/10' : ''
+                      }`}
+                  >
+                    {/* Status Icon */}
+                    <div className={`flex-shrink-0 ${isCompleted ? 'text-green-500' :
+                        isCurrent ? 'text-primary' :
+                          'text-muted-foreground'
+                      }`}>
+                      {isCompleted ? (
+                        <Check className="h-4 w-4" />
+                      ) : isCurrent ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Circle className="h-4 w-4" />
+                      )}
+                    </div>
+
+                    {/* Label */}
+                    <span className={`text-sm ${isCompleted ? 'text-green-600 dark:text-green-400' :
+                        isCurrent ? 'text-foreground font-medium' :
+                          'text-muted-foreground'
+                      }`}>
+                      {step.icon} {step.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Progress Bar */}
+            <div className="space-y-1.5 pt-2">
+              <Progress value={progress} className="h-2" />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{progress}% ပြီးပါပြီ</span>
+                {estimatedTime && estimatedTime > 0 && (
+                  <span>⏱️ {formatTime(estimatedTime)}</span>
+                )}
+              </div>
+            </div>
+
+            {/* Status Message */}
+            {statusMessage && (
+              <p className="text-center text-xs text-muted-foreground">
+                {statusMessage}
+              </p>
+            )}
+          </div>
+
+          {/* Right: Preview */}
+          <div className="order-1 lg:order-2">
+            {/* Video Preview */}
+            <div className="relative aspect-[9/16] max-h-52 lg:max-h-64 bg-muted rounded-lg overflow-hidden mx-auto">
+              {thumbnail ? (
+                <Image
+                  src={thumbnail}
+                  alt={title || 'Video'}
+                  fill
+                  className="object-cover opacity-50"
+                  unoptimized
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-violet-500/20 to-pink-500/20 animate-pulse" />
+              )}
+              {/* Overlay with loading animation */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="bg-black/50 backdrop-blur-sm rounded-full p-3">
+                  <Loader2 className="h-6 w-6 animate-spin text-white" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Step Indicators */}
-        <div className="space-y-2">
-          {PROCESSING_STEPS.map((step, index) => {
-            const isCompleted = index < currentStepIndex;
-            const isCurrent = index === currentStepIndex;
-            const isPending = index > currentStepIndex;
-
-            return (
-              <div
-                key={step.status}
-                className={`flex items-center gap-3 py-1.5 px-3 rounded-lg transition-all ${
-                  isCurrent ? 'bg-primary/10' : ''
-                }`}
-              >
-                {/* Status Icon */}
-                <div className={`flex-shrink-0 ${
-                  isCompleted ? 'text-green-500' : 
-                  isCurrent ? 'text-primary' : 
-                  'text-muted-foreground'
-                }`}>
-                  {isCompleted ? (
-                    <Check className="h-5 w-5" />
-                  ) : isCurrent ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Circle className="h-5 w-5" />
-                  )}
-                </div>
-                
-                {/* Label */}
-                <span className={`text-sm ${
-                  isCompleted ? 'text-green-600 dark:text-green-400' :
-                  isCurrent ? 'text-foreground font-medium' :
-                  'text-muted-foreground'
-                }`}>
-                  {step.icon} {step.label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Progress Bar */}
-        <div className="space-y-2">
-          <Progress value={progress} className="h-3" />
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span>{progress}% ပြီးပါပြီ</span>
-            {estimatedTime && estimatedTime > 0 && (
-              <span>⏱️ {formatTime(estimatedTime)}</span>
-            )}
-          </div>
-        </div>
-
-        {/* Status Message */}
-        {statusMessage && (
-          <p className="text-center text-sm text-muted-foreground">
-            {statusMessage}
-          </p>
-        )}
-
         {/* Rotating Tip */}
-        <div className="p-4 bg-muted/50 rounded-lg text-center">
-          <div className="flex items-center justify-center gap-2 text-sm">
-            <Lightbulb className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+        <div className="mt-4 p-3 bg-muted/50 rounded-lg text-center">
+          <div className="flex items-center justify-center gap-2 text-xs">
+            <Lightbulb className="h-3 w-3 text-yellow-500 flex-shrink-0" />
             <span className="transition-all duration-300">
               {PROCESSING_TIPS[tipIndex]}
             </span>
@@ -178,7 +183,8 @@ export function ProcessingView({
         {/* Cancel Button */}
         <Button
           variant="outline"
-          className="w-full"
+          size="sm"
+          className="w-full mt-4"
           onClick={onCancel}
         >
           <X className="h-4 w-4 mr-2" />

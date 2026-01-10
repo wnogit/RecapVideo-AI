@@ -40,7 +40,7 @@ export function StepperVideoForm({ onSuccess }: StepperVideoFormProps) {
   const [direction, setDirection] = useState(0); // -1 for back, 1 for forward
   const [createdVideo, setCreatedVideo] = useState<Video | null>(null);
   const [pollingVideo, setPollingVideo] = useState<Video | null>(null);
-  
+
   const {
     currentStep,
     isStep1Valid,
@@ -136,7 +136,7 @@ export function StepperVideoForm({ onSuccess }: StepperVideoFormProps) {
   // Handle cancel video
   const handleCancelVideo = async () => {
     if (!createdVideo) return;
-    
+
     try {
       await videoApi.delete(createdVideo.id);
       setCreatedVideo(null);
@@ -208,8 +208,8 @@ export function StepperVideoForm({ onSuccess }: StepperVideoFormProps) {
 
             <div className="space-y-2">
               {displayVideo.video_url && (
-                <Button 
-                  className="w-full" 
+                <Button
+                  className="w-full"
                   onClick={() => window.open(displayVideo.video_url, '_blank')}
                 >
                   ⬇️ Download Video
@@ -250,79 +250,79 @@ export function StepperVideoForm({ onSuccess }: StepperVideoFormProps) {
 
   return (
     <div className="w-full max-w-6xl mx-auto">
-      {/* Step Indicator */}
-      <nav aria-label="Progress" className="mb-8">
-        <ol className="flex items-center justify-center">
-          {STEPS.map((step, stepIdx) => (
-            <li key={step.id} className={cn(
-              "relative",
-              stepIdx !== STEPS.length - 1 ? "pr-8 sm:pr-20" : ""
-            )}>
-              {/* Connector Line */}
-              {stepIdx !== STEPS.length - 1 && (
-                <div className="absolute top-4 left-8 -right-4 sm:left-12 sm:-right-8 h-0.5">
-                  <div className={cn(
-                    "h-full transition-colors duration-300",
-                    step.id < currentStep ? "bg-primary" : "bg-muted"
-                  )} />
-                </div>
-              )}
-              
-              {/* Step Circle */}
-              <button
-                onClick={() => {
-                  // Only allow going back or to completed steps
-                  if (step.id < currentStep) {
-                    handleSetStep(step.id as 1 | 2 | 3);
-                  }
-                }}
-                className={cn(
-                  "relative flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300",
-                  step.id < currentStep 
-                    ? "bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90" 
-                    : step.id === currentStep 
-                    ? "bg-primary text-primary-foreground ring-4 ring-primary/20" 
-                    : "bg-muted text-muted-foreground cursor-not-allowed"
+      {/* Header + Step Indicator - Inline on desktop, stacked on mobile */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+        {/* Title */}
+        <h1 className="text-xl lg:text-2xl font-bold">🎬 Video အသစ်ဖန်တီးရန်</h1>
+
+        {/* Stepper */}
+        <nav aria-label="Progress">
+          <ol className="flex items-center">
+            {STEPS.map((step, stepIdx) => (
+              <li key={step.id} className={cn(
+                "relative flex items-center",
+                stepIdx !== STEPS.length - 1 ? "pr-6 sm:pr-10" : ""
+              )}>
+                {/* Connector Line */}
+                {stepIdx !== STEPS.length - 1 && (
+                  <div className="absolute top-3 left-7 -right-2 sm:left-9 sm:-right-4 h-0.5">
+                    <div className={cn(
+                      "h-full transition-colors duration-300",
+                      step.id < currentStep ? "bg-primary" : "bg-muted"
+                    )} />
+                  </div>
                 )}
-              >
-                {step.id < currentStep ? (
-                  <Check className="w-4 h-4" />
-                ) : (
-                  <span className="text-sm font-medium">{step.id}</span>
-                )}
-              </button>
-              
-              {/* Step Label */}
-              <div className="mt-2 text-center">
+
+                {/* Step Circle */}
+                <button
+                  onClick={() => {
+                    if (step.id < currentStep) {
+                      handleSetStep(step.id as 1 | 2 | 3);
+                    }
+                  }}
+                  className={cn(
+                    "relative flex items-center justify-center w-6 h-6 rounded-full transition-all duration-300 text-xs",
+                    step.id < currentStep
+                      ? "bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90"
+                      : step.id === currentStep
+                        ? "bg-primary text-primary-foreground ring-2 ring-primary/20"
+                        : "bg-muted text-muted-foreground cursor-not-allowed"
+                  )}
+                >
+                  {step.id < currentStep ? (
+                    <Check className="w-3 h-3" />
+                  ) : (
+                    <span className="text-xs font-medium">{step.id}</span>
+                  )}
+                </button>
+
+                {/* Step Label */}
                 <span className={cn(
-                  "text-sm font-medium block",
+                  "ml-2 text-sm font-medium hidden sm:block",
                   step.id <= currentStep ? "text-foreground" : "text-muted-foreground"
                 )}>
-                  {step.icon} {step.name}
+                  {step.name}
                 </span>
-                <span className="text-xs text-muted-foreground hidden sm:block">
-                  {step.description}
-                </span>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </nav>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      </div>
 
       {/* Error Display */}
       {error && (
-        <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-center">
+        <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-center text-sm">
           {error}
         </div>
       )}
 
       {/* Main Content - Desktop: Side by Side, Mobile: Stacked */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Left: Form Steps */}
         <Card className="order-2 lg:order-1">
-          <CardContent className="p-6">
+          <CardContent className="p-4 lg:p-5">
             {/* Step Content with Animation */}
-            <div className="min-h-[400px] relative overflow-hidden">
+            <div className="min-h-[320px] relative overflow-hidden">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={currentStep}
@@ -339,7 +339,7 @@ export function StepperVideoForm({ onSuccess }: StepperVideoFormProps) {
             </div>
 
             {/* Navigation Buttons */}
-            <div className="flex items-center justify-between pt-6 border-t mt-6">
+            <div className="flex items-center justify-between pt-4 border-t mt-4">
               {/* Back Button */}
               <motion.div whileTap={{ scale: 0.95 }}>
                 <Button
