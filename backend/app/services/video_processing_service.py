@@ -394,41 +394,67 @@ class VideoProcessingService:
         pitch_shift: bool,
         work_dir: Path,
     ) -> str:
-        """Replace video audio with TTS audio."""
+        """Replace video audio with TTS audio, looping video if needed."""
         output_path = work_dir / "with_audio.mp4"
         
-        # Get video duration
+        # Get durations
         video_duration = await self._get_duration(video_path)
         audio_duration = await self._get_duration(audio_path)
         
-        # Build command
+        logger.info(f"Video duration: {video_duration}s, Audio duration: {audio_duration}s")
+        
+        # If audio is longer than video, loop video to match audio length
+        current_video = video_path
+        if audio_duration > video_duration:
+            logger.info(f"Audio longer than video, looping video to match audio length")
+            looped_path = work_dir / "looped_video.mp4"
+            
+            # Calculate how many times to loop
+            loop_count = int(audio_duration / video_duration) + 1
+            
+            # Create looped video using stream_loop
+            loop_cmd = [
+                self.ffmpeg_path, "-y",
+                "-stream_loop", str(loop_count),
+                "-i", video_path,
+                "-t", str(audio_duration + 1),  # Slightly longer than audio
+                "-c:v", "libx264",
+                "-preset", "fast",
+                "-crf", "23",
+                "-an",  # Remove audio for now
+                str(looped_path)
+            ]
+            await self._run_ffmpeg(loop_cmd)
+            current_video = str(looped_path)
+        
+        # Build command - use audio duration as target
         if pitch_shift:
             # Apply pitch shift (+3%)
             audio_filter = "asetrate=44100*1.03,aresample=44100"
             cmd = [
                 self.ffmpeg_path, "-y",
-                "-i", video_path,
+                "-i", current_video,
                 "-i", audio_path,
                 "-filter_complex", f"[1:a]{audio_filter}[a]",
                 "-map", "0:v",
                 "-map", "[a]",
-                "-c:v", "copy",
+                "-c:v", "copy" if current_video == video_path else "libx264",
                 "-c:a", "aac",
                 "-b:a", "192k",
-                "-shortest",
+                "-t", str(audio_duration),  # Use audio duration instead of -shortest
                 str(output_path)
             ]
         else:
             cmd = [
                 self.ffmpeg_path, "-y",
-                "-i", video_path,
+                "-i", current_video,
                 "-i", audio_path,
                 "-map", "0:v",
                 "-map", "1:a",
-                "-c:v", "copy",
+                "-c:v", "copy" if current_video == video_path else "libx264",
                 "-c:a", "aac",
                 "-b:a", "192k",
-                "-shortest",
+                "-t", str(audio_duration),  # Use audio duration instead of -shortest
                 str(output_path)
             ]
         
@@ -519,18 +545,26 @@ Style: Default,Pyidaungsu,{font_size},{ass_color},&H000000FF,&H00000000,&H800000
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
         
-        # Parse VTT using webvtt-py library (robust parsing)
-        try:
-            for caption in webvtt.read(subtitle_path):
-                start = self._time_to_ass(caption.start)
-                end = self._time_to_ass(caption.end)
-                # Replace newlines with ASS line break
-                text = caption.text.replace("\n", "\\N")
-                ass_content += f"Dialogue: 0,{start},{end},Default,,0,0,0,,{text}\n"
-        except Exception as e:
-            logger.warning(f"webvtt-py parsing failed, using fallback: {e}")
-            # Fallback to manual parsing
+        # Check if it's SRT format (edge-tts generates SRT, not VTT)
+        is_srt = subtitle_path.lower().endswith('.srt')
+        
+        # For SRT files, use fallback parser directly (webvtt-py only handles VTT)
+        if is_srt:
+            logger.info("Using SRT parser for subtitle file")
             ass_content = self._parse_vtt_fallback(subtitle_path, ass_content)
+        else:
+            # Parse VTT using webvtt-py library
+            try:
+                for caption in webvtt.read(subtitle_path):
+                    start = self._time_to_ass(caption.start)
+                    end = self._time_to_ass(caption.end)
+                    # Replace newlines with ASS line break
+                    text = caption.text.replace("\n", "\\N")
+                    ass_content += f"Dialogue: 0,{start},{end},Default,,0,0,0,,{text}\n"
+            except Exception as e:
+                logger.warning(f"webvtt-py parsing failed, using fallback: {e}")
+                # Fallback to manual parsing
+                ass_content = self._parse_vtt_fallback(subtitle_path, ass_content)
         
         with open(ass_path, "w", encoding="utf-8") as f:
             f.write(ass_content)
