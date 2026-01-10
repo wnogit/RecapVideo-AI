@@ -281,12 +281,26 @@ class VideoProcessor:
         return script
     
     async def _generate_audio(self, video: Video) -> tuple[str, str | None]:
-        """Generate audio using Edge-TTS."""
+        """Generate audio using Edge-TTS with proper rate settings."""
         logger.info(f"Generating audio with voice: {video.voice_type}")
+        
+        # Get voice settings from video options
+        options = video.options or {}
+        voice_settings = options.get("voice_settings", {})
+        
+        # Default: slow down speech by 10% for better clarity
+        rate = voice_settings.get("rate", "-10%")
+        volume = voice_settings.get("volume", "+0%")
+        pitch = voice_settings.get("pitch", "+0Hz")
+        
+        logger.info(f"TTS settings - rate: {rate}, volume: {volume}, pitch: {pitch}")
         
         audio_path, subtitle_path = await edge_tts_service.synthesize(
             text=video.script,
             voice=video.voice_type,
+            rate=rate,
+            volume=volume,
+            pitch=pitch,
         )
         
         return audio_path, subtitle_path

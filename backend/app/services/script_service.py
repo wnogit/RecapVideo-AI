@@ -2,31 +2,31 @@
 Script Generation Service - Using Groq (Llama) with Gemini fallback
 
 Generates recap/summary scripts from YouTube transcripts.
+Uses custom prompts from database (Admin configurable).
 """
 from typing import Optional
 from loguru import logger
 
 from app.core.config import settings
 from app.services.api_key_service import api_key_service
+from app.services.prompt_service import prompt_service
 
 
 class ScriptService:
     """Service for generating recap scripts using Groq or Gemini."""
     
-    SYSTEM_PROMPT = """You are an expert video content creator specializing in creating 
-engaging recap and summary videos. Your task is to take a YouTube video transcript and 
-create a compelling, informative script for a recap video.
+    # Fallback system prompt (used if no database prompt found)
+    DEFAULT_SYSTEM_PROMPT = """You are an expert video content creator. 
+Create a compelling, engaging recap script from the transcript.
 
 Guidelines:
-1. Keep the script concise but comprehensive
-2. Maintain the key points and most important information
-3. Use engaging language that works well for voiceover
-4. Structure the content logically with a clear introduction, main points, and conclusion
-5. The script should be suitable for text-to-speech conversion
-6. Avoid overly complex sentences that are hard to speak
-7. Target length: 2-5 minutes of speaking time (300-750 words)
+1. Keep it concise (60-90 seconds speaking time for TTS)
+2. Use SHORT sentences - each sentence should be 10-15 words max
+3. Natural conversational tone
+4. Break long paragraphs into smaller chunks
+5. Avoid complex punctuation
 
-Output the script ONLY - no additional commentary or formatting."""
+Output the script ONLY - no commentary."""
 
     def __init__(self):
         """Initialize script generation service."""
@@ -78,20 +78,31 @@ Output the script ONLY - no additional commentary or formatting."""
         logger.info(f"Generating script for: {video_title or 'Unknown video'}")
         logger.debug(f"Transcript length: {len(transcript)} chars")
         
-        # Build prompt
-        language_instruction = ""
-        if target_language == "my":
-            language_instruction = "Write the script in Burmese (မြန်မာဘာသာ)."
-        elif target_language == "th":
-            language_instruction = "Write the script in Thai (ภาษาไทย)."
-        elif target_language == "zh":
-            language_instruction = "Write the script in Chinese (中文)."
-        else:
-            language_instruction = "Write the script in English."
+        # Try to load prompt from database
+        prompt_key, db_prompt = await prompt_service.get_active_script_prompt(target_language)
+        logger.info(f"Using prompt: {prompt_key}")
         
-        prompt = f"""
-{self.SYSTEM_PROMPT}
-
+        if db_prompt:
+            # Use database prompt with variable substitution
+            prompt = db_prompt.replace("{transcript}", transcript[:15000])
+            prompt = prompt.replace("{video_title}", video_title or "Unknown")
+            prompt = prompt.replace("{style}", style)
+            prompt = prompt.replace("{max_length}", str(max_length))
+            system_prompt = self.DEFAULT_SYSTEM_PROMPT
+        else:
+            # Fallback to hardcoded prompt
+            language_instruction = ""
+            if target_language == "my":
+                language_instruction = "Write the script in Burmese (မြန်မာဘာသာ). Use SHORT sentences (10-15 words each) for TTS."
+            elif target_language == "th":
+                language_instruction = "Write the script in Thai (ภาษาไทย)."
+            elif target_language == "zh":
+                language_instruction = "Write the script in Chinese (中文)."
+            else:
+                language_instruction = "Write the script in English."
+            
+            system_prompt = self.DEFAULT_SYSTEM_PROMPT
+            prompt = f"""
 Video Title: {video_title or "Unknown"}
 Style: {style}
 Maximum Words: {max_length}
@@ -99,10 +110,10 @@ Maximum Words: {max_length}
 
 Original Transcript:
 ---
-{transcript[:15000]}  # Limit transcript length
+{transcript[:15000]}
 ---
 
-Generate the recap script:
+Generate the recap script (SHORT sentences only, suitable for TTS):
 """
         
         try:
@@ -113,7 +124,7 @@ Generate the recap script:
                 response = await groq_client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
                     messages=[
-                        {"role": "system", "content": self.SYSTEM_PROMPT},
+                        {"role": "system", "content": system_prompt},
                         {"role": "user", "content": prompt}
                     ],
                     max_tokens=2000,
