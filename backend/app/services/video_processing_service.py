@@ -30,6 +30,7 @@ class CopyrightOptions:
     horizontal_flip: bool = True
     slight_zoom: bool = False
     audio_pitch_shift: bool = True
+    pitch_value: float = 1.0  # Pitch multiplier (0.5-1.5)
 
 
 @dataclass
@@ -188,7 +189,7 @@ class VideoProcessingService:
                 await progress_callback(55, "Adding voiceover...")
             
             current_video = await self._replace_audio(
-                current_video, audio_path, options.copyright.audio_pitch_shift, work_dir
+                current_video, audio_path, options.copyright.audio_pitch_shift, options.copyright.pitch_value, work_dir
             )
             
             # Step 5: Burn subtitles (if enabled)
@@ -423,6 +424,7 @@ class VideoProcessingService:
         video_path: str,
         audio_path: str,
         pitch_shift: bool,
+        pitch_value: float,
         work_dir: Path,
     ) -> str:
         """Replace video audio with TTS audio, looping video if needed."""
@@ -460,8 +462,10 @@ class VideoProcessingService:
         
         # Build command - use audio duration as target
         if pitch_shift:
-            # Apply pitch shift (+3%)
-            audio_filter = "asetrate=44100*1.03,aresample=44100"
+            # Apply pitch shift with user-defined value (0.5-1.5x)
+            # pitch_value of 1.0 = no change, 0.5 = lower, 1.5 = higher
+            audio_filter = f"asetrate=44100*{pitch_value},aresample=44100"
+            logger.info(f"Applying pitch shift: {pitch_value}x")
             cmd = [
                 self.ffmpeg_path, "-y",
                 "-i", current_video,

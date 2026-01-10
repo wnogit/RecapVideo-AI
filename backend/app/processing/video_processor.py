@@ -66,6 +66,7 @@ class VideoProcessor:
                 horizontal_flip=copyright_opts.get("horizontal_flip", True),
                 slight_zoom=copyright_opts.get("slight_zoom", False),
                 audio_pitch_shift=copyright_opts.get("audio_pitch_shift", True),
+                pitch_value=float(copyright_opts.get("pitch_value", copyright_opts.get("pitchValue", 1.0))),
             ),
             subtitles=SubtitleOptions(
                 enabled=subtitle_opts.get("enabled", True),
