@@ -301,13 +301,16 @@ class VideoProcessor:
         
         output_path = str(self.temp_dir / f"{video.id}_source.mp4")
         
-        # Use yt-dlp to download video
+        # Use yt-dlp to download video with bot detection bypass options
         cmd = [
             "yt-dlp",
             "-f", "best[height<=1080]",
             "-o", output_path,
             "--no-playlist",
             "--no-warnings",
+            "--extractor-args", "youtube:player_client=web_creator",
+            "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "--add-header", "Accept-Language:en-US,en;q=0.9",
             f"https://www.youtube.com/watch?v={video.youtube_id}",
         ]
         
