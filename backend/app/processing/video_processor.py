@@ -301,34 +301,43 @@ class VideoProcessor:
         
         output_path = str(self.temp_dir / f"{video.id}_source.mp4")
         
-        # Use yt-dlp to download video with bot detection bypass options
-        cmd = [
-            "yt-dlp",
-            "-f", "best[height<=1080]",
-            "-o", output_path,
-            "--no-playlist",
-            "--no-warnings",
-            "--extractor-args", "youtube:player_client=web_creator",
-            "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "--add-header", "Accept-Language:en-US,en;q=0.9",
-            f"https://www.youtube.com/watch?v={video.youtube_id}",
-        ]
+        # Use yt-dlp to download video with multiple bypass strategies
+        # Try different player clients to avoid bot detection
+        player_clients = ["android", "ios", "web_creator", "tv_embedded"]
         
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
+        for client in player_clients:
+            cmd = [
+                "yt-dlp",
+                "-f", "best[height<=1080]",
+                "-o", output_path,
+                "--no-playlist",
+                "--no-warnings",
+                "--quiet",
+                "--extractor-args", f"youtube:player_client={client}",
+                "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                f"https://www.youtube.com/watch?v={video.youtube_id}",
+            ]
+            
+            logger.info(f"Trying yt-dlp with player_client={client}")
+            
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            
+            stdout, stderr = await process.communicate()
+            
+            if process.returncode == 0:
+                logger.info(f"Successfully downloaded video using client: {client}")
+                logger.info(f"Downloaded source video to: {output_path}")
+                return output_path
+            else:
+                error_msg = stderr.decode() if stderr else "Unknown error"
+                logger.warning(f"yt-dlp with {client} failed: {error_msg[:200]}")
         
-        stdout, stderr = await process.communicate()
-        
-        if process.returncode != 0:
-            error_msg = stderr.decode() if stderr else "Unknown error"
-            logger.error(f"yt-dlp failed: {error_msg}")
-            raise RuntimeError(f"Failed to download video: {error_msg}")
-        
-        logger.info(f"Downloaded source video to: {output_path}")
-        return output_path
+        # All strategies failed
+        raise RuntimeError(f"Failed to download video after trying all player clients. YouTube may be blocking this video.")
     
     async def _upload_files(
         self,
