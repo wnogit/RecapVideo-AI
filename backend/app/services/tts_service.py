@@ -120,20 +120,16 @@ class EdgeTTSService:
                 pitch=pitch,
             )
             
-            # Generate audio with subtitles using SentenceBoundary for natural breaks
-            # SentenceBoundary creates better subtitle chunks than WordBoundary
+            # Generate audio with subtitles using WordBoundary
+            # Note: edge-tts only emits WordBoundary events, not SentenceBoundary
             submaker = edge_tts.SubMaker()
-            use_sentence_boundary = True  # Use sentence-level subtitles
             
             with open(audio_path, "wb") as audio_file:
                 async for chunk in communicate.stream():
                     if chunk["type"] == "audio":
                         audio_file.write(chunk["data"])
-                    elif chunk["type"] == "SentenceBoundary" and use_sentence_boundary:
-                        # Prefer sentence boundaries for better subtitle readability
-                        submaker.feed(chunk)
-                    elif chunk["type"] == "WordBoundary" and not use_sentence_boundary:
-                        # Fall back to word boundaries if needed
+                    elif chunk["type"] == "WordBoundary":
+                        # WordBoundary provides timing for each word - required for sync
                         submaker.feed(chunk)
             
             # Save subtitles (edge-tts 7.x uses get_srt() instead of generate_subs())

@@ -204,7 +204,7 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
         },
         logo: {
           enabled: state.logoOptions.enabled,
-          image_path: state.logoOptions.imageUrl,
+          image_url: state.logoOptions.imageUrl,
           position: state.logoOptions.position,
           size: state.logoOptions.size,
           opacity: state.logoOptions.opacity,
@@ -213,9 +213,7 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
           enabled: state.outroOptions.enabled,
           platform: state.outroOptions.platform,
           channel_name: state.outroOptions.channelName,
-          logo_path: state.outroOptions.useUploadedLogo && state.logoOptions.imageUrl 
-            ? state.logoOptions.imageUrl 
-            : undefined,
+          use_logo: state.outroOptions.useUploadedLogo && !!state.logoOptions.imageUrl,
           duration: state.outroOptions.duration,
         },
       },

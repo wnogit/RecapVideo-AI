@@ -669,10 +669,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         output_path = work_dir / "outro.mp4"
         width, height = 1080, 1920  # Default 9:16
         
-        # Platform colors and text
+        # Platform colors and text (using visible colors for all platforms)
         platform_config = {
             "youtube": {"color": "0xff0000", "text": "Subscribe လုပ်ပေးပါ", "icon": "🔔"},
-            "tiktok": {"color": "0x000000", "text": "Follow လုပ်ပေးပါ", "icon": "🎵"},
+            "tiktok": {"color": "0x25f4ee", "text": "Follow လုပ်ပေးပါ", "icon": "🎵", "text_color": "black"},  # TikTok cyan
             "facebook": {"color": "0x1877f2", "text": "Page ကို Like လုပ်ပေးပါ", "icon": "👍"},
             "instagram": {"color": "0xe1306c", "text": "Follow လုပ်ပေးပါ", "icon": "📷"},
         }
@@ -690,16 +690,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         channel_text = options.channel_name.replace("'", "'\\''").replace(":", "\\:")
         cta_text = config['text'].replace("'", "'\\''").replace(":", "\\:")
         
-        # Create outro using FFmpeg
-        # Simple text overlay on colored background
-        filter_complex = (
-            f"color=c={config['color']}:s={width}x{height}:d={options.duration}[bg];"
-            f"[bg]drawtext=text='{channel_text}':fontsize=48:fontcolor=white:"
-            f"x=(w-text_w)/2:y=h/2-50{font_opt}[t1];"
-            f"[t1]drawtext=text='{cta_text}':fontsize=36:fontcolor=white:"
-            f"x=(w-text_w)/2:y=h/2+50{font_opt}"
-        )
+        # Get text color (white for dark backgrounds, black for light like TikTok cyan)
+        text_color = config.get('text_color', 'white')
         
+        # Create outro using FFmpeg with text overlay
         cmd = [
             self.ffmpeg_path, "-y",
             "-f", "lavfi",
@@ -707,6 +701,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             "-f", "lavfi",
             "-i", f"anullsrc=r=44100:cl=stereo",
             "-t", str(options.duration),
+            "-vf", (
+                f"drawtext=text='{channel_text}':fontsize=48:fontcolor={text_color}:"
+                f"x=(w-text_w)/2:y=h/2-50{font_opt},"
+                f"drawtext=text='{cta_text}':fontsize=36:fontcolor={text_color}:"
+                f"x=(w-text_w)/2:y=h/2+50{font_opt}"
+            ),
             "-c:v", "libx264",
             "-preset", "fast",
             "-c:a", "aac",
