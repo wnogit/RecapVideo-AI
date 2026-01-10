@@ -5,8 +5,9 @@ These tasks run in Celery workers, not in the FastAPI process.
 This ensures video processing survives server restarts.
 """
 import asyncio
-from celery import shared_task
 from loguru import logger
+
+from app.core.celery_app import celery_app
 
 
 def run_async(coro):
@@ -19,7 +20,7 @@ def run_async(coro):
         loop.close()
 
 
-@shared_task(
+@celery_app.task(
     bind=True,
     name="process_video",
     max_retries=3,
@@ -87,7 +88,7 @@ def process_video_task(self, video_id: str):
         raise
 
 
-@shared_task(name="cleanup_temp_files")
+@celery_app.task(name="cleanup_temp_files")
 def cleanup_temp_files_task():
     """Periodic task to clean up old temporary files."""
     import shutil
