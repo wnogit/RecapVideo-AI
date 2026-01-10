@@ -50,7 +50,7 @@ def process_video_task(self, video_id: str):
         from app.processing.video_processor import VideoProcessor
         
         processor = VideoProcessor()
-        run_async(processor.process(video_id))
+        run_async(processor.process_video(video_id))
         
         logger.info(f"[Celery] Completed video processing: {video_id}")
         return {"status": "completed", "video_id": video_id}
@@ -58,13 +58,14 @@ def process_video_task(self, video_id: str):
     except Exception as e:
         logger.error(f"[Celery] Video processing failed: {video_id}, Error: {e}")
         
-        # Update video status to failed
+        # Update video status to failed and refund credits if max retries reached
         try:
             from app.core.database import async_session_maker
             from app.models.video import Video, VideoStatus
+            from app.models.user import User
             from sqlalchemy import select
             
-            async def mark_failed():
+            async def mark_failed_and_refund():
                 async with async_session_maker() as db:
                     result = await db.execute(
                         select(Video).where(Video.id == video_id)
@@ -73,16 +74,22 @@ def process_video_task(self, video_id: str):
                     if video:
                         video.status = VideoStatus.FAILED.value
                         video.error_message = str(e)
+                        
+                        # Refund credits if max retries reached
+                        if self.request.retries >= self.max_retries:
+                            user_result = await db.execute(
+                                select(User).where(User.id == video.user_id)
+                            )
+                            user = user_result.scalar_one_or_none()
+                            if user and video.credits_used:
+                                user.credits += video.credits_used
+                                logger.info(f"Refunded {video.credits_used} credits to user {user.id}")
+                        
                         await db.commit()
             
-            run_async(mark_failed())
+            run_async(mark_failed_and_refund())
         except Exception as db_error:
             logger.error(f"Failed to update video status: {db_error}")
-        
-        # Check if this is the final retry
-        if self.request.retries >= self.max_retries:
-            logger.warning(f"Max retries reached for video {video_id}, refunding credits")
-            run_async(refund_credits(video_id))
         
         # Re-raise for Celery retry mechanism
         raise
