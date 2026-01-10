@@ -42,8 +42,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Copy application code
 COPY --chown=appuser:appgroup . .
 
-# Create directories
-RUN mkdir -p /tmp/recapvideo && chown appuser:appgroup /tmp/recapvideo
+# Create directories with proper permissions
+RUN mkdir -p /tmp/recapvideo && chmod 777 /tmp/recapvideo
 RUN mkdir -p /app/app/assets/fonts && chown appuser:appgroup /app/app/assets/fonts
 RUN mkdir -p /app/static/payment_screenshots && chown appuser:appgroup /app/static/payment_screenshots
 RUN mkdir -p /app/static/payment_qr && chown appuser:appgroup /app/static/payment_qr

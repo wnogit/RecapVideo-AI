@@ -3,6 +3,7 @@ Edge-TTS Service - FREE Microsoft Neural Text-to-Speech
 
 This service uses edge-tts library to generate high-quality speech
 using Microsoft's Neural TTS voices, completely FREE.
+Falls back to gTTS (Google TTS) if Edge-TTS fails.
 
 Supported voices:
 - my-MM-NilarNeural (Burmese Female)
@@ -18,6 +19,7 @@ from typing import Optional
 import uuid
 
 import edge_tts
+from gtts import gTTS
 from loguru import logger
 
 from app.core.config import settings
@@ -138,12 +140,34 @@ class EdgeTTSService:
             
         except Exception as e:
             logger.error(f"Edge-TTS synthesis failed: {e}")
-            # Cleanup on failure
-            if audio_path.exists():
-                audio_path.unlink()
-            if subtitle_path.exists():
-                subtitle_path.unlink()
-            raise
+            logger.info("Falling back to gTTS (Google Text-to-Speech)")
+            
+            # Fallback to gTTS
+            try:
+                # Map language code for gTTS
+                gtts_lang = language if language in ["en", "th", "zh-CN"] else "en"
+                if language == "my":
+                    # gTTS doesn't support Burmese, use English
+                    gtts_lang = "en"
+                elif language == "zh":
+                    gtts_lang = "zh-CN"
+                
+                tts = gTTS(text=text, lang=gtts_lang, slow=False)
+                tts.save(str(audio_path))
+                
+                logger.info(f"gTTS fallback successful: {audio_path}")
+                
+                # gTTS doesn't generate subtitles, return None for subtitle_path
+                return str(audio_path), None
+                
+            except Exception as gtts_error:
+                logger.error(f"gTTS fallback also failed: {gtts_error}")
+                # Cleanup on failure
+                if audio_path.exists():
+                    audio_path.unlink()
+                if subtitle_path.exists():
+                    subtitle_path.unlink()
+                raise
     
     async def synthesize_simple(
         self,
