@@ -296,16 +296,49 @@ class VideoProcessor:
         Download source video from YouTube.
         
         Uses yt-dlp to download the video for processing.
+        Enhanced with browser impersonation to bypass bot detection.
         """
         logger.info(f"Downloading source video: {video.youtube_id}")
         
         output_path = str(self.temp_dir / f"{video.id}_source.mp4")
         
         # Use yt-dlp to download video with multiple bypass strategies
-        # Try different player clients to avoid bot detection
-        player_clients = ["android", "ios", "web_creator", "tv_embedded"]
+        # Try different player clients and impersonation to avoid bot detection
+        # Using --impersonate requires curl_cffi package for TLS fingerprint spoofing
+        strategies = [
+            # Strategy 1: Chrome impersonation with android client
+            {
+                "client": "android",
+                "impersonate": "chrome",
+            },
+            # Strategy 2: Safari impersonation with web_safari client
+            {
+                "client": "web_safari",
+                "impersonate": "safari",
+            },
+            # Strategy 3: Android client without impersonation
+            {
+                "client": "android",
+                "impersonate": None,
+            },
+            # Strategy 4: iOS client
+            {
+                "client": "ios",
+                "impersonate": None,
+            },
+            # Strategy 5: TV client (often bypasses restrictions)
+            {
+                "client": "tv",
+                "impersonate": None,
+            },
+            # Strategy 6: TV embedded (for age-restricted)
+            {
+                "client": "tv_embedded",
+                "impersonate": None,
+            },
+        ]
         
-        for client in player_clients:
+        for strategy in strategies:
             cmd = [
                 "yt-dlp",
                 "-f", "best[height<=1080]",
@@ -313,12 +346,17 @@ class VideoProcessor:
                 "--no-playlist",
                 "--no-warnings",
                 "--quiet",
-                "--extractor-args", f"youtube:player_client={client}",
+                "--extractor-args", f"youtube:player_client={strategy['client']}",
                 "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                f"https://www.youtube.com/watch?v={video.youtube_id}",
             ]
             
-            logger.info(f"Trying yt-dlp with player_client={client}")
+            # Add impersonation if available (requires curl_cffi)
+            if strategy.get("impersonate"):
+                cmd.extend(["--impersonate", strategy["impersonate"]])
+            
+            cmd.append(f"https://www.youtube.com/watch?v={video.youtube_id}")
+            
+            logger.info(f"Trying yt-dlp: client={strategy['client']}, impersonate={strategy.get('impersonate', 'none')}")
             
             process = await asyncio.create_subprocess_exec(
                 *cmd,
@@ -329,15 +367,15 @@ class VideoProcessor:
             stdout, stderr = await process.communicate()
             
             if process.returncode == 0:
-                logger.info(f"Successfully downloaded video using client: {client}")
+                logger.info(f"Successfully downloaded video: client={strategy['client']}, impersonate={strategy.get('impersonate', 'none')}")
                 logger.info(f"Downloaded source video to: {output_path}")
                 return output_path
             else:
                 error_msg = stderr.decode() if stderr else "Unknown error"
-                logger.warning(f"yt-dlp with {client} failed: {error_msg[:200]}")
+                logger.warning(f"Strategy failed ({strategy['client']}): {error_msg[:200]}")
         
         # All strategies failed
-        raise RuntimeError(f"Failed to download video after trying all player clients. YouTube may be blocking this video.")
+        raise RuntimeError(f"Failed to download video after trying all strategies. YouTube may be blocking this video.")
     
     async def _upload_files(
         self,

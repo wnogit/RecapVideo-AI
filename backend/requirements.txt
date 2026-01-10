@@ -32,11 +32,12 @@ httpx==0.26.0
 aiohttp==3.13.3
 
 # TTS & Processing
-edge-tts==6.1.9
+edge-tts>=7.2.7
 gTTS>=2.5.0
-yt-dlp>=2024.12.6
+yt-dlp>=2025.12.8
 ffmpeg-python==0.2.0
 webvtt-py==0.4.6
+curl_cffi>=0.8.0
 
 # External APIs
 google-generativeai>=0.8.0
