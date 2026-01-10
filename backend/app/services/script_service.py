@@ -41,7 +41,7 @@ Output the script ONLY - no additional commentary or formatting."""
             raise ValueError("Gemini API key not configured")
         
         genai.configure(api_key=api_key)
-        return genai.GenerativeModel('gemini-1.5-flash')
+        return genai.GenerativeModel('gemini-2.0-flash')
     
     async def generate_script(
         self,

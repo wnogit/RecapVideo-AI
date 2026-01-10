@@ -372,7 +372,7 @@ async def test_api_key(
         if api_key.key_type == "gemini":
             import google.generativeai as genai
             genai.configure(api_key=api_key.key_value)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel('gemini-2.0-flash')
             response = model.generate_content("Say hello")
             return {"status": "success", "message": "Gemini API is working"}
         
