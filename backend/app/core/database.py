@@ -64,3 +64,25 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
             raise
         finally:
             await session.close()
+
+
+def create_worker_session_maker():
+    """
+    Create a new async session maker for Celery workers.
+    
+    This creates a fresh engine and session factory that works
+    with the worker's event loop, avoiding the 'attached to a different loop' error.
+    """
+    worker_engine = create_async_engine(
+        settings.DATABASE_URL,
+        echo=settings.DEBUG,
+        pool_pre_ping=True,
+        poolclass=NullPool,  # Use NullPool for workers to avoid connection issues
+    )
+    
+    return async_sessionmaker(
+        worker_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autoflush=False,
+    )

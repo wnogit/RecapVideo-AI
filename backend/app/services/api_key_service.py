@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 
 from app.core.config import settings
-from app.core.database import async_session_maker
+from app.core.database import create_worker_session_maker
 from app.models.api_key import APIKey, APIKeyType
 
 
@@ -58,7 +58,9 @@ class APIKeyService:
             if db:
                 key_value = await self._get_from_db(key_type, db)
             else:
-                async with async_session_maker() as session:
+                # Create worker-safe session factory
+                worker_session = create_worker_session_maker()
+                async with worker_session() as session:
                     key_value = await self._get_from_db(key_type, session)
             
             if key_value:

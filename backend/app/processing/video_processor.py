@@ -22,7 +22,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.database import async_session_maker
+from app.core.database import create_worker_session_maker
 from app.models.video import Video, VideoStatus, DEFAULT_VIDEO_OPTIONS
 from app.models.credit import CreditTransaction, TransactionType
 from app.services.transcript_service import transcript_service
@@ -101,7 +101,10 @@ class VideoProcessor:
         Returns:
             True if processing completed successfully
         """
-        async with async_session_maker() as db:
+        # Create worker-specific session maker to avoid event loop issues
+        worker_session_maker = create_worker_session_maker()
+        
+        async with worker_session_maker() as db:
             video = None
             try:
                 # Get video
