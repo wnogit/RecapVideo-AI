@@ -77,7 +77,7 @@ export interface VideoCreationState {
     output_language: string;
     options: {
       aspect_ratio: string;
-      copyright: Record<string, boolean>;
+      copyright: Record<string, any>;
       subtitles: Record<string, any>;
       logo: Record<string, any>;
       outro: Record<string, any>;
