@@ -212,20 +212,47 @@ export function Step2Styles() {
           </div>
 
           {/* Audio Pitch Shift */}
-          <div className="flex items-center justify-between p-3 rounded-lg border">
-            <div className="flex items-center gap-3">
-              <Music className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">အသံ ပြောင်းလဲခြင်း</p>
-                <p className="text-xs text-muted-foreground">Audio pitch အနည်းငယ် ပြောင်း</p>
+          <div className="space-y-2 p-3 rounded-lg border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Music className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">အသံ ပြောင်းလဲခြင်း</p>
+                  <p className="text-xs text-muted-foreground">Audio pitch ပြောင်း (Copyright bypass)</p>
+                </div>
               </div>
+              <Switch
+                checked={copyrightOptions.audioPitchShift}
+                onCheckedChange={(checked) =>
+                  setCopyrightOptions({ ...copyrightOptions, audioPitchShift: checked })
+                }
+              />
             </div>
-            <Switch
-              checked={copyrightOptions.audioPitchShift}
-              onCheckedChange={(checked) =>
-                setCopyrightOptions({ ...copyrightOptions, audioPitchShift: checked })
-              }
-            />
+
+            {/* Pitch Slider - Show when enabled */}
+            {copyrightOptions.audioPitchShift && (
+              <div className="pt-2 space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Pitch: {copyrightOptions.pitchValue}x</span>
+                  <span className="text-muted-foreground">0.5x - 1.5x</span>
+                </div>
+                <Slider
+                  value={[copyrightOptions.pitchValue]}
+                  onValueChange={([value]) =>
+                    setCopyrightOptions({ ...copyrightOptions, pitchValue: value })
+                  }
+                  min={0.5}
+                  max={1.5}
+                  step={0.1}
+                  className="py-1"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>နိမ့်</span>
+                  <span>ပုံမှန်</span>
+                  <span>မြင့်</span>
+                </div>
+              </div>
+            )}
           </div>
         </CollapsibleContent>
       </Collapsible>

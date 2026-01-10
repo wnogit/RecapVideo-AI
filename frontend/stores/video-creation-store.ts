@@ -22,54 +22,54 @@ export type CreationStep = 1 | 2 | 3;
 export interface VideoCreationState {
   // Current step
   currentStep: CreationStep;
-  
+
   // Step 1: Input
   sourceUrl: string;
   outputLanguage: string;
   voiceId: string;
   aspectRatio: AspectRatio;
-  
+
   // Step 2: Styles
   copyrightOptions: CopyrightOptions;
   subtitleOptions: SubtitleOptions;
   logoOptions: LogoOptions;
-  
+
   // Step 3: Branding
   outroOptions: OutroOptions;
-  
+
   // Validation
   isStep1Valid: boolean;
   isStep2Valid: boolean;
   isStep3Valid: boolean;
-  
+
   // UI State
   isSubmitting: boolean;
   error: string | null;
-  
+
   // Actions
   setStep: (step: CreationStep) => void;
   nextStep: () => void;
   prevStep: () => void;
-  
+
   // Step 1 Actions
   setSourceUrl: (url: string) => void;
   setOutputLanguage: (lang: string) => void;
   setVoiceId: (id: string) => void;
   setAspectRatio: (ratio: AspectRatio) => void;
-  
+
   // Step 2 Actions
   setCopyrightOptions: (options: CopyrightOptions) => void;
   setSubtitleOptions: (options: SubtitleOptions) => void;
   setLogoOptions: (options: LogoOptions) => void;
-  
+
   // Step 3 Actions
   setOutroOptions: (options: OutroOptions) => void;
-  
+
   // Form Actions
   setSubmitting: (isSubmitting: boolean) => void;
   setError: (error: string | null) => void;
   reset: () => void;
-  
+
   // Get all options for submission
   getSubmissionData: () => {
     source_url: string;
@@ -88,33 +88,33 @@ export interface VideoCreationState {
 export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
   // Initial state
   currentStep: 1,
-  
+
   // Step 1
   sourceUrl: '',
   outputLanguage: 'my',
   voiceId: 'my-MM-NilarNeural',
   aspectRatio: '9:16',
-  
+
   // Step 2
   copyrightOptions: DEFAULT_COPYRIGHT_OPTIONS,
   subtitleOptions: DEFAULT_SUBTITLE_OPTIONS,
   logoOptions: DEFAULT_LOGO_OPTIONS,
-  
+
   // Step 3
   outroOptions: DEFAULT_OUTRO_OPTIONS,
-  
+
   // Validation
   isStep1Valid: false,
   isStep2Valid: true, // Always valid (has defaults)
   isStep3Valid: true, // Always valid (has defaults)
-  
+
   // UI State
   isSubmitting: false,
   error: null,
-  
+
   // Step Navigation
   setStep: (step) => set({ currentStep: step }),
-  
+
   nextStep: () => {
     const { currentStep, isStep1Valid, isStep2Valid } = get();
     if (currentStep === 1 && isStep1Valid) {
@@ -123,45 +123,45 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
       set({ currentStep: 3 });
     }
   },
-  
+
   prevStep: () => {
     const { currentStep } = get();
     if (currentStep > 1) {
       set({ currentStep: (currentStep - 1) as CreationStep });
     }
   },
-  
+
   // Step 1 Actions
   setSourceUrl: (url) => {
     const isValid = isYoutubeShortsUrl(url);
     set({ sourceUrl: url, isStep1Valid: isValid });
   },
-  
+
   setOutputLanguage: (lang) => set({ outputLanguage: lang }),
-  
+
   setVoiceId: (id) => set({ voiceId: id }),
-  
+
   setAspectRatio: (ratio) => set({ aspectRatio: ratio }),
-  
+
   // Step 2 Actions
   setCopyrightOptions: (options) => set({ copyrightOptions: options }),
-  
+
   setSubtitleOptions: (options) => set({ subtitleOptions: options }),
-  
+
   setLogoOptions: (options) => {
     // Validate: if logo is enabled, imageUrl must be provided
     const isValid = !options.enabled || (options.enabled && !!options.imageUrl);
     set({ logoOptions: options, isStep2Valid: isValid });
   },
-  
+
   // Step 3 Actions
   setOutroOptions: (options) => set({ outroOptions: options }),
-  
+
   // Form Actions
   setSubmitting: (isSubmitting) => set({ isSubmitting }),
-  
+
   setError: (error) => set({ error }),
-  
+
   reset: () => set({
     currentStep: 1,
     sourceUrl: '',
@@ -178,7 +178,7 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
     isSubmitting: false,
     error: null,
   }),
-  
+
   // Get submission data
   getSubmissionData: () => {
     const state = get();
@@ -193,6 +193,7 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
           horizontal_flip: state.copyrightOptions.horizontalFlip,
           slight_zoom: state.copyrightOptions.slightZoom,
           audio_pitch_shift: state.copyrightOptions.audioPitchShift,
+          pitch_value: state.copyrightOptions.pitchValue,
         },
         subtitles: {
           enabled: state.subtitleOptions.enabled,

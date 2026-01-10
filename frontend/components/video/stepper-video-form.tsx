@@ -250,64 +250,57 @@ export function StepperVideoForm({ onSuccess }: StepperVideoFormProps) {
 
   return (
     <div className="w-full max-w-6xl mx-auto">
-      {/* Header + Step Indicator - Inline on desktop, stacked on mobile */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-        {/* Title */}
-        <h1 className="text-xl lg:text-2xl font-bold">🎬 Video အသစ်ဖန်တီးရန်</h1>
-
-        {/* Stepper */}
-        <nav aria-label="Progress">
-          <ol className="flex items-center">
-            {STEPS.map((step, stepIdx) => (
-              <li key={step.id} className={cn(
-                "relative flex items-center",
-                stepIdx !== STEPS.length - 1 ? "pr-6 sm:pr-10" : ""
-              )}>
-                {/* Connector Line */}
-                {stepIdx !== STEPS.length - 1 && (
-                  <div className="absolute top-3 left-7 -right-2 sm:left-9 sm:-right-4 h-0.5">
-                    <div className={cn(
-                      "h-full transition-colors duration-300",
-                      step.id < currentStep ? "bg-primary" : "bg-muted"
-                    )} />
-                  </div>
+      {/* Centered Step Indicator - Pills with arrows */}
+      <nav aria-label="Progress" className="mb-6">
+        <ol className="flex items-center justify-center gap-2">
+          {STEPS.map((step, stepIdx) => (
+            <li key={step.id} className="flex items-center">
+              {/* Step Pill */}
+              <button
+                onClick={() => {
+                  if (step.id < currentStep) {
+                    handleSetStep(step.id as 1 | 2 | 3);
+                  }
+                }}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300",
+                  step.id < currentStep
+                    ? "bg-primary/20 text-primary cursor-pointer hover:bg-primary/30"
+                    : step.id === currentStep
+                      ? "bg-primary text-primary-foreground shadow-md"
+                      : "bg-muted text-muted-foreground cursor-not-allowed"
                 )}
-
-                {/* Step Circle */}
-                <button
-                  onClick={() => {
-                    if (step.id < currentStep) {
-                      handleSetStep(step.id as 1 | 2 | 3);
-                    }
-                  }}
-                  className={cn(
-                    "relative flex items-center justify-center w-6 h-6 rounded-full transition-all duration-300 text-xs",
-                    step.id < currentStep
-                      ? "bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90"
-                      : step.id === currentStep
-                        ? "bg-primary text-primary-foreground ring-2 ring-primary/20"
-                        : "bg-muted text-muted-foreground cursor-not-allowed"
-                  )}
-                >
+              >
+                {/* Step Number or Check */}
+                <span className={cn(
+                  "flex items-center justify-center w-5 h-5 rounded-full text-xs",
+                  step.id < currentStep
+                    ? "bg-primary text-primary-foreground"
+                    : step.id === currentStep
+                      ? "bg-white/20"
+                      : "bg-muted-foreground/20"
+                )}>
                   {step.id < currentStep ? (
                     <Check className="w-3 h-3" />
                   ) : (
-                    <span className="text-xs font-medium">{step.id}</span>
+                    step.id
                   )}
-                </button>
-
-                {/* Step Label */}
-                <span className={cn(
-                  "ml-2 text-sm font-medium hidden sm:block",
-                  step.id <= currentStep ? "text-foreground" : "text-muted-foreground"
-                )}>
-                  {step.name}
                 </span>
-              </li>
-            ))}
-          </ol>
-        </nav>
-      </div>
+                {/* Step Name */}
+                <span className="hidden sm:inline">{step.name}</span>
+              </button>
+
+              {/* Arrow Separator */}
+              {stepIdx !== STEPS.length - 1 && (
+                <ChevronRight className={cn(
+                  "w-4 h-4 mx-1",
+                  step.id < currentStep ? "text-primary" : "text-muted-foreground"
+                )} />
+              )}
+            </li>
+          ))}
+        </ol>
+      </nav>
 
       {/* Error Display */}
       {error && (

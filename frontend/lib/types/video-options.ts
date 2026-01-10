@@ -37,7 +37,8 @@ export interface CopyrightOptions {
   colorAdjust: boolean;     // Brightness, contrast, saturation adjustment
   horizontalFlip: boolean;  // Mirror the video
   slightZoom: boolean;      // 5% zoom
-  audioPitchShift: boolean; // Audio pitch change ±3%
+  audioPitchShift: boolean; // Audio pitch change enabled
+  pitchValue: number;       // Pitch multiplier (0.5 - 1.5, default 1.0)
 }
 
 export const DEFAULT_COPYRIGHT_OPTIONS: CopyrightOptions = {
@@ -45,6 +46,7 @@ export const DEFAULT_COPYRIGHT_OPTIONS: CopyrightOptions = {
   horizontalFlip: true,
   slightZoom: false,
   audioPitchShift: true,
+  pitchValue: 1.0,
 };
 
 // Subtitle Options
@@ -165,7 +167,7 @@ export interface VideoOptions {
   sourceUrl: string;
   voiceId: string;
   aspectRatio: AspectRatio;
-  
+
   // Advanced Options
   copyright: CopyrightOptions;
   subtitles: SubtitleOptions;

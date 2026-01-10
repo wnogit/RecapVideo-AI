@@ -223,11 +223,14 @@ export function Step1Input() {
           </div>
         )}
 
-        {/* Success Message */}
+        {/* Success Message with YouTube Logo */}
         {isValidShorts && (
-          <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 dark:bg-green-950/20 p-3 rounded-lg">
-            <CheckCircle2 className="h-4 w-4" />
-            <span>URL မှန်ကန်ပါသည် ✓</span>
+          <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 dark:bg-green-950/20 p-2.5 rounded-lg">
+            {/* YouTube Logo SVG */}
+            <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#FF0000" />
+            </svg>
+            <span className="font-medium">YouTube Shorts ✓</span>
           </div>
         )}
       </div>
