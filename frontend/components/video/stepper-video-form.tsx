@@ -35,7 +35,7 @@ interface StepperVideoFormProps {
 }
 
 export function StepperVideoForm({ onSuccess }: StepperVideoFormProps) {
-  const { user, refreshUser } = useAuthStore();
+  const { user } = useAuthStore();
   const { createVideo } = useVideoStore();
   const [direction, setDirection] = useState(0); // -1 for back, 1 for forward
   const [createdVideo, setCreatedVideo] = useState<Video | null>(null);
@@ -78,8 +78,6 @@ export function StepperVideoForm({ onSuccess }: StepperVideoFormProps) {
 
         // Check if completed or failed
         if (video.status === 'completed' || video.status === 'failed') {
-          // Refresh user credits
-          refreshUser();
           return; // Stop polling
         }
       } catch (err) {
@@ -94,7 +92,7 @@ export function StepperVideoForm({ onSuccess }: StepperVideoFormProps) {
     const interval = setInterval(pollStatus, 3000);
 
     return () => clearInterval(interval);
-  }, [createdVideo, refreshUser]);
+  }, [createdVideo]);
 
   // Custom navigation with direction tracking
   const handleNext = () => {
@@ -144,7 +142,6 @@ export function StepperVideoForm({ onSuccess }: StepperVideoFormProps) {
       setCreatedVideo(null);
       setPollingVideo(null);
       reset();
-      refreshUser();
     } catch (err) {
       console.error('Failed to cancel video:', err);
     }
