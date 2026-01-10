@@ -345,12 +345,43 @@ class VideoProcessingService:
     async def _ensure_local_logo(self, logo_path: str, work_dir: Path) -> Optional[str]:
         """
         Ensure logo is available locally.
-        Downloads if it's a URL (http/https), returns path if local.
+        Downloads if it's a URL (http/https), decodes base64, returns path if local.
         """
         import httpx
+        import base64
         
         if not logo_path:
             return None
+        
+        # Check if it's a base64 data URL
+        if logo_path.startswith("data:image/"):
+            try:
+                logger.info("Decoding base64 logo image")
+                # Parse data URL: data:image/png;base64,xxxxx
+                header, data = logo_path.split(",", 1)
+                
+                # Determine extension from header
+                if "png" in header:
+                    ext = ".png"
+                elif "gif" in header:
+                    ext = ".gif"
+                elif "webp" in header:
+                    ext = ".webp"
+                else:
+                    ext = ".jpg"
+                
+                # Decode base64 and save to file
+                local_path = work_dir / f"logo{ext}"
+                image_data = base64.b64decode(data)
+                with open(local_path, "wb") as f:
+                    f.write(image_data)
+                
+                logger.info(f"Base64 logo saved to: {local_path}")
+                return str(local_path)
+                
+            except Exception as e:
+                logger.error(f"Failed to decode base64 logo: {e}")
+                return None
         
         # Check if it's a URL
         if logo_path.startswith(("http://", "https://")):
