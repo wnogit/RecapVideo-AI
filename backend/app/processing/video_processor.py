@@ -302,6 +302,10 @@ class VideoProcessor:
         
         output_path = str(self.temp_dir / f"{video.id}_source.mp4")
         
+        # Check for cookies file
+        cookies_path = "/app/youtube_cookies.txt"
+        has_cookies = Path(cookies_path).exists()
+        
         # Use yt-dlp to download video with multiple bypass strategies
         # Try different player clients and impersonation to avoid bot detection
         # Using --impersonate requires curl_cffi package for TLS fingerprint spoofing
@@ -309,12 +313,12 @@ class VideoProcessor:
             # Strategy 1: Chrome impersonation with android client
             {
                 "client": "android",
-                "impersonate": "chrome",
+                "impersonate": "chrome-131",
             },
             # Strategy 2: Safari impersonation with web_safari client
             {
                 "client": "web_safari",
-                "impersonate": "safari",
+                "impersonate": "safari-18.0",
             },
             # Strategy 3: Android client without impersonation
             {
@@ -347,8 +351,12 @@ class VideoProcessor:
                 "--no-warnings",
                 "--quiet",
                 "--extractor-args", f"youtube:player_client={strategy['client']}",
-                "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
             ]
+            
+            # Add cookies if available
+            if has_cookies:
+                cmd.extend(["--cookies", cookies_path])
             
             # Add impersonation if available (requires curl_cffi)
             if strategy.get("impersonate"):
@@ -374,8 +382,62 @@ class VideoProcessor:
                 error_msg = stderr.decode() if stderr else "Unknown error"
                 logger.warning(f"Strategy failed ({strategy['client']}): {error_msg[:200]}")
         
+        # All yt-dlp strategies failed, try pytubefix as fallback
+        logger.info("yt-dlp failed, trying pytubefix as fallback...")
+        try:
+            output_path = await self._download_with_pytubefix(video)
+            if output_path:
+                return output_path
+        except Exception as e:
+            logger.warning(f"pytubefix also failed: {e}")
+        
         # All strategies failed
         raise RuntimeError(f"Failed to download video after trying all strategies. YouTube may be blocking this video.")
+    
+    async def _download_with_pytubefix(self, video: Video) -> Optional[str]:
+        """
+        Download video using pytubefix library as fallback.
+        pytubefix is a maintained fork of pytube with better YouTube support.
+        """
+        try:
+            from pytubefix import YouTube
+        except ImportError:
+            logger.warning("pytubefix not installed")
+            return None
+        
+        output_path = str(self.temp_dir / f"{video.id}_source.mp4")
+        url = f"https://www.youtube.com/watch?v={video.youtube_id}"
+        
+        def download_sync():
+            """Synchronous download function to run in executor"""
+            yt = YouTube(url)
+            # Get progressive stream (video + audio)
+            stream = yt.streams.filter(
+                progressive=True,
+                file_extension='mp4'
+            ).order_by('resolution').desc().first()
+            
+            if not stream:
+                # Fallback to any available stream
+                stream = yt.streams.filter(file_extension='mp4').first()
+            
+            if stream:
+                stream.download(
+                    output_path=str(self.temp_dir),
+                    filename=f"{video.id}_source.mp4"
+                )
+                return output_path
+            return None
+        
+        # Run in thread pool to avoid blocking
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(None, download_sync)
+        
+        if result and Path(result).exists():
+            logger.info(f"Successfully downloaded with pytubefix: {result}")
+            return result
+        
+        return None
     
     async def _upload_files(
         self,

@@ -23,13 +23,18 @@ FROM python:3.11-slim AS runner
 
 WORKDIR /app
 
-# Install runtime dependencies including fonts
+# Install runtime dependencies including fonts and deno for yt-dlp
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     fonts-dejavu-core \
     fonts-noto-core \
     curl \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Deno for yt-dlp YouTube extraction
+RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh \
+    && chmod +x /usr/local/bin/deno
 
 # Create non-root user
 RUN groupadd --gid 1001 appgroup && \

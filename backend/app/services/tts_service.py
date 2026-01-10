@@ -105,7 +105,7 @@ class EdgeTTSService:
         # Generate unique filename
         file_id = str(uuid.uuid4())
         audio_path = self.temp_dir / f"{file_id}.mp3"
-        subtitle_path = self.temp_dir / f"{file_id}.vtt"
+        subtitle_path = self.temp_dir / f"{file_id}.srt"  # Changed to .srt (edge-tts 7.x)
         
         logger.info(f"Synthesizing speech with voice: {voice}")
         logger.debug(f"Text length: {len(text)} characters")
@@ -127,12 +127,12 @@ class EdgeTTSService:
                 async for chunk in communicate.stream():
                     if chunk["type"] == "audio":
                         audio_file.write(chunk["data"])
-                    elif chunk["type"] == "WordBoundary":
+                    elif chunk["type"] in ("WordBoundary", "SentenceBoundary"):
                         submaker.feed(chunk)
             
-            # Save subtitles
+            # Save subtitles (edge-tts 7.x uses get_srt() instead of generate_subs())
             with open(subtitle_path, "w", encoding="utf-8") as sub_file:
-                sub_file.write(submaker.generate_subs())
+                sub_file.write(submaker.get_srt())
             
             logger.info(f"Speech synthesized successfully: {audio_path}")
             

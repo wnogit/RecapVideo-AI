@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Test video creation with new short"""
+"""Test video creation - run on server"""
 import requests
 import time
 
-BASE_URL = "http://209.46.123.52:8000/api/v1"
+BASE_URL = "http://localhost:8000/api/v1"
 TEST_VIDEO_URL = "https://www.youtube.com/shorts/BQMhRYSV4Fk"
 
 print("Logging in...")
@@ -41,7 +41,7 @@ if response.status_code == 200:
         
         # Poll for status updates
         print("\nPolling for status updates...")
-        for i in range(20):  # Max 60 seconds
+        for i in range(60):  # Max 3 minutes
             time.sleep(3)
             status_response = requests.get(
                 BASE_URL + "/videos/" + video_id,

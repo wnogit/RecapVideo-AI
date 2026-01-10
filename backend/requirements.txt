@@ -35,9 +35,10 @@ aiohttp==3.13.3
 edge-tts>=7.2.7
 gTTS>=2.5.0
 yt-dlp>=2025.12.8
+pytubefix>=6.0.0
 ffmpeg-python==0.2.0
 webvtt-py==0.4.6
-curl_cffi>=0.8.0
+curl_cffi>=0.13.0,<0.14.0
 
 # External APIs
 google-generativeai>=0.8.0

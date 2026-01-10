@@ -554,7 +554,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         return f"{hours}:{minutes:02d}:{seconds:02d}.{ms}"
     
     def _parse_vtt_fallback(self, subtitle_path: str, ass_header: str) -> str:
-        """Fallback VTT parser if webvtt-py fails."""
+        """
+        Fallback VTT/SRT parser if webvtt-py fails.
+        Handles both VTT and SRT formats.
+        """
         with open(subtitle_path, "r", encoding="utf-8") as f:
             content = f.read()
         
@@ -562,13 +565,25 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         i = 0
         while i < len(lines):
             line = lines[i].strip()
+            
+            # Skip SRT subtitle numbers (e.g., "1", "2", "3")
+            if line.isdigit():
+                i += 1
+                continue
+            
+            # Skip VTT header
+            if line.upper().startswith("WEBVTT"):
+                i += 1
+                continue
+            
             if "-->" in line:
-                # Time line
+                # Time line (both VTT and SRT use -->)
                 times = line.split("-->")
                 start = self._time_to_ass(times[0].strip())
+                # Remove any position info after the end time
                 end = self._time_to_ass(times[1].strip().split()[0])
                 
-                # Get text
+                # Get text lines until empty line
                 i += 1
                 text_lines = []
                 while i < len(lines) and lines[i].strip():
@@ -576,7 +591,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     i += 1
                 text = "\\N".join(text_lines)
                 
-                ass_header += f"Dialogue: 0,{start},{end},Default,,0,0,0,,{text}\n"
+                if text:  # Only add if there's actual text
+                    ass_header += f"Dialogue: 0,{start},{end},Default,,0,0,0,,{text}\n"
             i += 1
         
         return ass_header
