@@ -50,5 +50,6 @@ celery_app.conf.update(
 
 # Optional: Task routes for different queues
 celery_app.conf.task_routes = {
-    "app.tasks.video_tasks.*": {"queue": "video_processing"},
+    "process_video": {"queue": "video_processing"},
+    "cleanup_temp_files": {"queue": "video_processing"},
 }
