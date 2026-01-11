@@ -184,26 +184,31 @@ export function LivePreviewCanvas() {
             style={{ width: dimensions.width + 24, height: dimensions.height + 24 }}
           />
           
-          {/* Video Preview */}
+          {/* Video Preview Wrapper - for blur region positioning */}
           <div 
             ref={containerRef}
-            className={cn(
-              "relative overflow-hidden shadow-2xl border-2 border-white/10",
-              aspectRatio === '9:16' && "rounded-[20px]",  // Mobile look
-              aspectRatio === '16:9' && "rounded-lg",       // Desktop look
-              aspectRatio === '1:1' && "rounded-xl",        // Instagram square
-              aspectRatio === '4:5' && "rounded-xl",        // Portrait look
-              copyrightOptions.horizontalFlip && "scale-x-[-1]"
-            )}
+            className="relative"
             style={{ 
               width: dimensions.width, 
               height: dimensions.height,
-              filter: copyrightOptions.colorAdjust 
-                ? 'brightness(1.05) contrast(1.05) saturate(1.1)' 
-                : 'none',
-              transform: `${copyrightOptions.horizontalFlip ? 'scaleX(-1)' : ''} ${copyrightOptions.slightZoom ? 'scale(1.05)' : ''}`,
             }}
           >
+            {/* Video Content - can be flipped */}
+            <div 
+              className={cn(
+                "absolute inset-0 overflow-hidden shadow-2xl border-2 border-white/10",
+                aspectRatio === '9:16' && "rounded-[20px]",  // Mobile look
+                aspectRatio === '16:9' && "rounded-lg",       // Desktop look
+                aspectRatio === '1:1' && "rounded-xl",        // Instagram square
+                aspectRatio === '4:5' && "rounded-xl",        // Portrait look
+              )}
+              style={{ 
+                filter: copyrightOptions.colorAdjust 
+                  ? 'brightness(1.05) contrast(1.05) saturate(1.1)' 
+                  : 'none',
+                transform: `${copyrightOptions.horizontalFlip ? 'scaleX(-1)' : ''} ${copyrightOptions.slightZoom ? 'scale(1.05)' : ''}`,
+              }}
+            >
             {/* Background gradient */}
             <div className="absolute inset-0 bg-gradient-to-br from-violet-900 to-pink-900" />
             
@@ -228,45 +233,6 @@ export function LivePreviewCanvas() {
                 </div>
               </div>
             )}
-
-            {/* Blur Regions Overlay - Draggable & Resizable */}
-            {blurOptions.regions.length > 0 && blurOptions.regions.map((region) => (
-              <div
-                key={region.id}
-                className={cn(
-                  "absolute border-2 cursor-move select-none",
-                  activeRegionId === region.id
-                    ? "border-primary bg-primary/30 z-20"
-                    : "border-white/60 bg-black/40 hover:border-primary/60 z-10"
-                )}
-                style={{
-                  left: `${region.x}%`,
-                  top: `${region.y}%`,
-                  width: `${region.width}%`,
-                  height: `${region.height}%`,
-                  backdropFilter: `blur(${blurOptions.intensity}px)`,
-                }}
-                onMouseDown={(e) => handleBlurDragStart(e, region.id)}
-              >
-                {/* Move handle */}
-                <div className="absolute top-0 left-0 p-0.5 bg-black/70 rounded-br">
-                  <Move className="h-2 w-2 text-white" />
-                </div>
-                
-                {/* Resize handle */}
-                <div
-                  className="absolute bottom-0 right-0 w-3 h-3 bg-primary cursor-se-resize"
-                  onMouseDown={(e) => handleBlurResizeStart(e, region.id)}
-                >
-                  <Maximize2 className="h-2 w-2 text-white m-0.5" />
-                </div>
-                
-                {/* Label */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="text-[6px] text-white/70 bg-black/40 px-1 rounded">BLUR</span>
-                </div>
-              </div>
-            ))}
 
             {/* Copyright Effects Indicator */}
             {copyrightOptions.horizontalFlip && (
@@ -347,6 +313,45 @@ export function LivePreviewCanvas() {
               🎤 {voiceId.includes('Nilar') ? 'Nilar' : 'Thiha'}
             </div>
           </div>
+
+          {/* Blur Regions Overlay - Outside flipped container for correct drag behavior */}
+          {blurOptions.regions.length > 0 && blurOptions.regions.map((region) => (
+            <div
+              key={region.id}
+              className={cn(
+                "absolute border-2 cursor-move select-none z-30",
+                activeRegionId === region.id
+                  ? "border-primary bg-primary/30"
+                  : "border-white/60 bg-black/40 hover:border-primary/60"
+              )}
+              style={{
+                left: `${region.x}%`,
+                top: `${region.y}%`,
+                width: `${region.width}%`,
+                height: `${region.height}%`,
+                backdropFilter: `blur(${blurOptions.intensity}px)`,
+              }}
+              onMouseDown={(e) => handleBlurDragStart(e, region.id)}
+            >
+              {/* Move handle */}
+              <div className="absolute top-0 left-0 p-0.5 bg-black/70 rounded-br">
+                <Move className="h-2 w-2 text-white" />
+              </div>
+              
+              {/* Resize handle */}
+              <div
+                className="absolute bottom-0 right-0 w-3 h-3 bg-primary cursor-se-resize"
+                onMouseDown={(e) => handleBlurResizeStart(e, region.id)}
+              >
+                <Maximize2 className="h-2 w-2 text-white m-0.5" />
+              </div>
+              
+              {/* Label */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <span className="text-[6px] text-white/70 bg-black/40 px-1 rounded">BLUR</span>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Platform Label */}
