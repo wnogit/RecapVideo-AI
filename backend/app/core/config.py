@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     R2_PUBLIC_URL: str = "https://videos.recapvideo.ai"
     
     # Backend URL (for static file serving, telegram screenshots)
-    BACKEND_URL: str = "http://209.46.123.52:8000"
+    BACKEND_URL: str = "https://api.recapvideo.ai"
     
     # TranscriptAPI.com
     TRANSCRIPT_API_KEY: str = ""
