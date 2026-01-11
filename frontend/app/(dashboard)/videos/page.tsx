@@ -46,71 +46,73 @@ export default function VideosPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">My Videos</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold">My Videos</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
             View and manage your generated videos
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={refresh} disabled={isLoading}>
+        <div className="flex gap-2 shrink-0">
+          <Button variant="outline" size="sm" onClick={refresh} disabled={isLoading}>
             <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <Link href="/create">
-            <Button>Create New Video</Button>
+            <Button size="sm">Create New</Button>
           </Link>
         </div>
       </div>
 
-      {/* Status Tabs - Admin Videos page style */}
-      <div className="inline-flex items-center rounded-lg bg-muted p-1">
-        <button
-          onClick={() => setStatusFilter('all')}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'all'
-            ? 'bg-background text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground'
-            }`}
-        >
-          All Videos
-        </button>
-        <button
-          onClick={() => setStatusFilter('pending')}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'pending'
-            ? 'bg-background text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground'
-            }`}
-        >
-          Pending
-        </button>
-        <button
-          onClick={() => setStatusFilter('processing')}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'processing'
-            ? 'bg-background text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground'
-            }`}
-        >
-          Processing
-        </button>
-        <button
-          onClick={() => setStatusFilter('completed')}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'completed'
-            ? 'bg-background text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground'
-            }`}
-        >
-          Completed
-        </button>
-        <button
-          onClick={() => setStatusFilter('failed')}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'failed'
-            ? 'bg-background text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground'
-            }`}
-        >
-          Failed
-        </button>
+      {/* Status Tabs - Horizontal scroll on mobile */}
+      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="inline-flex items-center rounded-lg bg-muted p-1 min-w-max">
+          <button
+            onClick={() => setStatusFilter('all')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'all'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
+          >
+            All Videos
+          </button>
+          <button
+            onClick={() => setStatusFilter('pending')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'pending'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
+          >
+            Pending
+          </button>
+          <button
+            onClick={() => setStatusFilter('processing')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'processing'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
+          >
+            Processing
+          </button>
+          <button
+            onClick={() => setStatusFilter('completed')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'completed'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
+          >
+            Completed
+          </button>
+          <button
+            onClick={() => setStatusFilter('failed')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'failed'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
+          >
+            Failed
+          </button>
+        </div>
       </div>
 
       {/* Videos List */}

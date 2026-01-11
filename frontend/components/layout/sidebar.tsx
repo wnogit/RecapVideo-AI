@@ -142,9 +142,9 @@ export function Sidebar() {
           className="fixed inset-0 bg-black/50"
           onClick={() => setMobileOpen(false)}
         />
-        <div className="fixed inset-y-0 left-0 w-64 bg-background border-r flex flex-col h-full overflow-hidden">
+        <div className="fixed inset-y-0 left-0 w-64 bg-background border-r flex flex-col max-h-[100dvh]">
           {/* Logo - Fixed at top */}
-          <div className="flex h-16 items-center px-6 border-b shrink-0">
+          <div className="flex h-14 items-center px-6 border-b shrink-0">
             <Link href="/dashboard" className="flex items-center space-x-2" onClick={() => setMobileOpen(false)}>
               <Film className="h-6 w-6 text-primary" />
               <span className="text-xl font-bold">RecapVideo.AI</span>
@@ -152,7 +152,7 @@ export function Sidebar() {
           </div>
 
           {/* Navigation - Scrollable */}
-          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto min-h-0">
             {navigation.map((item) => {
               const isActive = pathname === item.href;
               const isHighlight = 'highlight' in item && item.highlight;
@@ -194,12 +194,12 @@ export function Sidebar() {
             )}
           </nav>
 
-          {/* User section - Fixed at bottom */}
-          <div className="border-t p-4 shrink-0 bg-background">
-            <div className="flex items-center gap-3 mb-3">
-              <Avatar className="h-8 w-8">
+          {/* User section - Fixed at bottom (Desktop Style) */}
+          <div className="border-t p-4 shrink-0">
+            <div className="flex items-center gap-3 mb-4">
+              <Avatar>
                 <AvatarImage src={user?.avatar_url} />
-                <AvatarFallback className="text-xs">
+                <AvatarFallback>
                   {user?.name?.charAt(0).toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
@@ -210,32 +210,17 @@ export function Sidebar() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                asChild
-                onClick={() => setMobileOpen(false)}
-              >
-                <Link href="/profile">
-                  <User className="mr-1 h-3 w-3" />
-                  Profile
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                onClick={() => {
-                  logout();
-                  setMobileOpen(false);
-                }}
-              >
-                <LogOut className="mr-1 h-3 w-3" />
-                Logout
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => {
+                logout();
+                setMobileOpen(false);
+              }}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign Out
+            </Button>
           </div>
         </div>
       </div>
