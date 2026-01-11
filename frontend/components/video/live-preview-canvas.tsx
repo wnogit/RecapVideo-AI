@@ -29,7 +29,7 @@ export function LivePreviewCanvas() {
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [activeRegionId, setActiveRegionId] = useState<string | null>(null);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const dragStartRef = useRef({ x: 0, y: 0 });
 
   // Use centralized YouTube ID extraction
   const videoId = extractYoutubeId(sourceUrl);
@@ -64,7 +64,7 @@ export function LivePreviewCanvas() {
     e.stopPropagation();
     setActiveRegionId(regionId);
     setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
   };
 
   // Handle blur region resize start
@@ -73,7 +73,7 @@ export function LivePreviewCanvas() {
     e.stopPropagation();
     setActiveRegionId(regionId);
     setIsResizing(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
   };
 
   // Handle mouse move for drag/resize
@@ -84,14 +84,14 @@ export function LivePreviewCanvas() {
     if (!region) return;
 
     if (isDragging) {
-      const deltaX = pixelToPercent(e.clientX - dragStart.x, true);
-      const deltaY = pixelToPercent(e.clientY - dragStart.y, false);
+      const deltaX = pixelToPercent(e.clientX - dragStartRef.current.x, true);
+      const deltaY = pixelToPercent(e.clientY - dragStartRef.current.y, false);
       
       const newX = Math.max(0, Math.min(100 - region.width, region.x + deltaX));
       const newY = Math.max(0, Math.min(100 - region.height, region.y + deltaY));
       
       updateBlurRegion(activeRegionId, { x: newX, y: newY });
-      setDragStart({ x: e.clientX, y: e.clientY });
+      dragStartRef.current = { x: e.clientX, y: e.clientY };
     }
 
     if (isResizing) {
@@ -103,7 +103,7 @@ export function LivePreviewCanvas() {
       
       updateBlurRegion(activeRegionId, { width: newWidth, height: newHeight });
     }
-  }, [isDragging, isResizing, activeRegionId, dragStart, blurOptions.regions, pixelToPercent, updateBlurRegion]);
+  }, [isDragging, isResizing, activeRegionId, blurOptions.regions, pixelToPercent, updateBlurRegion]);
 
   // Handle mouse up
   const handleMouseUp = useCallback(() => {
