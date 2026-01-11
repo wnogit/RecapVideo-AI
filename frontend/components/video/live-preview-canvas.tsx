@@ -30,6 +30,7 @@ export function LivePreviewCanvas() {
   const [isResizing, setIsResizing] = useState(false);
   const [activeRegionId, setActiveRegionId] = useState<string | null>(null);
   const dragStartRef = useRef({ x: 0, y: 0 });
+  const regionStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
   // Use centralized YouTube ID extraction
   const videoId = extractYoutubeId(sourceUrl);
@@ -50,60 +51,60 @@ export function LivePreviewCanvas() {
 
   const dimensions = getDimensions();
 
-  // Pixel to percent conversion for blur regions
-  const pixelToPercent = useCallback((px: number, isWidth: boolean) => {
-    if (!containerRef.current) return 0;
-    const rect = containerRef.current.getBoundingClientRect();
-    const base = isWidth ? rect.width : rect.height;
-    return (px / base) * 100;
-  }, []);
-
   // Handle blur region drag start
   const handleBlurDragStart = (e: React.MouseEvent, regionId: string) => {
     e.preventDefault();
     e.stopPropagation();
+    const region = blurOptions.regions.find(r => r.id === regionId);
+    if (!region) return;
+    
     setActiveRegionId(regionId);
     setIsDragging(true);
     dragStartRef.current = { x: e.clientX, y: e.clientY };
+    regionStartRef.current = { x: region.x, y: region.y, width: region.width, height: region.height };
   };
 
   // Handle blur region resize start
   const handleBlurResizeStart = (e: React.MouseEvent, regionId: string) => {
     e.preventDefault();
     e.stopPropagation();
+    const region = blurOptions.regions.find(r => r.id === regionId);
+    if (!region) return;
+    
     setActiveRegionId(regionId);
     setIsResizing(true);
     dragStartRef.current = { x: e.clientX, y: e.clientY };
+    regionStartRef.current = { x: region.x, y: region.y, width: region.width, height: region.height };
   };
 
   // Handle mouse move for drag/resize
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!containerRef.current || !activeRegionId) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const region = blurOptions.regions.find(r => r.id === activeRegionId);
-    if (!region) return;
 
     if (isDragging) {
-      const deltaX = pixelToPercent(e.clientX - dragStartRef.current.x, true);
-      const deltaY = pixelToPercent(e.clientY - dragStartRef.current.y, false);
+      // Calculate delta in percentage from drag start
+      const deltaX = ((e.clientX - dragStartRef.current.x) / rect.width) * 100;
+      const deltaY = ((e.clientY - dragStartRef.current.y) / rect.height) * 100;
       
-      const newX = Math.max(0, Math.min(100 - region.width, region.x + deltaX));
-      const newY = Math.max(0, Math.min(100 - region.height, region.y + deltaY));
+      // Apply delta to original position (not current)
+      const newX = Math.max(0, Math.min(100 - regionStartRef.current.width, regionStartRef.current.x + deltaX));
+      const newY = Math.max(0, Math.min(100 - regionStartRef.current.height, regionStartRef.current.y + deltaY));
       
       updateBlurRegion(activeRegionId, { x: newX, y: newY });
-      dragStartRef.current = { x: e.clientX, y: e.clientY };
     }
 
     if (isResizing) {
+      // Calculate new size based on mouse position
       const currentX = ((e.clientX - rect.left) / rect.width) * 100;
       const currentY = ((e.clientY - rect.top) / rect.height) * 100;
       
-      const newWidth = Math.max(5, Math.min(100 - region.x, currentX - region.x));
-      const newHeight = Math.max(5, Math.min(100 - region.y, currentY - region.y));
+      const newWidth = Math.max(5, Math.min(100 - regionStartRef.current.x, currentX - regionStartRef.current.x));
+      const newHeight = Math.max(5, Math.min(100 - regionStartRef.current.y, currentY - regionStartRef.current.y));
       
       updateBlurRegion(activeRegionId, { width: newWidth, height: newHeight });
     }
-  }, [isDragging, isResizing, activeRegionId, blurOptions.regions, pixelToPercent, updateBlurRegion]);
+  }, [isDragging, isResizing, activeRegionId, updateBlurRegion]);
 
   // Handle mouse up
   const handleMouseUp = useCallback(() => {
