@@ -240,7 +240,7 @@ async def complete_order(
             detail="Order already completed",
         )
     
-    if order.status not in [OrderStatus.PENDING.value, OrderStatus.PROCESSING.value]:
+    if order.status != OrderStatus.PENDING.value:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Order cannot be completed",
@@ -300,7 +300,8 @@ async def cancel_order(
             detail="Only pending orders can be cancelled",
         )
     
-    order.status = OrderStatus.CANCELLED.value
+    # Use REJECTED status for cancelled orders (since CANCELLED was removed)
+    order.status = OrderStatus.REJECTED.value
     await db.flush()
     await db.refresh(order)
     
@@ -367,7 +368,8 @@ async def upload_payment_screenshot(
     
     # Update order
     order.screenshot_url = f"/static/payment_screenshots/{file_name}"
-    order.status = OrderStatus.PROCESSING.value
+    # Keep status as PENDING (screenshot uploaded, waiting for admin approval)
+    # No status change needed since we simplified to 3 states
     
     await db.flush()
     await db.refresh(order)

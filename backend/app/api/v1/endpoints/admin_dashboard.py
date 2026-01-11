@@ -99,9 +99,9 @@ async def get_dashboard_stats(
     )
     videos_today = videos_today_result.scalar() or 0
     
-    # Pending orders - count orders awaiting admin approval (processing = screenshot uploaded)
+    # Pending orders - count orders awaiting admin approval
     pending_orders_result = await db.execute(
-        select(func.count(Order.id)).where(Order.status == "processing")
+        select(func.count(Order.id)).where(Order.status == "pending")
     )
     pending_orders = pending_orders_result.scalar() or 0
     

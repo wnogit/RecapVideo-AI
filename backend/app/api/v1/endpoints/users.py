@@ -167,7 +167,6 @@ async def get_user_notifications(
         Order.status.in_([
             OrderStatus.COMPLETED.value,
             OrderStatus.REJECTED.value,
-            OrderStatus.FAILED.value,
         ]),
         Order.updated_at >= seven_days_ago,
     ).order_by(desc(Order.updated_at)).limit(limit)
@@ -196,16 +195,7 @@ async def get_user_notifications(
                 "read": False,
                 "link": "/orders",
             })
-        elif order.status == OrderStatus.FAILED.value:
-            notifications.append({
-                "id": str(order.id),
-                "type": "order_failed",
-                "title": "Order Failed",
-                "message": f"Your order for {order.credits_amount} credits failed",
-                "timestamp": order.updated_at.isoformat() if order.updated_at else order.created_at.isoformat(),
-                "read": False,
-                "link": "/orders",
-            })
+
     
     # Sort by timestamp descending
     notifications.sort(key=lambda x: x["timestamp"], reverse=True)
