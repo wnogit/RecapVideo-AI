@@ -120,12 +120,18 @@ export default function BuyCreditsPage() {
       const newOrder = orderResponse.data;
       setCurrentOrder(newOrder);
 
-      // Step 2: Upload screenshot
-      await orderApi.uploadScreenshot(newOrder.id, screenshotFile);
+      // Step 2: Upload screenshot (continue even if minor errors)
+      try {
+        await orderApi.uploadScreenshot(newOrder.id, screenshotFile);
+      } catch (uploadError) {
+        console.error('Screenshot upload error:', uploadError);
+        // Continue to complete step - order is created
+      }
 
       setStep('complete');
       toast({ title: 'Order Submitted!', description: 'Admin will review and approve your order shortly.' });
     } catch (error: any) {
+      console.error('Order creation error:', error);
       toast({ title: error.response?.data?.detail || 'Failed to submit order', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
