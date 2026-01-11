@@ -280,7 +280,7 @@ export function Step2Styles() {
             <div className="text-left">
               <p className="font-medium flex items-center gap-1"><EyeOff className="h-4 w-4" /> Custom Blur</p>
               <p className="text-xs text-muted-foreground">
-                YouTube logo/watermark ကို blur box နဲ့ ဖုံးမည်
+                Logo/watermark များကို ဖုံးရန်
               </p>
             </div>
           </div>
