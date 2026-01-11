@@ -65,10 +65,7 @@ export default function AdminOrdersPage() {
       case "completed":
         return "success"
       case "rejected":
-      case "cancelled":
         return "destructive"
-      case "processing":
-        return "default"
       default:
         return "warning"
     }
@@ -189,7 +186,7 @@ export default function AdminOrdersPage() {
               <Eye className="mr-2 h-4 w-4" />
               View Details
             </DropdownMenuItem>
-            {(order.status === "pending" || order.status === "processing") && (
+            {order.status === "pending" && (
               <>
                 <DropdownMenuItem
                   onClick={() => handleApprove(order)}
@@ -234,7 +231,6 @@ export default function AdminOrdersPage() {
         <TabsList>
           <TabsTrigger value="all">All Orders</TabsTrigger>
           <TabsTrigger value="pending">Pending</TabsTrigger>
-          <TabsTrigger value="processing">Processing</TabsTrigger>
           <TabsTrigger value="completed">Completed</TabsTrigger>
           <TabsTrigger value="rejected">Rejected</TabsTrigger>
         </TabsList>
@@ -245,6 +241,7 @@ export default function AdminOrdersPage() {
             data={orders}
             isLoading={isLoading}
             searchPlaceholder="Search orders..."
+            hideSearch={true}
             pagination={{
               page,
               pageSize,
@@ -314,7 +311,7 @@ export default function AdminOrdersPage() {
                   <div>
                     <p className="text-muted-foreground">Amount (MMK)</p>
                     <p className="font-medium">
-                      {selectedOrder.price_mmk 
+                      {selectedOrder.price_mmk
                         ? `${Number(selectedOrder.price_mmk).toLocaleString()} MMK`
                         : "N/A"
                       }
@@ -349,7 +346,7 @@ export default function AdminOrdersPage() {
             </div>
           )}
           <DialogFooter>
-            {selectedOrder && (selectedOrder.status === "pending" || selectedOrder.status === "processing") && (
+            {selectedOrder && selectedOrder.status === "pending" && (
               <>
                 <Button
                   variant="outline"
@@ -368,7 +365,7 @@ export default function AdminOrdersPage() {
                 </Button>
               </>
             )}
-            {selectedOrder && selectedOrder.status !== "pending" && selectedOrder.status !== "processing" && (
+            {selectedOrder && selectedOrder.status !== "pending" && (
               <Button onClick={() => setIsDialogOpen(false)}>Close</Button>
             )}
           </DialogFooter>

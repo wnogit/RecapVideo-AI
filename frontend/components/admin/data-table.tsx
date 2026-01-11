@@ -34,6 +34,7 @@ interface DataTableProps<T> {
   isLoading?: boolean
   searchPlaceholder?: string
   onSearch?: (query: string) => void
+  hideSearch?: boolean
   pagination?: {
     page: number
     pageSize: number
@@ -49,6 +50,7 @@ export function DataTable<T extends { id: string | number }>({
   isLoading,
   searchPlaceholder = "Search...",
   onSearch,
+  hideSearch = false,
   pagination,
 }: DataTableProps<T>) {
   const [searchQuery, setSearchQuery] = React.useState("")
@@ -66,15 +68,18 @@ export function DataTable<T extends { id: string | number }>({
     <div className="space-y-4">
       {/* Search and Filters */}
       <div className="flex items-center justify-between">
-        <div className="relative max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={searchPlaceholder}
-            value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="pl-8"
-          />
-        </div>
+        {!hideSearch && (
+          <div className="relative max-w-sm">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={searchPlaceholder}
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+        )}
+        {hideSearch && <div />}
         {pagination && (
           <Select
             value={String(pagination.pageSize)}

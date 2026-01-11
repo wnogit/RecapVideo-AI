@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Video, Loader2, RefreshCw, Clock, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
-type StatusFilter = 'all' | 'completed' | 'processing' | 'failed';
+type StatusFilter = 'all' | 'pending' | 'processing' | 'completed' | 'failed';
 
 export default function VideosPage() {
   const { videos, isLoading, pagination, loadMore, refresh, hasMore } = useVideos();
@@ -19,16 +19,18 @@ export default function VideosPage() {
 
   const filteredVideos = videos.filter(video => {
     if (statusFilter === 'all') return true;
+    if (statusFilter === 'pending') return video.status === 'pending';
+    if (statusFilter === 'processing') return ['extracting_transcript', 'generating_script', 'generating_audio', 'rendering_video', 'uploading'].includes(video.status);
     if (statusFilter === 'completed') return video.status === 'completed';
-    if (statusFilter === 'processing') return ['pending', 'extracting_transcript', 'generating_script', 'generating_audio', 'rendering_video', 'uploading'].includes(video.status);
     if (statusFilter === 'failed') return ['failed', 'cancelled'].includes(video.status);
     return true;
   });
 
   const statusCounts = {
     all: videos.length,
+    pending: videos.filter(v => v.status === 'pending').length,
+    processing: videos.filter(v => ['extracting_transcript', 'generating_script', 'generating_audio', 'rendering_video', 'uploading'].includes(v.status)).length,
     completed: videos.filter(v => v.status === 'completed').length,
-    processing: videos.filter(v => ['pending', 'extracting_transcript', 'generating_script', 'generating_audio', 'rendering_video', 'uploading'].includes(v.status)).length,
     failed: videos.filter(v => ['failed', 'cancelled'].includes(v.status)).length,
   };
 
@@ -62,39 +64,53 @@ export default function VideosPage() {
         </div>
       </div>
 
-      {/* Status Tabs */}
-      <div className="flex gap-1 bg-muted/50 p-1 rounded-lg w-fit flex-wrap">
-        <Button
-          variant={statusFilter === 'all' ? 'secondary' : 'ghost'}
-          size="sm"
+      {/* Status Tabs - Admin Videos page style */}
+      <div className="inline-flex items-center rounded-lg bg-muted p-1">
+        <button
           onClick={() => setStatusFilter('all')}
+          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'all'
+            ? 'bg-background text-foreground shadow-sm'
+            : 'text-muted-foreground hover:text-foreground'
+            }`}
         >
-          All ({statusCounts.all})
-        </Button>
-        <Button
-          variant={statusFilter === 'completed' ? 'secondary' : 'ghost'}
-          size="sm"
-          onClick={() => setStatusFilter('completed')}
-          className="text-green-600"
+          All Videos
+        </button>
+        <button
+          onClick={() => setStatusFilter('pending')}
+          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'pending'
+            ? 'bg-background text-foreground shadow-sm'
+            : 'text-muted-foreground hover:text-foreground'
+            }`}
         >
-          ✅ Completed ({statusCounts.completed})
-        </Button>
-        <Button
-          variant={statusFilter === 'processing' ? 'secondary' : 'ghost'}
-          size="sm"
+          Pending
+        </button>
+        <button
           onClick={() => setStatusFilter('processing')}
-          className="text-blue-600"
+          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'processing'
+            ? 'bg-background text-foreground shadow-sm'
+            : 'text-muted-foreground hover:text-foreground'
+            }`}
         >
-          ⏳ Processing ({statusCounts.processing})
-        </Button>
-        <Button
-          variant={statusFilter === 'failed' ? 'secondary' : 'ghost'}
-          size="sm"
+          Processing
+        </button>
+        <button
+          onClick={() => setStatusFilter('completed')}
+          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'completed'
+            ? 'bg-background text-foreground shadow-sm'
+            : 'text-muted-foreground hover:text-foreground'
+            }`}
+        >
+          Completed
+        </button>
+        <button
           onClick={() => setStatusFilter('failed')}
-          className="text-red-600"
+          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'failed'
+            ? 'bg-background text-foreground shadow-sm'
+            : 'text-muted-foreground hover:text-foreground'
+            }`}
         >
-          ❌ Failed ({statusCounts.failed})
-        </Button>
+          Failed
+        </button>
       </div>
 
       {/* Videos List */}

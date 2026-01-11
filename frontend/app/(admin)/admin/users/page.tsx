@@ -394,37 +394,45 @@ export default function AdminUsersPage() {
         </Button>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-4">
-        <div className="flex gap-1 bg-muted/50 p-1 rounded-lg">
-          <Button
-            variant={filterType === 'all' ? 'secondary' : 'ghost'}
-            size="sm"
+      {/* Filter Tabs - Videos page style */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="inline-flex items-center rounded-lg bg-muted p-1">
+          <button
             onClick={() => setFilterType('all')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${filterType === 'all'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+              }`}
           >
-            All
-          </Button>
-          <Button
-            variant={filterType === 'pro' ? 'secondary' : 'ghost'}
-            size="sm"
+            All Users
+          </button>
+          <button
             onClick={() => setFilterType('pro')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${filterType === 'pro'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+              }`}
           >
             Pro
-          </Button>
-          <Button
-            variant={filterType === 'free' ? 'secondary' : 'ghost'}
-            size="sm"
+          </button>
+          <button
             onClick={() => setFilterType('free')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${filterType === 'free'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+              }`}
           >
             Free
-          </Button>
-          <Button
-            variant={filterType === 'admin' ? 'secondary' : 'ghost'}
-            size="sm"
+          </button>
+          <button
             onClick={() => setFilterType('admin')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${filterType === 'admin'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+              }`}
           >
             Admin
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -466,6 +474,7 @@ export default function AdminUsersPage() {
           return true;
         })}
         isLoading={isLoading}
+        hideSearch={true}
         pagination={{
           page,
           pageSize,

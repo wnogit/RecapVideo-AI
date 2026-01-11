@@ -142,8 +142,101 @@ export function Sidebar() {
           className="fixed inset-0 bg-black/50"
           onClick={() => setMobileOpen(false)}
         />
-        <div className="fixed inset-y-0 left-0 w-64 bg-background border-r flex flex-col">
-          <NavContent />
+        <div className="fixed inset-y-0 left-0 w-64 bg-background border-r flex flex-col h-full overflow-hidden">
+          {/* Logo - Fixed at top */}
+          <div className="flex h-16 items-center px-6 border-b shrink-0">
+            <Link href="/dashboard" className="flex items-center space-x-2" onClick={() => setMobileOpen(false)}>
+              <Film className="h-6 w-6 text-primary" />
+              <span className="text-xl font-bold">RecapVideo.AI</span>
+            </Link>
+          </div>
+
+          {/* Navigation - Scrollable */}
+          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            {navigation.map((item) => {
+              const isActive = pathname === item.href;
+              const isHighlight = 'highlight' in item && item.highlight;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
+                    isActive
+                      ? 'bg-primary text-primary-foreground shadow-md'
+                      : isHighlight
+                        ? 'bg-gradient-to-r from-violet-600 to-pink-600 text-white hover:from-violet-700 hover:to-pink-700 hover:shadow-md hover:-translate-x-0.5'
+                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:translate-x-0.5'
+                  )}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.name}
+                </Link>
+              );
+            })}
+
+            {/* Admin Dashboard Link - Only for admins */}
+            {user?.is_admin && (
+              <Link
+                href="/admin"
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors mt-4 border-t pt-4',
+                  pathname.startsWith('/admin')
+                    ? 'bg-orange-600 text-white'
+                    : 'bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 dark:text-orange-400'
+                )}
+                onClick={() => setMobileOpen(false)}
+              >
+                <Shield className="h-5 w-5" />
+                Admin Dashboard
+              </Link>
+            )}
+          </nav>
+
+          {/* User section - Fixed at bottom */}
+          <div className="border-t p-4 shrink-0 bg-background">
+            <div className="flex items-center gap-3 mb-3">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user?.avatar_url} />
+                <AvatarFallback className="text-xs">
+                  {user?.name?.charAt(0).toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{user?.name}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {user?.credit_balance || 0} credits
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                asChild
+                onClick={() => setMobileOpen(false)}
+              >
+                <Link href="/profile">
+                  <User className="mr-1 h-3 w-3" />
+                  Profile
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => {
+                  logout();
+                  setMobileOpen(false);
+                }}
+              >
+                <LogOut className="mr-1 h-3 w-3" />
+                Logout
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
