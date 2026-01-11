@@ -142,9 +142,11 @@ async def process_order_action(
                 transaction = CreditTransaction(
                     user_id=user.id,
                     amount=order.credits_amount,
-                    type=TransactionType.PURCHASE.value,
+                    balance_after=user.credit_balance,
+                    transaction_type=TransactionType.PURCHASE.value,
                     description=f"Credit purchase approved: {order.credits_amount} credits",
-                    order_id=order.id,
+                    reference_type="order",
+                    reference_id=str(order.id),
                 )
                 db.add(transaction)
                 
