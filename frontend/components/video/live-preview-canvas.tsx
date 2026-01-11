@@ -19,6 +19,7 @@ export function LivePreviewCanvas() {
     logoOptions,
     outroOptions,
     voiceId,
+    blurOptions,
   } = useVideoCreationStore();
 
   // Use centralized YouTube ID extraction
@@ -142,6 +143,26 @@ export function LivePreviewCanvas() {
                 </div>
               </div>
             )}
+
+            {/* Blur Regions Overlay */}
+            {blurOptions.regions.length > 0 && blurOptions.regions.map((region) => (
+              <div
+                key={region.id}
+                className="absolute bg-black/60 border border-white/30"
+                style={{
+                  left: `${region.x}%`,
+                  top: `${region.y}%`,
+                  width: `${region.width}%`,
+                  height: `${region.height}%`,
+                  backdropFilter: `blur(${blurOptions.intensity}px)`,
+                  transform: copyrightOptions.horizontalFlip ? 'scaleX(-1)' : 'none',
+                }}
+              >
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-[6px] text-white/50">BLUR</span>
+                </div>
+              </div>
+            ))}
 
             {/* Copyright Effects Indicator */}
             {copyrightOptions.horizontalFlip && (
@@ -268,6 +289,11 @@ export function LivePreviewCanvas() {
             {logoOptions.enabled && (
               <span className="px-1.5 py-0.5 bg-pink-100 dark:bg-pink-950 text-pink-700 dark:text-pink-400 rounded text-[10px]">
                 🖼️ Logo
+              </span>
+            )}
+            {blurOptions.regions.length > 0 && (
+              <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-400 rounded text-[10px]">
+                🔳 Blur ({blurOptions.regions.length})
               </span>
             )}
             {outroOptions.enabled && (
