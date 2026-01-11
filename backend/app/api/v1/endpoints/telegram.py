@@ -159,12 +159,15 @@ async def process_order_action(
                 )
                 
                 # Edit message to show approved
+                mmk_display = f" ({order.price_mmk:,.0f} MMK)" if order.price_mmk else ""
                 new_caption = f"""✅ <b>ORDER APPROVED</b>
 
 👤 <b>User:</b> {user.name or user.email}
 📧 <b>Email:</b> {user.email}
 🎁 <b>Credits:</b> {order.credits_amount:,}
-💰 <b>Amount:</b> ${order.price_usd:.2f}
+💰 <b>Amount:</b> ${order.price_usd:.2f}{mmk_display}
+
+🆔 <b>Order ID:</b> <code>{order.id}</code>
 
 ✅ <b>Approved by:</b> {admin_name}
 🕐 <b>Time:</b> {now.strftime('%Y-%m-%d %H:%M UTC')}"""
@@ -185,12 +188,15 @@ async def process_order_action(
                 )
                 
                 # Edit message to show rejected
+                mmk_display = f" ({order.price_mmk:,.0f} MMK)" if order.price_mmk else ""
                 new_caption = f"""❌ <b>ORDER REJECTED</b>
 
 👤 <b>User:</b> {user.name or user.email}
 📧 <b>Email:</b> {user.email}
 🎁 <b>Credits:</b> {order.credits_amount:,}
-💰 <b>Amount:</b> ${order.price_usd:.2f}
+💰 <b>Amount:</b> ${order.price_usd:.2f}{mmk_display}
+
+🆔 <b>Order ID:</b> <code>{order.id}</code>
 
 ❌ <b>Rejected by:</b> {admin_name}
 🕐 <b>Time:</b> {now.strftime('%Y-%m-%d %H:%M UTC')}"""
