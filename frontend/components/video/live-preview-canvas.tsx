@@ -4,10 +4,11 @@
  * Live Preview Canvas
  * Real-time 9:16 preview of video with applied settings
  */
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useVideoCreationStore } from '@/stores/video-creation-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Eye, Smartphone, FlipHorizontal } from 'lucide-react';
+import { Eye, Smartphone, FlipHorizontal, Move, Maximize2 } from 'lucide-react';
 import { extractYoutubeId } from '@/lib/youtube';
 
 export function LivePreviewCanvas() {
@@ -20,7 +21,15 @@ export function LivePreviewCanvas() {
     outroOptions,
     voiceId,
     blurOptions,
+    updateBlurRegion,
   } = useVideoCreationStore();
+
+  // Drag state
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [activeRegionId, setActiveRegionId] = useState<string | null>(null);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   // Use centralized YouTube ID extraction
   const videoId = extractYoutubeId(sourceUrl);
@@ -40,6 +49,80 @@ export function LivePreviewCanvas() {
   };
 
   const dimensions = getDimensions();
+
+  // Pixel to percent conversion for blur regions
+  const pixelToPercent = useCallback((px: number, isWidth: boolean) => {
+    if (!containerRef.current) return 0;
+    const rect = containerRef.current.getBoundingClientRect();
+    const base = isWidth ? rect.width : rect.height;
+    return (px / base) * 100;
+  }, []);
+
+  // Handle blur region drag start
+  const handleBlurDragStart = (e: React.MouseEvent, regionId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveRegionId(regionId);
+    setIsDragging(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+
+  // Handle blur region resize start
+  const handleBlurResizeStart = (e: React.MouseEvent, regionId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveRegionId(regionId);
+    setIsResizing(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+
+  // Handle mouse move for drag/resize
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!containerRef.current || !activeRegionId) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const region = blurOptions.regions.find(r => r.id === activeRegionId);
+    if (!region) return;
+
+    if (isDragging) {
+      const deltaX = pixelToPercent(e.clientX - dragStart.x, true);
+      const deltaY = pixelToPercent(e.clientY - dragStart.y, false);
+      
+      const newX = Math.max(0, Math.min(100 - region.width, region.x + deltaX));
+      const newY = Math.max(0, Math.min(100 - region.height, region.y + deltaY));
+      
+      updateBlurRegion(activeRegionId, { x: newX, y: newY });
+      setDragStart({ x: e.clientX, y: e.clientY });
+    }
+
+    if (isResizing) {
+      const currentX = ((e.clientX - rect.left) / rect.width) * 100;
+      const currentY = ((e.clientY - rect.top) / rect.height) * 100;
+      
+      const newWidth = Math.max(5, Math.min(100 - region.x, currentX - region.x));
+      const newHeight = Math.max(5, Math.min(100 - region.y, currentY - region.y));
+      
+      updateBlurRegion(activeRegionId, { width: newWidth, height: newHeight });
+    }
+  }, [isDragging, isResizing, activeRegionId, dragStart, blurOptions.regions, pixelToPercent, updateBlurRegion]);
+
+  // Handle mouse up
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+    setIsResizing(false);
+    setActiveRegionId(null);
+  }, []);
+
+  // Add/remove event listeners
+  useEffect(() => {
+    if (isDragging || isResizing) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
 
   // Logo position mapping
   const getLogoPosition = () => {
@@ -102,6 +185,7 @@ export function LivePreviewCanvas() {
           
           {/* Video Preview */}
           <div 
+            ref={containerRef}
             className={cn(
               "relative overflow-hidden shadow-2xl border-2 border-white/10",
               aspectRatio === '9:16' && "rounded-[20px]",  // Mobile look
@@ -144,22 +228,41 @@ export function LivePreviewCanvas() {
               </div>
             )}
 
-            {/* Blur Regions Overlay */}
+            {/* Blur Regions Overlay - Draggable & Resizable */}
             {blurOptions.regions.length > 0 && blurOptions.regions.map((region) => (
               <div
                 key={region.id}
-                className="absolute bg-black/60 border border-white/30"
+                className={cn(
+                  "absolute border-2 cursor-move select-none",
+                  activeRegionId === region.id
+                    ? "border-primary bg-primary/30 z-20"
+                    : "border-white/60 bg-black/40 hover:border-primary/60 z-10"
+                )}
                 style={{
                   left: `${region.x}%`,
                   top: `${region.y}%`,
                   width: `${region.width}%`,
                   height: `${region.height}%`,
                   backdropFilter: `blur(${blurOptions.intensity}px)`,
-                  transform: copyrightOptions.horizontalFlip ? 'scaleX(-1)' : 'none',
                 }}
+                onMouseDown={(e) => handleBlurDragStart(e, region.id)}
               >
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-[6px] text-white/50">BLUR</span>
+                {/* Move handle */}
+                <div className="absolute top-0 left-0 p-0.5 bg-black/70 rounded-br">
+                  <Move className="h-2 w-2 text-white" />
+                </div>
+                
+                {/* Resize handle */}
+                <div
+                  className="absolute bottom-0 right-0 w-3 h-3 bg-primary cursor-se-resize"
+                  onMouseDown={(e) => handleBlurResizeStart(e, region.id)}
+                >
+                  <Maximize2 className="h-2 w-2 text-white m-0.5" />
+                </div>
+                
+                {/* Label */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="text-[6px] text-white/70 bg-black/40 px-1 rounded">BLUR</span>
                 </div>
               </div>
             ))}
