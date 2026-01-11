@@ -313,6 +313,7 @@ export function LivePreviewCanvas() {
               🎤 {voiceId.includes('Nilar') ? 'Nilar' : 'Thiha'}
             </div>
           </div>
+          {/* End of Video Content div */}
 
           {/* Blur Regions Overlay - Outside flipped container for correct drag behavior */}
           {blurOptions.regions.length > 0 && blurOptions.regions.map((region) => (
@@ -353,6 +354,9 @@ export function LivePreviewCanvas() {
             </div>
           ))}
         </div>
+        {/* End of containerRef wrapper */}
+        </div>
+        {/* End of Clean Preview div */}
 
         {/* Platform Label */}
         <div className="mt-4 text-center">
