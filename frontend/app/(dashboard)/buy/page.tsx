@@ -465,7 +465,7 @@ export default function BuyCreditsPage() {
         )}
 
         {/* Step 3: Payment & Screenshot Upload */}
-        {step === 'upload' && selectedPackage && selectedPaymentMethod && selectedPaymentType && currentOrder && (
+        {step === 'upload' && selectedPackage && selectedPaymentMethod && selectedPaymentType && (
           <motion.div
             key="upload"
             initial={{ opacity: 0, x: 20 }}
