@@ -16,6 +16,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
+import { BlurRegionEditor } from '@/components/video/blur-region-editor';
 import {
   Shield,
   Type,
@@ -75,6 +76,7 @@ export function Step2Styles() {
     blurOptions,
     subtitleOptions,
     logoOptions,
+    aspectRatio,
     setCopyrightOptions,
     setBlurOptions,
     setSubtitleOptions,
@@ -275,20 +277,16 @@ export function Step2Styles() {
               <Layers className="h-5 w-5 text-purple-600" />
             </div>
             <div className="text-left">
-              <p className="font-medium">🔮 Blur Effect</p>
+              <p className="font-medium">🔮 Custom Blur (Watermark ဖုံး)</p>
               <p className="text-xs text-muted-foreground">
-                Video နောက်ခံကို blur ထည့်မည်
+                YouTube logo/watermark ကို blur box နဲ့ ဖုံးမည်
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Switch
-              checked={blurOptions.enabled}
-              onCheckedChange={(checked) =>
-                setBlurOptions({ ...blurOptions, enabled: checked })
-              }
-              onClick={(e) => e.stopPropagation()}
-            />
+            <span className="text-xs text-muted-foreground">
+              {blurOptions.regions.length > 0 ? `${blurOptions.regions.length} box` : ''}
+            </span>
             <ChevronDown className={cn(
               "h-5 w-5 transition-transform",
               blurOpen && "rotate-180"
@@ -296,64 +294,8 @@ export function Step2Styles() {
           </div>
         </CollapsibleTrigger>
 
-        <CollapsibleContent className="pt-4 space-y-4">
-          {/* Blur Type */}
-          <div className="space-y-2">
-            <Label className="text-sm">Blur ပုံစံ</Label>
-            <div className="flex gap-2">
-              {BLUR_TYPES.map((type) => (
-                <button
-                  key={type.value}
-                  type="button"
-                  onClick={() => setBlurOptions({
-                    ...blurOptions,
-                    blurType: type.value as 'gaussian' | 'box'
-                  })}
-                  className={cn(
-                    "flex-1 py-2 px-3 rounded-lg border text-sm transition-all",
-                    blurOptions.blurType === type.value
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "hover:border-primary/50"
-                  )}
-                >
-                  <div className="font-medium">{type.label}</div>
-                  <div className="text-[10px] text-muted-foreground">{type.desc}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Blur Intensity Slider */}
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <Label className="text-sm">Blur အားကောင်းမှု</Label>
-              <span className="text-xs text-muted-foreground">{blurOptions.intensity}</span>
-            </div>
-            <Slider
-              value={[blurOptions.intensity]}
-              onValueChange={([value]) =>
-                setBlurOptions({ ...blurOptions, intensity: value })
-              }
-              min={1}
-              max={30}
-              step={1}
-              className="py-1"
-            />
-            <div className="flex justify-between text-[10px] text-muted-foreground">
-              <span>နည်း</span>
-              <span>အလယ်</span>
-              <span>များ</span>
-            </div>
-          </div>
-
-          {/* Preview hint */}
-          {blurOptions.enabled && (
-            <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
-              <p className="text-xs text-purple-600 dark:text-purple-400">
-                💡 Blur effect သည် video processing အဆင့်တွင် apply ဖြစ်မည်။
-              </p>
-            </div>
-          )}
+        <CollapsibleContent className="pt-4">
+          <BlurRegionEditor aspectRatio={aspectRatio} />
         </CollapsibleContent>
       </Collapsible>
 

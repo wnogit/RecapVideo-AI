@@ -80,11 +80,20 @@ class OutroOptionsSchema(BaseModel):
         return v
 
 
+class BlurRegionSchema(BaseModel):
+    """Single blur region (percentage-based)."""
+    x: float = Field(ge=0, le=100, description="Left position (0-100%)")
+    y: float = Field(ge=0, le=100, description="Top position (0-100%)")
+    width: float = Field(ge=0, le=100, description="Width (0-100%)")
+    height: float = Field(ge=0, le=100, description="Height (0-100%)")
+
+
 class BlurOptionsSchema(BaseModel):
-    """Background blur options for video."""
-    enabled: bool = Field(default=False, description="Enable background blur effect")
-    intensity: int = Field(default=10, ge=1, le=30, description="Blur intensity 1-30")
+    """Region-based blur options to mask watermarks/logos."""
+    enabled: bool = Field(default=False, description="Enable blur effect")
+    intensity: int = Field(default=15, ge=5, le=30, description="Blur intensity 5-30")
     blur_type: str = Field(default="gaussian", description="Blur type (gaussian/box)")
+    regions: List[BlurRegionSchema] = Field(default_factory=list, description="Blur regions")
     
     @field_validator("blur_type")
     @classmethod

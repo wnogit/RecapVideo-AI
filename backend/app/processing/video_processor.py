@@ -38,6 +38,7 @@ from app.services.video_processing_service import (
     LogoOptions,
     OutroOptions,
     BlurOptions,
+    BlurRegion,
 )
 
 
@@ -60,13 +61,24 @@ class VideoProcessor:
         logo_opts = options_dict.get("logo", {})
         outro_opts = options_dict.get("outro", {})
         blur_opts = options_dict.get("blur", {})
+        blur_regions_raw = blur_opts.get("regions", [])
+        blur_regions = [
+            BlurRegion(
+                x=float(r.get("x", 0)),
+                y=float(r.get("y", 0)),
+                width=float(r.get("width", 0)),
+                height=float(r.get("height", 0)),
+            )
+            for r in blur_regions_raw
+        ]
         
         return VideoProcessingOptions(
             aspect_ratio=options_dict.get("aspect_ratio", "9:16"),
             blur=BlurOptions(
-                enabled=blur_opts.get("enabled", False),
-                intensity=int(blur_opts.get("intensity", 10)),
+                enabled=blur_opts.get("enabled", False) or len(blur_regions) > 0,
+                intensity=int(blur_opts.get("intensity", 15)),
                 blur_type=blur_opts.get("blur_type", blur_opts.get("blurType", "gaussian")),
+                regions=blur_regions,
             ),
             copyright=CopyrightOptions(
                 color_adjust=copyright_opts.get("color_adjust", True),

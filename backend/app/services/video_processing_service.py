@@ -65,11 +65,21 @@ class OutroOptions:
 
 
 @dataclass
+class BlurRegion:
+    """Single blur region (percentage-based)."""
+    x: float = 0.0      # Left position (0-100%)
+    y: float = 0.0      # Top position (0-100%)
+    width: float = 0.0  # Width (0-100%)
+    height: float = 0.0 # Height (0-100%)
+
+
+@dataclass
 class BlurOptions:
-    """Background blur options."""
+    """Region-based blur options to mask watermarks/logos."""
     enabled: bool = False
-    intensity: int = 10  # 1-30
+    intensity: int = 15  # 5-30
     blur_type: str = "gaussian"  # gaussian, box
+    regions: list = field(default_factory=list)  # List of BlurRegion
 
 
 @dataclass
@@ -294,30 +304,100 @@ class VideoProcessingService:
         options: BlurOptions,
         work_dir: Path,
     ) -> str:
-        """Apply blur effect to video."""
+        """Apply blur effect to specific regions of video (to mask watermarks/logos)."""
+        if not options.regions:
+            logger.info("No blur regions specified, skipping blur")
+            return video_path
+            
         output_path = work_dir / "blurred.mp4"
         
-        # Calculate blur parameters based on intensity (1-30)
-        # Higher intensity = more blur
-        blur_radius = options.intensity
+        # Get video dimensions first
+        probe_cmd = [
+            self.ffmpeg_path.replace("ffmpeg", "ffprobe") if "ffprobe" not in self.ffmpeg_path else self.ffmpeg_path,
+            "-v", "error",
+            "-select_streams", "v:0",
+            "-show_entries", "stream=width,height",
+            "-of", "json",
+            video_path
+        ]
         
-        # Build blur filter based on type
-        if options.blur_type == "gaussian":
-            # Gaussian blur - smoother, more natural
-            # gblur requires sigma parameter (standard deviation)
-            sigma = blur_radius / 2
-            filter_str = f"gblur=sigma={sigma}"
-        else:
-            # Box blur - faster, more uniform
-            # boxblur takes luma_radius:chroma_radius:luma_power
-            filter_str = f"boxblur={blur_radius}:{blur_radius}:1"
+        # Try to get ffprobe path
+        ffprobe_path = self.ffmpeg_path.replace("ffmpeg", "ffprobe")
+        if not Path(ffprobe_path).exists():
+            ffprobe_path = "ffprobe"  # fallback to system path
         
-        logger.info(f"Applying blur effect: type={options.blur_type}, intensity={options.intensity}")
+        try:
+            result = await asyncio.create_subprocess_exec(
+                ffprobe_path, "-v", "error",
+                "-select_streams", "v:0",
+                "-show_entries", "stream=width,height",
+                "-of", "json",
+                video_path,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, _ = await result.communicate()
+            probe_data = json.loads(stdout.decode())
+            video_width = probe_data["streams"][0]["width"]
+            video_height = probe_data["streams"][0]["height"]
+        except Exception as e:
+            logger.warning(f"Failed to probe video dimensions: {e}, using defaults")
+            video_width = 1080
+            video_height = 1920
+        
+        logger.info(f"Video dimensions: {video_width}x{video_height}")
+        
+        # Build complex filter for multiple blur regions
+        # Each region: crop the area, blur it, overlay back on original position
+        filter_parts = []
+        overlay_chain = "[0:v]"
+        
+        for i, region in enumerate(options.regions):
+            # Convert percentage to pixels
+            x = int((region.x / 100) * video_width)
+            y = int((region.y / 100) * video_height)
+            w = int((region.width / 100) * video_width)
+            h = int((region.height / 100) * video_height)
+            
+            # Ensure minimum size
+            w = max(w, 10)
+            h = max(h, 10)
+            
+            # Ensure within bounds
+            x = min(x, video_width - w)
+            y = min(y, video_height - h)
+            
+            # Build blur filter for this region
+            if options.blur_type == "gaussian":
+                sigma = options.intensity / 2
+                blur_filter = f"gblur=sigma={sigma}"
+            else:
+                radius = options.intensity
+                blur_filter = f"boxblur={radius}:{radius}:1"
+            
+            # Crop region, blur it, then overlay
+            filter_parts.append(
+                f"[0:v]crop={w}:{h}:{x}:{y},{blur_filter}[blur{i}]"
+            )
+            
+            if i == 0:
+                overlay_chain = f"[0:v][blur{i}]overlay={x}:{y}[tmp{i}]"
+            else:
+                overlay_chain = f"[tmp{i-1}][blur{i}]overlay={x}:{y}[tmp{i}]"
+        
+        # Combine all filters
+        filter_complex = ";".join(filter_parts) + ";" + overlay_chain
+        
+        # Replace last [tmpN] with output
+        last_idx = len(options.regions) - 1
+        filter_complex = filter_complex.replace(f"[tmp{last_idx}]", "")
+        
+        logger.info(f"Applying blur to {len(options.regions)} region(s): intensity={options.intensity}")
         
         cmd = [
             self.ffmpeg_path, "-y",
             "-i", video_path,
-            "-vf", filter_str,
+            "-filter_complex", filter_complex,
             "-c:a", "copy",
             "-c:v", "libx264",
             "-preset", "fast",

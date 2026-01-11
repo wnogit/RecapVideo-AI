@@ -49,19 +49,30 @@ export const DEFAULT_COPYRIGHT_OPTIONS: CopyrightOptions = {
   pitchValue: 1.0,
 };
 
-// Blur Options (Custom Background Blur)
+// Blur Options (Custom Region Blur - to mask watermarks/logos)
 export type BlurType = 'gaussian' | 'box';
+
+// Single blur region (percentage-based for responsiveness)
+export interface BlurRegion {
+  id: string;
+  x: number;      // Left position (0-100%)
+  y: number;      // Top position (0-100%)
+  width: number;  // Width (0-100%)
+  height: number; // Height (0-100%)
+}
 
 export interface BlurOptions {
   enabled: boolean;
-  intensity: number;     // 1-30 (low to high blur)
+  intensity: number;     // 1-30 (blur strength)
   blurType: BlurType;    // gaussian (smooth) or box (blocky)
+  regions: BlurRegion[]; // Array of blur regions
 }
 
 export const DEFAULT_BLUR_OPTIONS: BlurOptions = {
   enabled: false,
-  intensity: 10,
+  intensity: 15,
   blurType: 'gaussian',
+  regions: [],
 };
 
 // Subtitle Options

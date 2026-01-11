@@ -8,6 +8,7 @@ import {
   AspectRatio,
   CopyrightOptions,
   BlurOptions,
+  BlurRegion,
   SubtitleOptions,
   LogoOptions,
   OutroOptions,
@@ -63,6 +64,9 @@ export interface VideoCreationState {
   // Step 2 Actions
   setCopyrightOptions: (options: CopyrightOptions) => void;
   setBlurOptions: (options: BlurOptions) => void;
+  addBlurRegion: (region: BlurRegion) => void;
+  updateBlurRegion: (id: string, updates: Partial<BlurRegion>) => void;
+  removeBlurRegion: (id: string) => void;
   setSubtitleOptions: (options: SubtitleOptions) => void;
   setLogoOptions: (options: LogoOptions) => void;
 
@@ -153,6 +157,41 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
 
   setBlurOptions: (options) => set({ blurOptions: options }),
 
+  addBlurRegion: (region) => {
+    const { blurOptions } = get();
+    set({
+      blurOptions: {
+        ...blurOptions,
+        enabled: true,
+        regions: [...blurOptions.regions, region],
+      },
+    });
+  },
+
+  updateBlurRegion: (id, updates) => {
+    const { blurOptions } = get();
+    set({
+      blurOptions: {
+        ...blurOptions,
+        regions: blurOptions.regions.map((r) =>
+          r.id === id ? { ...r, ...updates } : r
+        ),
+      },
+    });
+  },
+
+  removeBlurRegion: (id) => {
+    const { blurOptions } = get();
+    const newRegions = blurOptions.regions.filter((r) => r.id !== id);
+    set({
+      blurOptions: {
+        ...blurOptions,
+        enabled: newRegions.length > 0,
+        regions: newRegions,
+      },
+    });
+  },
+
   setSubtitleOptions: (options) => set({ subtitleOptions: options }),
 
   setLogoOptions: (options) => {
@@ -200,6 +239,12 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
           enabled: state.blurOptions.enabled,
           intensity: state.blurOptions.intensity,
           blur_type: state.blurOptions.blurType,
+          regions: state.blurOptions.regions.map((r) => ({
+            x: r.x,
+            y: r.y,
+            width: r.width,
+            height: r.height,
+          })),
         },
         copyright: {
           color_adjust: state.copyrightOptions.colorAdjust,
