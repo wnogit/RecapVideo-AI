@@ -30,6 +30,10 @@ DEFAULT_SETTINGS = {
         "value_json": [],
         "description": "List of IP addresses allowed during maintenance"
     },
+    "login_allowed_ips": {
+        "value_json": [],
+        "description": "List of IP addresses that bypass VPN/Datacenter check for login (for developers)"
+    },
     "maintenance_message": {
         "value": "We're working on something amazing! Check back soon.",
         "description": "Custom message shown on maintenance page"

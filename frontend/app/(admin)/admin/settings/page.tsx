@@ -87,6 +87,11 @@ export default function AdminSettingsPage() {
   const [newIPLabel, setNewIPLabel] = useState('');
   const [isAddingIP, setIsAddingIP] = useState(false);
   
+  // Login IP Whitelist state
+  const [newLoginIPAddress, setNewLoginIPAddress] = useState('');
+  const [newLoginIPLabel, setNewLoginIPLabel] = useState('');
+  const [isAddingLoginIP, setIsAddingLoginIP] = useState(false);
+  
   // Telegram state
   const [telegramStatus, setTelegramStatus] = useState<TelegramStatus | null>(null);
   const [isLoadingTelegram, setIsLoadingTelegram] = useState(false);
@@ -196,6 +201,41 @@ export default function AdminSettingsPage() {
   const handleAddMyIP = () => {
     setNewIPAddress(myIP);
     setNewIPLabel('My Current IP');
+  };
+
+  // Login IP Whitelist functions
+  const handleAddLoginAllowedIP = async () => {
+    if (!newLoginIPAddress.trim()) {
+      toast({ title: 'Please enter an IP address', variant: 'destructive' });
+      return;
+    }
+    setIsAddingLoginIP(true);
+    try {
+      await siteSettingsApi.addLoginAllowedIP(newLoginIPAddress.trim(), newLoginIPLabel.trim() || undefined);
+      toast({ title: 'IP address added to login whitelist' });
+      setNewLoginIPAddress('');
+      setNewLoginIPLabel('');
+      fetchSiteSettings();
+    } catch (error: any) {
+      toast({ title: error.response?.data?.detail || 'Failed to add IP', variant: 'destructive' });
+    } finally {
+      setIsAddingLoginIP(false);
+    }
+  };
+
+  const handleRemoveLoginAllowedIP = async (ip: string) => {
+    try {
+      await siteSettingsApi.removeLoginAllowedIP(ip);
+      toast({ title: 'IP address removed from login whitelist' });
+      fetchSiteSettings();
+    } catch (error: any) {
+      toast({ title: error.response?.data?.detail || 'Failed to remove IP', variant: 'destructive' });
+    }
+  };
+
+  const handleAddMyLoginIP = () => {
+    setNewLoginIPAddress(myIP);
+    setNewLoginIPLabel('Developer VPS');
   };
   
   // Telegram functions
@@ -788,6 +828,100 @@ export default function AdminSettingsPage() {
                     </div>
                   </>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Login IP Whitelist Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Login IP Whitelist (Developer Access)
+                </CardTitle>
+                <CardDescription>
+                  IPs in this list bypass VPN/Datacenter detection for login. 
+                  Use this for development from VPS or datacenter IPs.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Add IP Form for Login Whitelist */}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="IP Address (e.g., 192.168.1.1)"
+                    value={newLoginIPAddress}
+                    onChange={(e) => setNewLoginIPAddress(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Input
+                    placeholder="Label (optional)"
+                    value={newLoginIPLabel}
+                    onChange={(e) => setNewLoginIPLabel(e.target.value)}
+                    className="w-40"
+                  />
+                  <Button 
+                    onClick={handleAddLoginAllowedIP}
+                    disabled={isAddingLoginIP || !newLoginIPAddress.trim()}
+                  >
+                    {isAddingLoginIP ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  </Button>
+                  {myIP && (
+                    <Button variant="outline" onClick={handleAddMyLoginIP}>
+                      Add My IP
+                    </Button>
+                  )}
+                </div>
+
+                {/* Login Whitelist IP List */}
+                <div className="border rounded-lg">
+                  {getSettingJson('login_allowed_ips', []).length === 0 ? (
+                    <div className="p-4 text-center text-muted-foreground">
+                      <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-blue-500" />
+                      <p>No whitelisted IPs for login.</p>
+                      <p className="text-xs">Add your VPS/Datacenter IP here to bypass VPN detection.</p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>IP Address</TableHead>
+                          <TableHead>Label</TableHead>
+                          <TableHead>Added By</TableHead>
+                          <TableHead className="w-20">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {getSettingJson('login_allowed_ips', []).map((item: any, index: number) => {
+                          const ip = typeof item === 'string' ? item : item.ip;
+                          const label = typeof item === 'string' ? '' : item.label;
+                          const addedBy = typeof item === 'string' ? '' : item.added_by;
+                          const isMyIP = ip === myIP;
+                          return (
+                            <TableRow key={index}>
+                              <TableCell className="font-mono">
+                                {ip}
+                                {isMyIP && (
+                                  <Badge variant="secondary" className="ml-2">You</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>{label || '-'}</TableCell>
+                              <TableCell className="text-sm text-muted-foreground">{addedBy || '-'}</TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive"
+                                  onClick={() => handleRemoveLoginAllowedIP(ip)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
               </CardContent>
             </Card>
 

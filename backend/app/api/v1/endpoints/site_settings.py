@@ -316,6 +316,81 @@ async def remove_allowed_ip(
     return {"message": "IP removed", "allowed_ips": new_list}
 
 
+# ============ Login IP Whitelist (bypass VPN/Datacenter check) ============
+
+@router.post("/login/allowed-ips")
+async def add_login_allowed_ip(
+    ip: str = Body(..., embed=True),
+    label: str = Body(None, embed=True),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Add an IP to the login whitelist (bypasses VPN/Datacenter check)."""
+    allowed_ips = await get_setting_json(db, "login_allowed_ips", [])
+    
+    # Check if IP already exists
+    for item in allowed_ips:
+        existing_ip = item if isinstance(item, str) else item.get('ip')
+        if existing_ip == ip:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="IP already in whitelist"
+            )
+    
+    allowed_ips.append({
+        "ip": ip,
+        "label": label or "Developer",
+        "added_at": datetime.now(timezone.utc).isoformat(),
+        "added_by": current_user.email
+    })
+    
+    await set_setting(db, "login_allowed_ips", value_json=allowed_ips, updated_by=current_user.email)
+    await db.commit()
+    
+    return {"message": "IP added to login whitelist", "allowed_ips": allowed_ips}
+
+
+@router.delete("/login/allowed-ips/{ip}")
+async def remove_login_allowed_ip(
+    ip: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Remove an IP from the login whitelist."""
+    allowed_ips = await get_setting_json(db, "login_allowed_ips", [])
+    
+    # Filter out the IP
+    new_list = []
+    found = False
+    for item in allowed_ips:
+        item_ip = item if isinstance(item, str) else item.get('ip')
+        if item_ip != ip:
+            new_list.append(item)
+        else:
+            found = True
+    
+    if not found:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="IP not found in whitelist"
+        )
+    
+    await set_setting(db, "login_allowed_ips", value_json=new_list, updated_by=current_user.email)
+    await db.commit()
+    
+    return {"message": "IP removed from login whitelist", "allowed_ips": new_list}
+
+
+@router.get("/login/allowed-ips")
+async def get_login_allowed_ips(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Get all IPs in login whitelist."""
+    allowed_ips = await get_setting_json(db, "login_allowed_ips", [])
+    return {"allowed_ips": allowed_ips}
+
+
 @router.get("/my-ip")
 async def get_my_ip(request: Request):
     """Get the current client's IP address (useful for adding to allowed list)."""

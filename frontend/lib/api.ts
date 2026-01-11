@@ -439,10 +439,18 @@ export const siteSettingsApi = {
   getAll: () => api.get<AllSettings>('/site-settings'),
   updateMultiple: (updates: SettingUpdate[]) => api.put('/site-settings', updates),
   updateSingle: (key: string, update: SettingUpdate) => api.put(`/site-settings/${key}`, update),
+  // Maintenance mode allowed IPs
   addAllowedIP: (ip: string, label?: string) => 
     api.post('/site-settings/maintenance/allowed-ips', { ip, label }),
   removeAllowedIP: (ip: string) => 
     api.delete(`/site-settings/maintenance/allowed-ips/${encodeURIComponent(ip)}`),
+  // Login whitelist (bypass VPN/Datacenter check)
+  addLoginAllowedIP: (ip: string, label?: string) => 
+    api.post('/site-settings/login/allowed-ips', { ip, label }),
+  removeLoginAllowedIP: (ip: string) => 
+    api.delete(`/site-settings/login/allowed-ips/${encodeURIComponent(ip)}`),
+  getLoginAllowedIPs: () => 
+    api.get<{ allowed_ips: Array<{ ip: string; label: string; added_by: string }> }>('/site-settings/login/allowed-ips'),
 };
 
 // Telegram Settings API (Admin)
