@@ -77,6 +77,10 @@ class UserResponse(BaseModel):
     is_verified: bool
     is_admin: bool = False
     credit_balance: int
+    purchased_credits: int = 0
+    tier: str = "FREE"  # "FREE" or "PRO"
+    is_pro: bool = False
+    can_bypass_vpn: bool = False
     created_at: datetime
     last_login_at: Optional[datetime] = None
     # Auth provider info

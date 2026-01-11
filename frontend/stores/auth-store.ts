@@ -15,6 +15,10 @@ export interface User {
   is_verified: boolean;
   is_admin: boolean;
   credit_balance: number;
+  purchased_credits: number;
+  tier: 'FREE' | 'PRO';
+  is_pro: boolean;
+  can_bypass_vpn: boolean;
   created_at: string;
   last_login_at?: string;
   // Auth provider info
@@ -28,7 +32,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  
+
   // Actions - Both email/password and Google OAuth
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;

@@ -51,6 +51,7 @@ class User(Base):
     
     # Credits
     credit_balance: Mapped[int] = mapped_column(Integer, default=0)
+    purchased_credits: Mapped[int] = mapped_column(Integer, default=0)  # Track purchased credits for Pro tier
     
     # Preferences (JSON stored as text)
     preferences: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -142,3 +143,21 @@ class User(Base):
     def can_create_video(self, required_credits: int = 2) -> bool:
         """Check if user has enough credits to create a video."""
         return self.credit_balance >= required_credits
+    
+    @property
+    def tier(self) -> str:
+        """Get user tier based on purchased credits."""
+        if self.purchased_credits > 0:
+            return "PRO"
+        return "FREE"
+    
+    @property
+    def is_pro(self) -> bool:
+        """Check if user is Pro tier."""
+        return self.purchased_credits > 0
+    
+    @property
+    def can_bypass_vpn(self) -> bool:
+        """Check if user can bypass VPN detection."""
+        return self.is_pro
+

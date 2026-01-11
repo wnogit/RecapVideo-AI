@@ -18,14 +18,10 @@ if TYPE_CHECKING:
 
 
 class OrderStatus(str, Enum):
-    """Order status."""
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    REFUNDED = "refunded"
-    CANCELLED = "cancelled"
-    REJECTED = "rejected"
+    """Order status - Simplified to 3 states."""
+    PENDING = "pending"       # Waiting for admin approval
+    COMPLETED = "completed"   # Admin approved, credits added
+    REJECTED = "rejected"     # Admin rejected
 
 
 class Order(Base):

@@ -86,8 +86,19 @@ async def create_video(
     
     db.add(video)
     
-    # Deduct credits
+    # Deduct credits - prioritize trial credits, then purchased credits
     current_user.credit_balance -= CREDITS_PER_VIDEO
+    
+    # Calculate how many credits to deduct from purchased_credits
+    # Trial credits = credit_balance - purchased_credits (before deduction)
+    # We want to use trial credits first
+    if current_user.purchased_credits > 0:
+        # If we've used all trial credits, start using purchased credits
+        trial_credits_remaining = current_user.credit_balance - current_user.purchased_credits
+        if trial_credits_remaining < 0:
+            # Need to deduct from purchased credits
+            credits_from_purchased = min(-trial_credits_remaining, current_user.purchased_credits)
+            current_user.purchased_credits = max(0, current_user.purchased_credits - credits_from_purchased)
     
     # Record transaction
     transaction = CreditTransaction(

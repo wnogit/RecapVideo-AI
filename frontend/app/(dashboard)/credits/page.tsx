@@ -59,13 +59,13 @@ export default function CreditsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Credit Usage</CardTitle>
-            <CardDescription>1 credit = 1 video</CardDescription>
+            <CardDescription>2 credits = 1 video</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Videos you can create</span>
-                <span className="font-medium">{balance} videos</span>
+                <span className="font-medium">{Math.floor(balance / 2)} videos</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Estimated savings</span>
@@ -117,11 +117,10 @@ export default function CreditsPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                        tx.amount > 0
+                      className={`h-10 w-10 rounded-full flex items-center justify-center ${tx.amount > 0
                           ? 'bg-green-100 text-green-600'
                           : 'bg-red-100 text-red-600'
-                      }`}
+                        }`}
                     >
                       {tx.amount > 0 ? (
                         <TrendingUp className="h-5 w-5" />
@@ -137,15 +136,17 @@ export default function CreditsPage() {
                         {tx.transaction_type === 'refund' && 'Refund'}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {tx.description || formatDistanceToNow(new Date(tx.created_at), { addSuffix: true })}
+                        {tx.description}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(tx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p
-                      className={`font-semibold ${
-                        tx.amount > 0 ? 'text-green-600' : 'text-red-600'
-                      }`}
+                      className={`font-semibold ${tx.amount > 0 ? 'text-green-600' : 'text-red-600'
+                        }`}
                     >
                       {tx.amount > 0 ? '+' : ''}{tx.amount}
                     </p>

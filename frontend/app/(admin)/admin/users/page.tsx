@@ -46,6 +46,9 @@ interface User {
   is_verified: boolean
   is_admin: boolean
   credit_balance: number
+  purchased_credits: number
+  tier: 'FREE' | 'PRO'
+  is_pro: boolean
   created_at: string
   updated_at: string
   last_login_at?: string
@@ -71,7 +74,8 @@ export default function AdminUsersPage() {
   const [total, setTotal] = useState(0)
   const [search, setSearch] = useState("")
   const [searchInput, setSearchInput] = useState("")
-  
+  const [filterType, setFilterType] = useState<'all' | 'pro' | 'free' | 'admin'>('all')
+
   // Dialog states
   const [isCreditsDialogOpen, setIsCreditsDialogOpen] = useState(false)
   const [isUserInfoDialogOpen, setIsUserInfoDialogOpen] = useState(false)
@@ -90,7 +94,7 @@ export default function AdminUsersPage() {
       if (search) {
         params.append("search", search)
       }
-      
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/users?${params}`,
         {
@@ -99,11 +103,11 @@ export default function AdminUsersPage() {
           },
         }
       )
-      
+
       if (!response.ok) {
         throw new Error("Failed to fetch users")
       }
-      
+
       const data: UsersResponse = await response.json()
       setUsers(data.users)
       setTotal(data.total)
@@ -139,12 +143,12 @@ export default function AdminUsersPage() {
           },
         }
       )
-      
+
       if (!response.ok) {
         const error = await response.json()
         throw new Error(error.detail || "Failed to update user")
       }
-      
+
       const result = await response.json()
       toast({ title: result.message })
       fetchUsers()
@@ -168,12 +172,12 @@ export default function AdminUsersPage() {
           },
         }
       )
-      
+
       if (!response.ok) {
         const error = await response.json()
         throw new Error(error.detail || "Failed to update user")
       }
-      
+
       const result = await response.json()
       toast({ title: result.message })
       fetchUsers()
@@ -187,7 +191,7 @@ export default function AdminUsersPage() {
 
   const handleAddCredits = async () => {
     if (!selectedUser || !creditsAmount) return
-    
+
     setIsProcessing(true)
     try {
       const token = localStorage.getItem("access_token")
@@ -205,12 +209,12 @@ export default function AdminUsersPage() {
           }),
         }
       )
-      
+
       if (!response.ok) {
         const error = await response.json()
         throw new Error(error.detail || "Failed to add credits")
       }
-      
+
       const result = await response.json()
       toast({ title: result.message })
       setIsCreditsDialogOpen(false)
@@ -291,6 +295,15 @@ export default function AdminUsersPage() {
       ),
     },
     {
+      key: "plan",
+      header: "Plan",
+      cell: (user) => (
+        <span className={user.is_pro ? "text-purple-600 font-medium" : "text-muted-foreground"}>
+          {user.is_pro ? "Pro" : "Free"}
+        </span>
+      ),
+    },
+    {
       key: "credits",
       header: "Credits",
       cell: (user) => (
@@ -318,7 +331,7 @@ export default function AdminUsersPage() {
       header: "Last Login",
       cell: (user) => (
         <span className="text-muted-foreground">
-          {user.last_login_at 
+          {user.last_login_at
             ? format(new Date(user.last_login_at), "MMM d, yyyy HH:mm")
             : "Never"
           }
@@ -352,7 +365,7 @@ export default function AdminUsersPage() {
               Full Info
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
+            <DropdownMenuItem
               className={user.is_active ? "text-destructive" : "text-green-600"}
               onClick={() => handleToggleActive(user)}
             >
@@ -381,6 +394,40 @@ export default function AdminUsersPage() {
         </Button>
       </div>
 
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-4">
+        <div className="flex gap-1 bg-muted/50 p-1 rounded-lg">
+          <Button
+            variant={filterType === 'all' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setFilterType('all')}
+          >
+            All
+          </Button>
+          <Button
+            variant={filterType === 'pro' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setFilterType('pro')}
+          >
+            Pro
+          </Button>
+          <Button
+            variant={filterType === 'free' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setFilterType('free')}
+          >
+            Free
+          </Button>
+          <Button
+            variant={filterType === 'admin' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setFilterType('admin')}
+          >
+            Admin
+          </Button>
+        </div>
+      </div>
+
       {/* Search */}
       <div className="flex gap-2">
         <div className="relative flex-1 max-w-sm">
@@ -395,8 +442,8 @@ export default function AdminUsersPage() {
         </div>
         <Button onClick={handleSearch}>Search</Button>
         {search && (
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={() => {
               setSearch("")
               setSearchInput("")
@@ -411,7 +458,13 @@ export default function AdminUsersPage() {
       {/* Data Table */}
       <DataTable
         columns={columns}
-        data={users}
+        data={users.filter(user => {
+          if (filterType === 'all') return true;
+          if (filterType === 'pro') return user.is_pro;
+          if (filterType === 'free') return !user.is_pro;
+          if (filterType === 'admin') return user.is_admin;
+          return true;
+        })}
         isLoading={isLoading}
         pagination={{
           page,
@@ -469,7 +522,7 @@ export default function AdminUsersPage() {
               Full information for {selectedUser?.name}
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedUser && (
             <div className="space-y-6">
               {/* User Profile Section */}
@@ -510,7 +563,7 @@ export default function AdminUsersPage() {
                   </div>
                   <p className="font-medium">{selectedUser.email}</p>
                 </div>
-                
+
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Phone className="h-4 w-4" />
@@ -518,7 +571,7 @@ export default function AdminUsersPage() {
                   </div>
                   <p className="font-medium">{selectedUser.phone || "Not provided"}</p>
                 </div>
-                
+
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <CreditCard className="h-4 w-4" />
@@ -526,7 +579,7 @@ export default function AdminUsersPage() {
                   </div>
                   <p className="font-medium text-lg">{selectedUser.credit_balance.toLocaleString()} credits</p>
                 </div>
-                
+
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Video className="h-4 w-4" />
@@ -534,7 +587,7 @@ export default function AdminUsersPage() {
                   </div>
                   <p className="font-medium text-lg">{selectedUser.video_count}</p>
                 </div>
-                
+
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
@@ -542,14 +595,14 @@ export default function AdminUsersPage() {
                   </div>
                   <p className="font-medium">{format(new Date(selectedUser.created_at), "PPP")}</p>
                 </div>
-                
+
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Clock className="h-4 w-4" />
                     Last Login
                   </div>
                   <p className="font-medium">
-                    {selectedUser.last_login_at 
+                    {selectedUser.last_login_at
                       ? format(new Date(selectedUser.last_login_at), "PPP 'at' p")
                       : "Never"
                     }
@@ -564,7 +617,7 @@ export default function AdminUsersPage() {
                 <h4 className="text-sm font-medium text-muted-foreground mb-3">
                   Last Login Device & IP
                 </h4>
-                
+
                 {selectedUser.last_device ? (
                   <div className="bg-muted/50 rounded-lg p-4">
                     <div className="flex items-start gap-4">
@@ -594,16 +647,16 @@ export default function AdminUsersPage() {
                           <div>
                             <span className="text-muted-foreground">Last Seen:</span>
                             <p className="font-medium">
-                              {selectedUser.last_device.last_seen 
+                              {selectedUser.last_device.last_seen
                                 ? format(new Date(selectedUser.last_device.last_seen), "PPP 'at' p")
                                 : "Unknown"
                               }
                             </p>
                           </div>
                         </div>
-                        
+
                         <Separator className="my-2" />
-                        
+
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
                             <div className="flex items-center gap-1 text-muted-foreground mb-1">
@@ -620,7 +673,7 @@ export default function AdminUsersPage() {
                               Location
                             </div>
                             <p className="font-medium">
-                              {selectedUser.last_device.city 
+                              {selectedUser.last_device.city
                                 ? `${selectedUser.last_device.city}${selectedUser.last_device.country ? `, ${selectedUser.last_device.country}` : ""}`
                                 : "Unknown"
                               }
@@ -639,7 +692,7 @@ export default function AdminUsersPage() {
               </div>
             </div>
           )}
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsUserInfoDialogOpen(false)}>
               Close

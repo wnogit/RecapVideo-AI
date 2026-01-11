@@ -7,8 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Coins, Check, Star, Loader2, ArrowLeft, ArrowRight, Upload, Copy, CheckCircle, AlertCircle, X, Phone, User } from 'lucide-react';
+import { Coins, Check, Star, Loader2, ArrowLeft, ArrowRight, Upload, Copy, CheckCircle, AlertCircle, X, Phone, User, Zap } from 'lucide-react';
 import { orderApi, paymentMethodsApi, creditPackagesApi, type PaymentMethod, type OrderData, type CreditPackage } from '@/lib/api';
+import { useAuthStore } from '@/stores/auth-store';
 import { toast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -29,10 +30,11 @@ type CheckoutStep = 'packages' | 'payment' | 'upload' | 'complete';
 
 export default function BuyCreditsPage() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const [packages, setPackages] = useState<CreditPackage[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Checkout state
   const [step, setStep] = useState<CheckoutStep>('packages');
   const [selectedPackage, setSelectedPackage] = useState<CreditPackage | null>(null);
@@ -53,7 +55,7 @@ export default function BuyCreditsPage() {
           creditPackagesApi.getPublic().catch(() => ({ data: [] })),
           paymentMethodsApi.getActive().catch(() => ({ data: [] })),
         ]);
-        
+
         setPackages(packagesRes.data || []);
         setPaymentMethods(methodsRes.data || []);
       } catch (error) {
@@ -81,7 +83,7 @@ export default function BuyCreditsPage() {
   // Create order and proceed to upload
   const handleProceedToUpload = async () => {
     if (!selectedPackage || !selectedPaymentMethod || !selectedPaymentType) return;
-    
+
     setIsSubmitting(true);
     try {
       const response = await orderApi.create({
@@ -90,7 +92,7 @@ export default function BuyCreditsPage() {
         payment_method_id: selectedPaymentMethod.id,
         promo_code: promoCode || undefined,
       });
-      
+
       setCurrentOrder(response.data);
       setStep('upload');
       toast({ title: 'Order reserved!', description: 'Please send payment and upload screenshot to complete your order.' });
@@ -121,7 +123,7 @@ export default function BuyCreditsPage() {
   // Upload screenshot and complete order
   const handleUploadScreenshot = async () => {
     if (!currentOrder || !screenshotFile) return;
-    
+
     setIsSubmitting(true);
     try {
       await orderApi.uploadScreenshot(currentOrder.id, screenshotFile);
@@ -217,6 +219,28 @@ export default function BuyCreditsPage() {
                 AI-powered recap video with Burmese voiceover.
               </p>
             </div>
+
+            {/* Upgrade to Pro Banner - Only for Free users */}
+            {!user?.is_pro && (
+              <Card className="mb-6 bg-gradient-to-r from-purple-500/10 via-purple-600/10 to-purple-700/10 border-purple-500/20">
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-full bg-purple-600 flex items-center justify-center shrink-0">
+                      <Zap className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-purple-700">⚡ Upgrade to Pro</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Buy credits to become a Pro user and unlock VPN bypass access!
+                      </p>
+                    </div>
+                    <Badge className="bg-purple-600 text-white shrink-0">
+                      VPN Bypass
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Empty State */}
             {packages.length === 0 && (
@@ -334,7 +358,7 @@ export default function BuyCreditsPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold">
-                      {selectedPackage.price_mmk 
+                      {selectedPackage.price_mmk
                         ? `${selectedPackage.price_mmk.toLocaleString()} MMK`
                         : `$${selectedPackage.price_usd} USD`
                       }
@@ -375,17 +399,17 @@ export default function BuyCreditsPage() {
                             <Phone className="h-3 w-3" />
                             {method.phone}
                           </div>
-                          
+
                           {/* Payment Types */}
                           <div className="flex flex-wrap gap-2 mt-3">
                             {method.payment_types.map((type) => {
-                              const config = PAYMENT_TYPE_CONFIG[type] || { 
-                                name: type, 
-                                color: 'text-gray-600', 
-                                bgColor: 'bg-gray-100' 
+                              const config = PAYMENT_TYPE_CONFIG[type] || {
+                                name: type,
+                                color: 'text-gray-600',
+                                bgColor: 'bg-gray-100'
                               };
                               const isSelected = selectedPaymentMethod?.id === method.id && selectedPaymentType === type;
-                              
+
                               return (
                                 <button
                                   key={type}
@@ -650,7 +674,7 @@ export default function BuyCreditsPage() {
               Your order #{currentOrder.id.slice(0, 8)} has been submitted and is pending approval.
               You&apos;ll receive credits once the admin approves your payment.
             </p>
-            
+
             <Card className="max-w-md mx-auto mb-8">
               <CardContent className="pt-4">
                 <div className="space-y-2 text-sm">

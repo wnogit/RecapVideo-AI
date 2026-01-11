@@ -163,7 +163,7 @@ async def approve_order(
             detail="Order already approved",
         )
     
-    if order.status not in [OrderStatus.PENDING.value, OrderStatus.PROCESSING.value]:
+    if order.status != OrderStatus.PENDING.value:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Cannot approve order with status: {order.status}",
@@ -173,8 +173,9 @@ async def approve_order(
     order.status = OrderStatus.COMPLETED.value
     order.completed_at = datetime.now(timezone.utc)
     
-    # Add credits to user
+    # Add credits to user and track purchased credits for Pro tier
     user.credit_balance += order.credits_amount
+    user.purchased_credits += order.credits_amount  # Track for Pro tier
     
     # Record transaction
     transaction = CreditTransaction(
@@ -260,7 +261,7 @@ async def get_order_stats(
     """
     # Count by status
     status_counts = {}
-    for status_val in [OrderStatus.PENDING, OrderStatus.PROCESSING, OrderStatus.COMPLETED, OrderStatus.CANCELLED, OrderStatus.REJECTED]:
+    for status_val in [OrderStatus.PENDING, OrderStatus.COMPLETED, OrderStatus.REJECTED]:
         count = await db.scalar(
             select(func.count()).select_from(Order).where(Order.status == status_val.value)
         )
