@@ -237,7 +237,7 @@ async def exchange_google_code(code: str, redirect_uri: str) -> dict:
 # ============ Anti-Abuse Endpoints ============
 
 @router.get("/check-ip", response_model=IPCheckResponse)
-async def check_ip(request: Request, device_id: str = None, db: DBSession = None):
+async def check_ip(request: Request, db: DBSession, device_id: str = None):
     """
     Check if user's IP is allowed (not VPN/Proxy).
     Call this BEFORE showing Google OAuth button.
@@ -247,18 +247,17 @@ async def check_ip(request: Request, device_id: str = None, db: DBSession = None
     client_ip = get_client_ip(request)
     
     # Check if IP is whitelisted (bypass VPN/Datacenter check)
-    if db:
-        allowed_ips = await get_setting_json(db, "login_allowed_ips", [])
-        allowed_ip_list = []
-        for item in allowed_ips:
-            if isinstance(item, str):
-                allowed_ip_list.append(item)
-            elif isinstance(item, dict) and 'ip' in item:
-                allowed_ip_list.append(item['ip'])
-        
-        if client_ip in allowed_ip_list:
-            logger.info(f"IP {client_ip} is whitelisted for login, bypassing VPN/Datacenter check")
-            return IPCheckResponse(allowed=True)
+    allowed_ips = await get_setting_json(db, "login_allowed_ips", [])
+    allowed_ip_list = []
+    for item in allowed_ips:
+        if isinstance(item, str):
+            allowed_ip_list.append(item)
+        elif isinstance(item, dict) and 'ip' in item:
+            allowed_ip_list.append(item['ip'])
+    
+    if client_ip in allowed_ip_list:
+        logger.info(f"IP {client_ip} is whitelisted for login, bypassing VPN/Datacenter check")
+        return IPCheckResponse(allowed=True)
     
     # Check VPN/Proxy
     ip_result = await ip_service.check_ip(client_ip)
