@@ -34,7 +34,7 @@ export function LivePreviewCanvas() {
 
   // Use centralized YouTube ID extraction
   const videoId = extractYoutubeId(sourceUrl);
-  const thumbnailUrl = videoId 
+  const thumbnailUrl = videoId
     ? `https://i.ytimg.com/vi/${videoId}/oar2.jpg`
     : null;
 
@@ -51,79 +51,129 @@ export function LivePreviewCanvas() {
 
   const dimensions = getDimensions();
 
-  // Handle blur region drag start
+  // Handle blur region drag start (mouse)
   const handleBlurDragStart = (e: React.MouseEvent, regionId: string) => {
     e.preventDefault();
     e.stopPropagation();
     const region = blurOptions.regions.find(r => r.id === regionId);
     if (!region) return;
-    
+
     setActiveRegionId(regionId);
     setIsDragging(true);
     dragStartRef.current = { x: e.clientX, y: e.clientY };
     regionStartRef.current = { x: region.x, y: region.y, width: region.width, height: region.height };
   };
 
-  // Handle blur region resize start
+  // Handle blur region drag start (touch)
+  const handleBlurTouchDragStart = (e: React.TouchEvent, regionId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const region = blurOptions.regions.find(r => r.id === regionId);
+    if (!region) return;
+
+    const touch = e.touches[0];
+    setActiveRegionId(regionId);
+    setIsDragging(true);
+    dragStartRef.current = { x: touch.clientX, y: touch.clientY };
+    regionStartRef.current = { x: region.x, y: region.y, width: region.width, height: region.height };
+  };
+
+  // Handle blur region resize start (mouse)
   const handleBlurResizeStart = (e: React.MouseEvent, regionId: string) => {
     e.preventDefault();
     e.stopPropagation();
     const region = blurOptions.regions.find(r => r.id === regionId);
     if (!region) return;
-    
+
     setActiveRegionId(regionId);
     setIsResizing(true);
     dragStartRef.current = { x: e.clientX, y: e.clientY };
     regionStartRef.current = { x: region.x, y: region.y, width: region.width, height: region.height };
   };
 
-  // Handle mouse move for drag/resize
-  const handleMouseMove = useCallback((e: MouseEvent) => {
+  // Handle blur region resize start (touch)
+  const handleBlurTouchResizeStart = (e: React.TouchEvent, regionId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const region = blurOptions.regions.find(r => r.id === regionId);
+    if (!region) return;
+
+    const touch = e.touches[0];
+    setActiveRegionId(regionId);
+    setIsResizing(true);
+    dragStartRef.current = { x: touch.clientX, y: touch.clientY };
+    regionStartRef.current = { x: region.x, y: region.y, width: region.width, height: region.height };
+  };
+
+  // Handle pointer move for drag/resize (works for both mouse and touch)
+  const handlePointerMove = useCallback((clientX: number, clientY: number) => {
     if (!containerRef.current || !activeRegionId) return;
     const rect = containerRef.current.getBoundingClientRect();
 
     if (isDragging) {
       // Calculate delta in percentage from drag start
-      const deltaX = ((e.clientX - dragStartRef.current.x) / rect.width) * 100;
-      const deltaY = ((e.clientY - dragStartRef.current.y) / rect.height) * 100;
-      
+      const deltaX = ((clientX - dragStartRef.current.x) / rect.width) * 100;
+      const deltaY = ((clientY - dragStartRef.current.y) / rect.height) * 100;
+
       // Apply delta to original position (not current)
       const newX = Math.max(0, Math.min(100 - regionStartRef.current.width, regionStartRef.current.x + deltaX));
       const newY = Math.max(0, Math.min(100 - regionStartRef.current.height, regionStartRef.current.y + deltaY));
-      
+
       updateBlurRegion(activeRegionId, { x: newX, y: newY });
     }
 
     if (isResizing) {
-      // Calculate new size based on mouse position
-      const currentX = ((e.clientX - rect.left) / rect.width) * 100;
-      const currentY = ((e.clientY - rect.top) / rect.height) * 100;
-      
+      // Calculate new size based on pointer position
+      const currentX = ((clientX - rect.left) / rect.width) * 100;
+      const currentY = ((clientY - rect.top) / rect.height) * 100;
+
       const newWidth = Math.max(5, Math.min(100 - regionStartRef.current.x, currentX - regionStartRef.current.x));
       const newHeight = Math.max(5, Math.min(100 - regionStartRef.current.y, currentY - regionStartRef.current.y));
-      
+
       updateBlurRegion(activeRegionId, { width: newWidth, height: newHeight });
     }
   }, [isDragging, isResizing, activeRegionId, updateBlurRegion]);
 
-  // Handle mouse up
-  const handleMouseUp = useCallback(() => {
+  // Handle mouse move
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    handlePointerMove(e.clientX, e.clientY);
+  }, [handlePointerMove]);
+
+  // Handle touch move
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (e.touches.length > 0) {
+      e.preventDefault(); // Prevent scrolling while dragging
+      handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, [handlePointerMove]);
+
+  // Handle pointer up (mouse up or touch end)
+  const handlePointerUp = useCallback(() => {
     setIsDragging(false);
     setIsResizing(false);
     setActiveRegionId(null);
   }, []);
 
-  // Add/remove event listeners
+  // Add/remove event listeners for both mouse and touch
   useEffect(() => {
     if (isDragging || isResizing) {
+      // Mouse events
       window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('mouseup', handlePointerUp);
+      // Touch events
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('touchend', handlePointerUp);
+      window.addEventListener('touchcancel', handlePointerUp);
+
       return () => {
         window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('mouseup', handlePointerUp);
+        window.removeEventListener('touchmove', handleTouchMove);
+        window.removeEventListener('touchend', handlePointerUp);
+        window.removeEventListener('touchcancel', handlePointerUp);
       };
     }
-  }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
+  }, [isDragging, isResizing, handleMouseMove, handleTouchMove, handlePointerUp]);
 
   // Logo position mapping
   const getLogoPosition = () => {
@@ -174,27 +224,27 @@ export function LivePreviewCanvas() {
           📺 Live Preview
         </CardTitle>
       </CardHeader>
-      
+
       <CardContent className="flex flex-col items-center pb-4">
         {/* Clean Preview (no phone frame) */}
         <div className="relative">
           {/* Glow effect behind */}
-          <div 
+          <div
             className="absolute -inset-3 bg-gradient-to-r from-violet-600/30 to-pink-600/30 blur-xl rounded-3xl"
             style={{ width: dimensions.width + 24, height: dimensions.height + 24 }}
           />
-          
+
           {/* Video Preview Wrapper - for blur region positioning */}
-          <div 
+          <div
             ref={containerRef}
             className="relative"
-            style={{ 
-              width: dimensions.width, 
+            style={{
+              width: dimensions.width,
               height: dimensions.height,
             }}
           >
             {/* Video Content - can be flipped */}
-            <div 
+            <div
               className={cn(
                 "absolute inset-0 overflow-hidden shadow-2xl border-2 border-white/10",
                 aspectRatio === '9:16' && "rounded-[20px]",  // Mobile look
@@ -202,159 +252,161 @@ export function LivePreviewCanvas() {
                 aspectRatio === '1:1' && "rounded-xl",        // Instagram square
                 aspectRatio === '4:5' && "rounded-xl",        // Portrait look
               )}
-              style={{ 
-                filter: copyrightOptions.colorAdjust 
-                  ? 'brightness(1.05) contrast(1.05) saturate(1.1)' 
+              style={{
+                filter: copyrightOptions.colorAdjust
+                  ? 'brightness(1.05) contrast(1.05) saturate(1.1)'
                   : 'none',
                 transform: `${copyrightOptions.horizontalFlip ? 'scaleX(-1)' : ''} ${copyrightOptions.slightZoom ? 'scale(1.05)' : ''}`,
               }}
             >
-            {/* Background gradient */}
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-900 to-pink-900" />
-            
-            {/* Video Thumbnail or Placeholder */}
-            {thumbnailUrl ? (
-              <img
-                src={thumbnailUrl}
-                alt="Video preview"
-                className="absolute inset-0 w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-            ) : (
-              <div 
-                className="absolute inset-0 flex items-center justify-center"
-                style={{ transform: copyrightOptions.horizontalFlip ? 'scaleX(-1)' : 'none' }}
-              >
-                <div className="text-center text-white/50">
-                  <Smartphone className="h-8 w-8 mx-auto mb-2" />
-                  <p className="text-xs font-myanmar">URL ထည့်ပါ</p>
+              {/* Background gradient */}
+              <div className="absolute inset-0 bg-gradient-to-br from-violet-900 to-pink-900" />
+
+              {/* Video Thumbnail or Placeholder */}
+              {thumbnailUrl ? (
+                <img
+                  src={thumbnailUrl}
+                  alt="Video preview"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{ transform: copyrightOptions.horizontalFlip ? 'scaleX(-1)' : 'none' }}
+                >
+                  <div className="text-center text-white/50">
+                    <Smartphone className="h-8 w-8 mx-auto mb-2" />
+                    <p className="text-xs font-myanmar">URL ထည့်ပါ</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Copyright Effects Indicator */}
-            {copyrightOptions.horizontalFlip && (
-              <div 
-                className="absolute top-2 left-2 bg-black/50 text-white text-[8px] px-1.5 py-0.5 rounded flex items-center gap-1"
-                style={{ transform: 'scaleX(-1)' }}
-              >
-                <FlipHorizontal className="h-2 w-2" />
-                Flipped
-              </div>
-            )}
+              {/* Copyright Effects Indicator */}
+              {copyrightOptions.horizontalFlip && (
+                <div
+                  className="absolute top-2 left-2 bg-black/50 text-white text-[8px] px-1.5 py-0.5 rounded flex items-center gap-1"
+                  style={{ transform: 'scaleX(-1)' }}
+                >
+                  <FlipHorizontal className="h-2 w-2" />
+                  Flipped
+                </div>
+              )}
 
-            {/* Logo Overlay */}
-            {logoOptions.enabled && (
-              <div 
-                className={cn(
-                  "absolute z-10",
-                  getLogoPosition()
-                )}
-                style={{ 
-                  opacity: logoOptions.opacity / 100,
-                  transform: copyrightOptions.horizontalFlip ? 'scaleX(-1)' : 'none',
-                }}
-              >
-                {logoOptions.imageUrl ? (
-                  <img
-                    src={logoOptions.imageUrl}
-                    alt="Logo"
-                    className={cn(
-                      "rounded",
+              {/* Logo Overlay */}
+              {logoOptions.enabled && (
+                <div
+                  className={cn(
+                    "absolute z-10",
+                    getLogoPosition()
+                  )}
+                  style={{
+                    opacity: logoOptions.opacity / 100,
+                    transform: copyrightOptions.horizontalFlip ? 'scaleX(-1)' : 'none',
+                  }}
+                >
+                  {logoOptions.imageUrl ? (
+                    <img
+                      src={logoOptions.imageUrl}
+                      alt="Logo"
+                      className={cn(
+                        "rounded",
+                        logoOptions.size === 'small' && 'w-6 h-6',
+                        logoOptions.size === 'medium' && 'w-8 h-8',
+                        logoOptions.size === 'large' && 'w-12 h-12',
+                      )}
+                    />
+                  ) : (
+                    <div className={cn(
+                      "bg-white/20 backdrop-blur-sm rounded flex items-center justify-center text-white text-[6px]",
                       logoOptions.size === 'small' && 'w-6 h-6',
                       logoOptions.size === 'medium' && 'w-8 h-8',
                       logoOptions.size === 'large' && 'w-12 h-12',
-                    )}
-                  />
-                ) : (
-                  <div className={cn(
-                    "bg-white/20 backdrop-blur-sm rounded flex items-center justify-center text-white text-[6px]",
-                    logoOptions.size === 'small' && 'w-6 h-6',
-                    logoOptions.size === 'medium' && 'w-8 h-8',
-                    logoOptions.size === 'large' && 'w-12 h-12',
-                  )}>
-                    LOGO
-                  </div>
-                )}
-              </div>
-            )}
+                    )}>
+                      LOGO
+                    </div>
+                  )}
+                </div>
+              )}
 
-            {/* Subtitle Overlay */}
-            {subtitleOptions.enabled && (
-              <div 
-                className={cn(
-                  "absolute left-2 right-2 z-10 text-center",
-                  getSubtitlePosition()
-                )}
+              {/* Subtitle Overlay */}
+              {subtitleOptions.enabled && (
+                <div
+                  className={cn(
+                    "absolute left-2 right-2 z-10 text-center",
+                    getSubtitlePosition()
+                  )}
+                  style={{ transform: copyrightOptions.horizontalFlip ? 'scaleX(-1)' : 'none' }}
+                >
+                  <div
+                    className={cn(
+                      "inline-block px-2 py-1 rounded font-myanmar",
+                      getSubtitleBackground(),
+                      getSubtitleSize()
+                    )}
+                    style={{
+                      color: subtitleOptions.color,
+                    }}
+                  >
+                    မြန်မာဘာသာ စာတန်း နမူနာ
+                  </div>
+                </div>
+              )}
+
+              {/* Voice Indicator */}
+              <div
+                className="absolute bottom-2 left-2 bg-black/50 text-white text-[8px] px-1.5 py-0.5 rounded flex items-center gap-1"
                 style={{ transform: copyrightOptions.horizontalFlip ? 'scaleX(-1)' : 'none' }}
               >
-                <div 
-                  className={cn(
-                    "inline-block px-2 py-1 rounded font-myanmar",
-                    getSubtitleBackground(),
-                    getSubtitleSize()
-                  )}
-                  style={{ 
-                    color: subtitleOptions.color,
-                  }}
+                🎤 {voiceId.includes('Nilar') ? 'Nilar' : 'Thiha'}
+              </div>
+            </div>
+            {/* End of Video Content div */}
+
+            {/* Blur Regions Overlay - Outside flipped container for correct drag behavior */}
+            {blurOptions.regions.length > 0 && blurOptions.regions.map((region) => (
+              <div
+                key={region.id}
+                className={cn(
+                  "absolute border-2 cursor-move select-none z-30",
+                  activeRegionId === region.id
+                    ? "border-primary bg-primary/30"
+                    : "border-white/60 bg-black/40 hover:border-primary/60"
+                )}
+                style={{
+                  left: `${region.x}%`,
+                  top: `${region.y}%`,
+                  width: `${region.width}%`,
+                  height: `${region.height}%`,
+                  backdropFilter: `blur(${blurOptions.intensity}px)`,
+                }}
+                onMouseDown={(e) => handleBlurDragStart(e, region.id)}
+                onTouchStart={(e) => handleBlurTouchDragStart(e, region.id)}
+              >
+                {/* Move handle */}
+                <div className="absolute top-0 left-0 p-0.5 bg-black/70 rounded-br">
+                  <Move className="h-2 w-2 text-white" />
+                </div>
+
+                {/* Resize handle */}
+                <div
+                  className="absolute bottom-0 right-0 w-3 h-3 bg-primary cursor-se-resize touch-none"
+                  onMouseDown={(e) => handleBlurResizeStart(e, region.id)}
+                  onTouchStart={(e) => handleBlurTouchResizeStart(e, region.id)}
                 >
-                  မြန်မာဘာသာ စာတန်း နမူနာ
+                  <Maximize2 className="h-2 w-2 text-white m-0.5" />
+                </div>
+
+                {/* Label */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="text-[6px] text-white/70 bg-black/40 px-1 rounded">BLUR</span>
                 </div>
               </div>
-            )}
-
-            {/* Voice Indicator */}
-            <div 
-              className="absolute bottom-2 left-2 bg-black/50 text-white text-[8px] px-1.5 py-0.5 rounded flex items-center gap-1"
-              style={{ transform: copyrightOptions.horizontalFlip ? 'scaleX(-1)' : 'none' }}
-            >
-              🎤 {voiceId.includes('Nilar') ? 'Nilar' : 'Thiha'}
-            </div>
+            ))}
           </div>
-          {/* End of Video Content div */}
-
-          {/* Blur Regions Overlay - Outside flipped container for correct drag behavior */}
-          {blurOptions.regions.length > 0 && blurOptions.regions.map((region) => (
-            <div
-              key={region.id}
-              className={cn(
-                "absolute border-2 cursor-move select-none z-30",
-                activeRegionId === region.id
-                  ? "border-primary bg-primary/30"
-                  : "border-white/60 bg-black/40 hover:border-primary/60"
-              )}
-              style={{
-                left: `${region.x}%`,
-                top: `${region.y}%`,
-                width: `${region.width}%`,
-                height: `${region.height}%`,
-                backdropFilter: `blur(${blurOptions.intensity}px)`,
-              }}
-              onMouseDown={(e) => handleBlurDragStart(e, region.id)}
-            >
-              {/* Move handle */}
-              <div className="absolute top-0 left-0 p-0.5 bg-black/70 rounded-br">
-                <Move className="h-2 w-2 text-white" />
-              </div>
-              
-              {/* Resize handle */}
-              <div
-                className="absolute bottom-0 right-0 w-3 h-3 bg-primary cursor-se-resize"
-                onMouseDown={(e) => handleBlurResizeStart(e, region.id)}
-              >
-                <Maximize2 className="h-2 w-2 text-white m-0.5" />
-              </div>
-              
-              {/* Label */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <span className="text-[6px] text-white/70 bg-black/40 px-1 rounded">BLUR</span>
-              </div>
-            </div>
-          ))}
-        </div>
-        {/* End of containerRef wrapper */}
+          {/* End of containerRef wrapper */}
         </div>
         {/* End of Clean Preview div */}
 
@@ -371,7 +423,7 @@ export function LivePreviewCanvas() {
         {/* Preview Info */}
         <div className="mt-4 text-center text-xs text-muted-foreground space-y-1">
           <p className="font-medium">📐 {aspectRatio} Format</p>
-          
+
           {/* Active Effects */}
           <div className="flex flex-wrap justify-center gap-1 mt-2">
             {copyrightOptions.colorAdjust && (
