@@ -309,6 +309,9 @@ async def google_auth(request: Request, body: GoogleAuthRequest, db: DBSession):
     
     is_whitelisted = client_ip in allowed_ip_list
     
+    # Initialize ip_result for later use (device fingerprinting)
+    ip_result = {"allowed": True, "country": None, "city": None, "isp": None}
+    
     # Step 1: Check VPN/Proxy (skip if whitelisted)
     if not is_whitelisted:
         ip_result = await ip_service.check_ip(client_ip)
@@ -657,6 +660,9 @@ async def email_login(request: Request, body: EmailLoginRequest, db: DBSession):
             allowed_ip_list.append(item['ip'])
     
     is_whitelisted = client_ip in allowed_ip_list
+    
+    # Initialize ip_result for later use (device fingerprinting)
+    ip_result = {"allowed": True, "country": None, "city": None, "isp": None}
     
     # Step 1: Check VPN/Proxy (skip if whitelisted)
     if not is_whitelisted:
