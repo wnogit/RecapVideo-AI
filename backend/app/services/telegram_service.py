@@ -271,7 +271,9 @@ class TelegramService:
                 if screenshot_url:
                     photo_url = screenshot_url
                     if not photo_url.startswith('http'):
-                        photo_url = f"{settings.R2_PUBLIC_URL}{screenshot_url}"
+                        # For local static files, use API URL
+                        api_url = settings.BACKEND_URL or "http://209.46.123.52:8000"
+                        photo_url = f"{api_url}{screenshot_url}"
                     
                     response = await client.post(
                         f"{self.api_base}/sendPhoto",
