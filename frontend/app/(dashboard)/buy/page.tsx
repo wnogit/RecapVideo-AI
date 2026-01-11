@@ -80,27 +80,10 @@ export default function BuyCreditsPage() {
     setSelectedPaymentType(paymentType);
   };
 
-  // Create order and proceed to upload
-  const handleProceedToUpload = async () => {
+  // Move to upload step (no order creation yet)
+  const handleProceedToUpload = () => {
     if (!selectedPackage || !selectedPaymentMethod || !selectedPaymentType) return;
-
-    setIsSubmitting(true);
-    try {
-      const response = await orderApi.create({
-        package_id: selectedPackage.id,
-        payment_method: selectedPaymentType,
-        payment_method_id: selectedPaymentMethod.id,
-        promo_code: promoCode || undefined,
-      });
-
-      setCurrentOrder(response.data);
-      setStep('upload');
-      toast({ title: 'Order reserved!', description: 'Please send payment and upload screenshot to complete your order.' });
-    } catch (error: any) {
-      toast({ title: error.response?.data?.detail || 'Failed to create order', variant: 'destructive' });
-    } finally {
-      setIsSubmitting(false);
-    }
+    setStep('upload');
   };
 
   // Handle file selection
@@ -120,17 +103,30 @@ export default function BuyCreditsPage() {
     }
   };
 
-  // Upload screenshot and complete order
+  // Create order and upload screenshot together
   const handleUploadScreenshot = async () => {
-    if (!currentOrder || !screenshotFile) return;
+    if (!selectedPackage || !selectedPaymentMethod || !selectedPaymentType || !screenshotFile) return;
 
     setIsSubmitting(true);
     try {
-      await orderApi.uploadScreenshot(currentOrder.id, screenshotFile);
+      // Step 1: Create order
+      const orderResponse = await orderApi.create({
+        package_id: selectedPackage.id,
+        payment_method: selectedPaymentType,
+        payment_method_id: selectedPaymentMethod.id,
+        promo_code: promoCode || undefined,
+      });
+
+      const newOrder = orderResponse.data;
+      setCurrentOrder(newOrder);
+
+      // Step 2: Upload screenshot
+      await orderApi.uploadScreenshot(newOrder.id, screenshotFile);
+
       setStep('complete');
       toast({ title: 'Order Submitted!', description: 'Admin will review and approve your order shortly.' });
     } catch (error: any) {
-      toast({ title: error.response?.data?.detail || 'Failed to upload screenshot', variant: 'destructive' });
+      toast({ title: error.response?.data?.detail || 'Failed to submit order', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -688,7 +684,7 @@ export default function BuyCreditsPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Status</span>
-                    <Badge variant="secondary">Processing</Badge>
+                    <Badge variant="secondary">Pending Approval</Badge>
                   </div>
                 </div>
               </CardContent>
