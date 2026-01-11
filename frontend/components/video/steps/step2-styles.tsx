@@ -30,6 +30,7 @@ import {
   Upload,
   X,
   Layers,
+  EyeOff,
 } from 'lucide-react';
 
 // Blur type options
@@ -277,7 +278,7 @@ export function Step2Styles() {
               <Layers className="h-5 w-5 text-purple-600" />
             </div>
             <div className="text-left">
-              <p className="font-medium">🔮 Custom Blur (Watermark ဖုံး)</p>
+              <p className="font-medium flex items-center gap-1"><EyeOff className="h-4 w-4" /> Custom Blur</p>
               <p className="text-xs text-muted-foreground">
                 YouTube logo/watermark ကို blur box နဲ့ ဖုံးမည်
               </p>
