@@ -298,17 +298,31 @@ async def google_auth(request: Request, body: GoogleAuthRequest, db: DBSession):
     """
     client_ip = get_client_ip(request)
     
-    # Step 1: Check VPN/Proxy
-    ip_result = await ip_service.check_ip(client_ip)
+    # Check if IP is whitelisted (bypass VPN/Datacenter check)
+    allowed_ips = await get_setting_json(db, "login_allowed_ips", [])
+    allowed_ip_list = []
+    for item in allowed_ips:
+        if isinstance(item, str):
+            allowed_ip_list.append(item)
+        elif isinstance(item, dict) and 'ip' in item:
+            allowed_ip_list.append(item['ip'])
     
-    if not ip_result["allowed"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": "VPN_DETECTED",
-                "message": ip_result.get("reason", "Please disconnect VPN/Proxy to continue."),
-            }
-        )
+    is_whitelisted = client_ip in allowed_ip_list
+    
+    # Step 1: Check VPN/Proxy (skip if whitelisted)
+    if not is_whitelisted:
+        ip_result = await ip_service.check_ip(client_ip)
+        
+        if not ip_result["allowed"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "VPN_DETECTED",
+                    "message": ip_result.get("reason", "Please disconnect VPN/Proxy to continue."),
+                }
+            )
+    else:
+        logger.info(f"IP {client_ip} is whitelisted for Google login, bypassing VPN/Datacenter check")
     
     # Step 2: Exchange code for tokens and get user info
     google_user = await exchange_google_code(body.code, body.redirect_uri)
@@ -633,17 +647,31 @@ async def email_login(request: Request, body: EmailLoginRequest, db: DBSession):
     """
     client_ip = get_client_ip(request)
     
-    # Step 1: Check VPN/Proxy
-    ip_result = await ip_service.check_ip(client_ip)
+    # Check if IP is whitelisted (bypass VPN/Datacenter check)
+    allowed_ips = await get_setting_json(db, "login_allowed_ips", [])
+    allowed_ip_list = []
+    for item in allowed_ips:
+        if isinstance(item, str):
+            allowed_ip_list.append(item)
+        elif isinstance(item, dict) and 'ip' in item:
+            allowed_ip_list.append(item['ip'])
     
-    if not ip_result["allowed"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": "VPN_DETECTED",
-                "message": ip_result.get("reason", "Please disconnect VPN/Proxy to continue."),
-            }
-        )
+    is_whitelisted = client_ip in allowed_ip_list
+    
+    # Step 1: Check VPN/Proxy (skip if whitelisted)
+    if not is_whitelisted:
+        ip_result = await ip_service.check_ip(client_ip)
+        
+        if not ip_result["allowed"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "VPN_DETECTED",
+                    "message": ip_result.get("reason", "Please disconnect VPN/Proxy to continue."),
+                }
+            )
+    else:
+        logger.info(f"IP {client_ip} is whitelisted for login, bypassing VPN/Datacenter check")
     
     # Step 2: Find user
     result = await db.execute(
