@@ -2,7 +2,7 @@
 
 /**
  * Step 2: Styles
- * Copyright Protection, Subtitles, and Logo settings
+ * Copyright Protection, Blur, Subtitles, and Logo settings
  */
 import { useState, useRef } from 'react';
 import { useVideoCreationStore } from '@/stores/video-creation-store';
@@ -28,7 +28,14 @@ import {
   AlertCircle,
   Upload,
   X,
+  Layers,
 } from 'lucide-react';
+
+// Blur type options
+const BLUR_TYPES = [
+  { value: 'gaussian', label: 'Smooth', desc: 'နူးညံ့သော blur' },
+  { value: 'box', label: 'Blocky', desc: 'အကွက်ပုံစံ blur' },
+];
 
 // Position options
 const SUBTITLE_POSITIONS = [
@@ -65,15 +72,18 @@ const LOGO_SIZES = [
 export function Step2Styles() {
   const {
     copyrightOptions,
+    blurOptions,
     subtitleOptions,
     logoOptions,
     setCopyrightOptions,
+    setBlurOptions,
     setSubtitleOptions,
     setLogoOptions,
   } = useVideoCreationStore();
 
   // Collapsible states
   const [copyrightOpen, setCopyrightOpen] = useState(true);
+  const [blurOpen, setBlurOpen] = useState(false);
   const [subtitleOpen, setSubtitleOpen] = useState(true);
   const [logoOpen, setLogoOpen] = useState(false);
 
@@ -254,6 +264,96 @@ export function Step2Styles() {
               </div>
             )}
           </div>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Blur Effect Section */}
+      <Collapsible open={blurOpen} onOpenChange={setBlurOpen}>
+        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 lg:p-2.5 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-100 dark:bg-purple-950 rounded-lg">
+              <Layers className="h-5 w-5 text-purple-600" />
+            </div>
+            <div className="text-left">
+              <p className="font-medium">🔮 Blur Effect</p>
+              <p className="text-xs text-muted-foreground">
+                Video နောက်ခံကို blur ထည့်မည်
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={blurOptions.enabled}
+              onCheckedChange={(checked) =>
+                setBlurOptions({ ...blurOptions, enabled: checked })
+              }
+              onClick={(e) => e.stopPropagation()}
+            />
+            <ChevronDown className={cn(
+              "h-5 w-5 transition-transform",
+              blurOpen && "rotate-180"
+            )} />
+          </div>
+        </CollapsibleTrigger>
+
+        <CollapsibleContent className="pt-4 space-y-4">
+          {/* Blur Type */}
+          <div className="space-y-2">
+            <Label className="text-sm">Blur ပုံစံ</Label>
+            <div className="flex gap-2">
+              {BLUR_TYPES.map((type) => (
+                <button
+                  key={type.value}
+                  type="button"
+                  onClick={() => setBlurOptions({
+                    ...blurOptions,
+                    blurType: type.value as 'gaussian' | 'box'
+                  })}
+                  className={cn(
+                    "flex-1 py-2 px-3 rounded-lg border text-sm transition-all",
+                    blurOptions.blurType === type.value
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "hover:border-primary/50"
+                  )}
+                >
+                  <div className="font-medium">{type.label}</div>
+                  <div className="text-[10px] text-muted-foreground">{type.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Blur Intensity Slider */}
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <Label className="text-sm">Blur အားကောင်းမှု</Label>
+              <span className="text-xs text-muted-foreground">{blurOptions.intensity}</span>
+            </div>
+            <Slider
+              value={[blurOptions.intensity]}
+              onValueChange={([value]) =>
+                setBlurOptions({ ...blurOptions, intensity: value })
+              }
+              min={1}
+              max={30}
+              step={1}
+              className="py-1"
+            />
+            <div className="flex justify-between text-[10px] text-muted-foreground">
+              <span>နည်း</span>
+              <span>အလယ်</span>
+              <span>များ</span>
+            </div>
+          </div>
+
+          {/* Preview hint */}
+          {blurOptions.enabled && (
+            <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+              <p className="text-xs text-purple-600 dark:text-purple-400">
+                💡 Blur effect သည် video processing အဆင့်တွင် apply ဖြစ်မည်။
+              </p>
+            </div>
+          )}
         </CollapsibleContent>
       </Collapsible>
 

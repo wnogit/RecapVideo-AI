@@ -7,10 +7,12 @@ import { isYoutubeShortsUrl } from '@/lib/youtube';
 import {
   AspectRatio,
   CopyrightOptions,
+  BlurOptions,
   SubtitleOptions,
   LogoOptions,
   OutroOptions,
   DEFAULT_COPYRIGHT_OPTIONS,
+  DEFAULT_BLUR_OPTIONS,
   DEFAULT_SUBTITLE_OPTIONS,
   DEFAULT_LOGO_OPTIONS,
   DEFAULT_OUTRO_OPTIONS,
@@ -31,6 +33,7 @@ export interface VideoCreationState {
 
   // Step 2: Styles
   copyrightOptions: CopyrightOptions;
+  blurOptions: BlurOptions;
   subtitleOptions: SubtitleOptions;
   logoOptions: LogoOptions;
 
@@ -59,6 +62,7 @@ export interface VideoCreationState {
 
   // Step 2 Actions
   setCopyrightOptions: (options: CopyrightOptions) => void;
+  setBlurOptions: (options: BlurOptions) => void;
   setSubtitleOptions: (options: SubtitleOptions) => void;
   setLogoOptions: (options: LogoOptions) => void;
 
@@ -97,6 +101,7 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
 
   // Step 2
   copyrightOptions: DEFAULT_COPYRIGHT_OPTIONS,
+  blurOptions: DEFAULT_BLUR_OPTIONS,
   subtitleOptions: DEFAULT_SUBTITLE_OPTIONS,
   logoOptions: DEFAULT_LOGO_OPTIONS,
 
@@ -146,6 +151,8 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
   // Step 2 Actions
   setCopyrightOptions: (options) => set({ copyrightOptions: options }),
 
+  setBlurOptions: (options) => set({ blurOptions: options }),
+
   setSubtitleOptions: (options) => set({ subtitleOptions: options }),
 
   setLogoOptions: (options) => {
@@ -169,6 +176,7 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
     voiceId: 'my-MM-NilarNeural',
     aspectRatio: '9:16',
     copyrightOptions: DEFAULT_COPYRIGHT_OPTIONS,
+    blurOptions: DEFAULT_BLUR_OPTIONS,
     subtitleOptions: DEFAULT_SUBTITLE_OPTIONS,
     logoOptions: DEFAULT_LOGO_OPTIONS,
     outroOptions: DEFAULT_OUTRO_OPTIONS,
@@ -188,6 +196,11 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
       output_language: state.outputLanguage,
       options: {
         aspect_ratio: state.aspectRatio,
+        blur: {
+          enabled: state.blurOptions.enabled,
+          intensity: state.blurOptions.intensity,
+          blur_type: state.blurOptions.blurType,
+        },
         copyright: {
           color_adjust: state.copyrightOptions.colorAdjust,
           horizontal_flip: state.copyrightOptions.horizontalFlip,

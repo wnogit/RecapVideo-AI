@@ -49,6 +49,21 @@ export const DEFAULT_COPYRIGHT_OPTIONS: CopyrightOptions = {
   pitchValue: 1.0,
 };
 
+// Blur Options (Custom Background Blur)
+export type BlurType = 'gaussian' | 'box';
+
+export interface BlurOptions {
+  enabled: boolean;
+  intensity: number;     // 1-30 (low to high blur)
+  blurType: BlurType;    // gaussian (smooth) or box (blocky)
+}
+
+export const DEFAULT_BLUR_OPTIONS: BlurOptions = {
+  enabled: false,
+  intensity: 10,
+  blurType: 'gaussian',
+};
+
 // Subtitle Options
 export type SubtitlePosition = 'top' | 'center' | 'bottom';
 export type SubtitleBackground = 'none' | 'semi' | 'solid';

@@ -65,9 +65,18 @@ class OutroOptions:
 
 
 @dataclass
+class BlurOptions:
+    """Background blur options."""
+    enabled: bool = False
+    intensity: int = 10  # 1-30
+    blur_type: str = "gaussian"  # gaussian, box
+
+
+@dataclass
 class VideoProcessingOptions:
     """All video processing options."""
     aspect_ratio: str = "9:16"  # 9:16, 16:9, 1:1, 4:5
+    blur: BlurOptions = field(default_factory=BlurOptions)
     copyright: CopyrightOptions = field(default_factory=CopyrightOptions)
     subtitles: SubtitleOptions = field(default_factory=SubtitleOptions)
     logo: LogoOptions = field(default_factory=LogoOptions)
@@ -167,9 +176,18 @@ class VideoProcessingService:
                     current_video, options.copyright, work_dir
                 )
             
-            # Step 2: Resize to target aspect ratio
+            # Step 2: Apply blur effect (if enabled)
+            if options.blur.enabled:
+                if progress_callback:
+                    await progress_callback(20, "Applying blur effect...")
+                
+                current_video = await self._apply_blur(
+                    current_video, options.blur, work_dir
+                )
+            
+            # Step 3: Resize to target aspect ratio
             if progress_callback:
-                await progress_callback(25, "Resizing video...")
+                await progress_callback(30, "Resizing video...")
             
             current_video = await self._resize_video(
                 current_video, options.aspect_ratio, work_dir
@@ -255,6 +273,46 @@ class VideoProcessingService:
             return video_path
         
         filter_str = ",".join(filters)
+        
+        cmd = [
+            self.ffmpeg_path, "-y",
+            "-i", video_path,
+            "-vf", filter_str,
+            "-c:a", "copy",
+            "-c:v", "libx264",
+            "-preset", "fast",
+            "-crf", "23",
+            str(output_path)
+        ]
+        
+        await self._run_ffmpeg(cmd)
+        return str(output_path)
+    
+    async def _apply_blur(
+        self,
+        video_path: str,
+        options: BlurOptions,
+        work_dir: Path,
+    ) -> str:
+        """Apply blur effect to video."""
+        output_path = work_dir / "blurred.mp4"
+        
+        # Calculate blur parameters based on intensity (1-30)
+        # Higher intensity = more blur
+        blur_radius = options.intensity
+        
+        # Build blur filter based on type
+        if options.blur_type == "gaussian":
+            # Gaussian blur - smoother, more natural
+            # gblur requires sigma parameter (standard deviation)
+            sigma = blur_radius / 2
+            filter_str = f"gblur=sigma={sigma}"
+        else:
+            # Box blur - faster, more uniform
+            # boxblur takes luma_radius:chroma_radius:luma_power
+            filter_str = f"boxblur={blur_radius}:{blur_radius}:1"
+        
+        logger.info(f"Applying blur effect: type={options.blur_type}, intensity={options.intensity}")
         
         cmd = [
             self.ffmpeg_path, "-y",

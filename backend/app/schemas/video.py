@@ -80,6 +80,21 @@ class OutroOptionsSchema(BaseModel):
         return v
 
 
+class BlurOptionsSchema(BaseModel):
+    """Background blur options for video."""
+    enabled: bool = Field(default=False, description="Enable background blur effect")
+    intensity: int = Field(default=10, ge=1, le=30, description="Blur intensity 1-30")
+    blur_type: str = Field(default="gaussian", description="Blur type (gaussian/box)")
+    
+    @field_validator("blur_type")
+    @classmethod
+    def validate_blur_type(cls, v: str) -> str:
+        valid = ["gaussian", "box"]
+        if v not in valid:
+            raise ValueError(f"Blur type must be one of: {valid}")
+        return v
+
+
 class VideoOptionsSchema(BaseModel):
     """All video processing options."""
     aspect_ratio: str = Field(default="9:16", description="Output aspect ratio")
@@ -87,6 +102,7 @@ class VideoOptionsSchema(BaseModel):
     subtitles: SubtitleOptionsSchema = Field(default_factory=SubtitleOptionsSchema)
     logo: LogoOptionsSchema = Field(default_factory=LogoOptionsSchema)
     outro: OutroOptionsSchema = Field(default_factory=OutroOptionsSchema)
+    blur: BlurOptionsSchema = Field(default_factory=BlurOptionsSchema)
     
     @field_validator("aspect_ratio")
     @classmethod

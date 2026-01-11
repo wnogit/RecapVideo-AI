@@ -37,6 +37,7 @@ from app.services.video_processing_service import (
     SubtitleOptions,
     LogoOptions,
     OutroOptions,
+    BlurOptions,
 )
 
 
@@ -58,9 +59,15 @@ class VideoProcessor:
         subtitle_opts = options_dict.get("subtitles", {})
         logo_opts = options_dict.get("logo", {})
         outro_opts = options_dict.get("outro", {})
+        blur_opts = options_dict.get("blur", {})
         
         return VideoProcessingOptions(
             aspect_ratio=options_dict.get("aspect_ratio", "9:16"),
+            blur=BlurOptions(
+                enabled=blur_opts.get("enabled", False),
+                intensity=int(blur_opts.get("intensity", 10)),
+                blur_type=blur_opts.get("blur_type", blur_opts.get("blurType", "gaussian")),
+            ),
             copyright=CopyrightOptions(
                 color_adjust=copyright_opts.get("color_adjust", True),
                 horizontal_flip=copyright_opts.get("horizontal_flip", True),
