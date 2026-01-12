@@ -269,6 +269,7 @@ class TelegramService:
 
 💰 <b>Amount:</b> {amount_display}
 💎 <b>Credits:</b> {credits:,}
+💳 <b>Payment Method:</b> {payment_method.upper()}
 
 📅 <b>Order Received:</b> {order_time}
 ━━━━━━━━━━━━━━━━━━━━━━━"""

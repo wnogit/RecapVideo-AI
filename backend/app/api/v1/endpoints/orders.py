@@ -271,42 +271,6 @@ async def complete_order(
     return OrderResponse.model_validate(order)
 
 
-@router.post("/{order_id}/cancel", response_model=OrderResponse)
-async def cancel_order(
-    order_id: UUID,
-    current_user: CurrentActiveUser,
-    db: DBSession,
-):
-    """
-    Cancel a pending order.
-    """
-    result = await db.execute(
-        select(Order).where(
-            Order.id == order_id,
-            Order.user_id == current_user.id,
-        )
-    )
-    order = result.scalar_one_or_none()
-    
-    if not order:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Order not found",
-        )
-    
-    if order.status != OrderStatus.PENDING.value:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only pending orders can be cancelled",
-        )
-    
-    # Use REJECTED status for cancelled orders (since CANCELLED was removed)
-    order.status = OrderStatus.REJECTED.value
-    await db.flush()
-    await db.refresh(order)
-    
-    return OrderResponse.model_validate(order)
-
 
 @router.post("/{order_id}/upload", response_model=OrderResponse)
 async def upload_payment_screenshot(
