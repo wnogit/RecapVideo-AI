@@ -15,7 +15,7 @@ from app.core.database import get_db_session
 from app.models.order import Order, OrderStatus
 from app.models.user import User
 from app.models.credit import CreditTransaction, TransactionType
-from app.services.telegram_service import telegram_service
+from app.services.telegram_service import telegram_service, format_myanmar_time
 
 logger = logging.getLogger(__name__)
 
@@ -160,17 +160,23 @@ async def process_order_action(
                 
                 # Edit message to show approved
                 mmk_display = f" ({order.price_mmk:,.0f} MMK)" if order.price_mmk else ""
-                new_caption = f"""✅ <b>ORDER APPROVED</b>
+                action_time = format_myanmar_time(now)
+                order_received_time = format_myanmar_time(order.created_at) if order.created_at else action_time
+                new_caption = f"""━━━━━━━━━━━━━━━━━━━━━━━
+✅ <b>ORDER APPROVED</b>
+━━━━━━━━━━━━━━━━━━━━━━━
 
+📦 <b>Order ID:</b> <code>{order.id}</code>
 👤 <b>User:</b> {user.name or user.email}
 📧 <b>Email:</b> {user.email}
-🎁 <b>Credits:</b> {order.credits_amount:,}
+
 💰 <b>Amount:</b> ${order.price_usd:.2f}{mmk_display}
+💎 <b>Credits:</b> {order.credits_amount:,}
 
-🆔 <b>Order ID:</b> <code>{order.id}</code>
-
+📅 <b>Order Received:</b> {order_received_time}
+━━━━━━━━━━━━━━━━━━━━━━━
 ✅ <b>Approved by:</b> {admin_name}
-🕐 <b>Time:</b> {now.strftime('%Y-%m-%d %H:%M UTC')}"""
+⏰ <b>Approved at:</b> {action_time}"""
                 
                 await telegram_service.edit_message(chat_id, message_id, new_caption)
                 
@@ -189,17 +195,23 @@ async def process_order_action(
                 
                 # Edit message to show rejected
                 mmk_display = f" ({order.price_mmk:,.0f} MMK)" if order.price_mmk else ""
-                new_caption = f"""❌ <b>ORDER REJECTED</b>
+                action_time = format_myanmar_time(now)
+                order_received_time = format_myanmar_time(order.created_at) if order.created_at else action_time
+                new_caption = f"""━━━━━━━━━━━━━━━━━━━━━━━
+❌ <b>ORDER REJECTED</b>
+━━━━━━━━━━━━━━━━━━━━━━━
 
+📦 <b>Order ID:</b> <code>{order.id}</code>
 👤 <b>User:</b> {user.name or user.email}
 📧 <b>Email:</b> {user.email}
-🎁 <b>Credits:</b> {order.credits_amount:,}
+
 💰 <b>Amount:</b> ${order.price_usd:.2f}{mmk_display}
+💎 <b>Credits:</b> {order.credits_amount:,}
 
-🆔 <b>Order ID:</b> <code>{order.id}</code>
-
+📅 <b>Order Received:</b> {order_received_time}
+━━━━━━━━━━━━━━━━━━━━━━━
 ❌ <b>Rejected by:</b> {admin_name}
-🕐 <b>Time:</b> {now.strftime('%Y-%m-%d %H:%M UTC')}"""
+⏰ <b>Rejected at:</b> {action_time}"""
                 
                 await telegram_service.edit_message(chat_id, message_id, new_caption)
             

@@ -4,6 +4,7 @@ Sends order notifications to admin with approve/reject inline buttons
 """
 
 import logging
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 from uuid import UUID
 
@@ -12,6 +13,20 @@ import httpx
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+# Myanmar Timezone (UTC+6:30)
+MMT = timezone(timedelta(hours=6, minutes=30))
+
+
+def format_myanmar_time(dt: Optional[datetime] = None) -> str:
+    """Format datetime to Myanmar timezone with 12-hour format."""
+    if dt is None:
+        dt = datetime.now(timezone.utc)
+    elif dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    
+    myanmar_time = dt.astimezone(MMT)
+    return myanmar_time.strftime('%Y-%m-%d %I:%M %p')
 
 
 class TelegramService:
@@ -237,24 +252,26 @@ class TelegramService:
             return None
         
         try:
-            # Format the message
+            # Format the message with Myanmar timezone
+            order_time = format_myanmar_time()
+            
             amount_display = f"${amount_usd:.2f}"
             if amount_mmk:
                 amount_display += f" ({amount_mmk:,.0f} MMK)"
             
-            message = f"""
-🛒 <b>New Credit Order!</b>
+            message = f"""━━━━━━━━━━━━━━━━━━━━━━━
+🆕 <b>NEW ORDER RECEIVED</b>
+━━━━━━━━━━━━━━━━━━━━━━━
 
+📦 <b>Order ID:</b> <code>{order_id}</code>
 👤 <b>User:</b> {username}
 📧 <b>Email:</b> {email}
 
-📦 <b>Package:</b> {package_name}
-🎁 <b>Credits:</b> {credits:,}
 💰 <b>Amount:</b> {amount_display}
-💳 <b>Payment:</b> {payment_method.upper()}
+💎 <b>Credits:</b> {credits:,}
 
-🆔 <b>Order ID:</b> <code>{order_id}</code>
-"""
+📅 <b>Order Received:</b> {order_time}
+━━━━━━━━━━━━━━━━━━━━━━━"""
             
             # Inline keyboard with approve/reject buttons
             inline_keyboard = {
