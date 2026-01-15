@@ -199,6 +199,7 @@ class APIKeyService:
             "transcript_api": settings.TRANSCRIPT_API_KEY,
             "gemini": settings.GEMINI_API_KEY,
             "groq": getattr(settings, 'GROQ_API_KEY', None),
+            "poe": getattr(settings, 'POE_API_KEY', None),
             "resend": settings.RESEND_API_KEY,
             "r2_access_key": settings.R2_ACCESS_KEY_ID,
             "r2_secret_key": settings.R2_SECRET_ACCESS_KEY,
@@ -241,6 +242,9 @@ class APIKeyService:
     
     async def get_groq_key(self, db: Optional[AsyncSession] = None) -> Optional[str]:
         return await self.get_key("groq", db)
+    
+    async def get_poe_key(self, db: Optional[AsyncSession] = None) -> Optional[str]:
+        return await self.get_key("poe", db)
     
     async def get_resend_key(self, db: Optional[AsyncSession] = None) -> Optional[str]:
         return await self.get_key("resend", db)

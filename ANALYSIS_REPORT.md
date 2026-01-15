@@ -445,16 +445,16 @@ import { motion, AnimatePresence } from 'framer-motion';  // ❌ Full import
 # 🎯 Priority Fix Recommendations
 
 ## Immediate (Security Critical):
-1. ✅ Fix `user.credits` → `user.credit_balance` bug in `video_tasks.py`
-2. ✅ Add database row locking for credit deduction
-3. ✅ Change IP check to fail-closed in production
-4. ✅ Add CSRF protection to OAuth flow
-5. ✅ Validate JWT_SECRET_KEY is not default on startup
+1. ✅ **FIXED** - Fix `user.credits` → `user.credit_balance` bug in `video_tasks.py`
+2. ✅ **FIXED** - Add database row locking for credit deduction (SELECT FOR UPDATE)
+3. ✅ **FIXED** - Change IP check to fail-closed in production
+4. ✅ **FIXED** - Add CSRF protection to OAuth flow
+5. ✅ **FIXED** - Validate JWT_SECRET_KEY is not default on startup
 
 ## Short-term (Within 1 week):
 6. Add rate limiting on login endpoint
 7. Fix N+1 query in User model
-8. Add duplicate video check
+8. ✅ **FIXED** - Add duplicate video check
 9. Implement consistent error response format
 10. Add timeouts to external API calls
 
@@ -464,6 +464,45 @@ import { motion, AnimatePresence } from 'framer-motion';  // ❌ Full import
 13. Add database indexes
 14. Refactor duplicate auth code
 15. Move hardcoded values to configuration
+
+---
+
+# 🆕 NEW FEATURE: Poe API Integration (FREE Claude Access)
+
+## Overview
+Poe API ကို integrate လုပ်ပြီး FREE Claude 3.5 Sonnet access ရရှိပါပြီ။ Admin Panel မှ API key ထည့်နိုင်ပါပြီ။
+
+## AI Service Priority
+```
+1. Poe API (Claude 3.5 Sonnet) - FREE, Best Quality ⭐
+2. Groq (Llama 3.3 70B) - FREE, Fast fallback
+3. Gemini - FREE, Final fallback
+```
+
+## Setup Instructions
+
+### 1. Get Poe API Key
+1. Visit https://poe.com
+2. Login with your account
+3. Go to Settings > API Keys
+4. Create new API key (p-b token)
+
+### 2. Add to Admin Panel
+1. Go to Admin Panel > Settings > API Keys
+2. Click "Add New API Key"
+3. Select Type: `poe`
+4. Enter Name: "Poe Claude API"
+5. Paste your API key
+6. Set as Primary: ✅
+7. Save
+
+### 3. Files Changed
+- `backend/app/models/api_key.py` - Added POE key type
+- `backend/app/services/poe_service.py` - New Poe service
+- `backend/app/services/script_service.py` - Poe as primary AI
+- `backend/app/services/api_key_service.py` - Poe key support
+- `backend/requirements.txt` - Added poe-api-wrapper
+- `frontend/app/(admin)/admin/settings/page.tsx` - UI for Poe key
 
 ---
 
@@ -820,9 +859,9 @@ const openVideoUrl = (url: string) => {
 ## 🎯 Video Processing Priority Fixes
 
 ### Immediate:
-1. Add overall process timeout
-2. Add delay between YouTube download retries
-3. Fix AbortController for polling
+1. ✅ **FIXED** - Add overall process timeout
+2. ✅ **FIXED** - Add delay between YouTube download retries (exponential backoff)
+3. ✅ **FIXED** - Fix AbortController for polling (exponential backoff added)
 
 ### Short-term:
 4. Validate video duration before credit deduction

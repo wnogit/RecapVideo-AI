@@ -1,8 +1,13 @@
 """
-Script Generation Service - Using Groq (Llama) with Gemini fallback
+Script Generation Service - Using Poe (Claude FREE) with Groq/Gemini fallback
 
 Generates recap/summary scripts from YouTube transcripts.
 Uses custom prompts from database (Admin configurable).
+
+Priority:
+1. Poe API (Claude 3.5 Sonnet) - FREE via Poe
+2. Groq (Llama 3.3) - FREE fallback
+3. Gemini - FREE fallback
 """
 from typing import Optional
 from loguru import logger
@@ -10,6 +15,7 @@ from loguru import logger
 from app.core.config import settings
 from app.services.api_key_service import api_key_service
 from app.services.prompt_service import prompt_service
+from app.services.poe_service import poe_service
 
 
 class ScriptService:
@@ -141,10 +147,22 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
 """
         
         try:
-            # Try Groq first (faster and better free tier)
+            # Try Poe first (FREE Claude access - best quality)
+            if await poe_service.is_available():
+                logger.info("Using Poe (Claude 3.5 Sonnet) for script generation - FREE")
+                script = await poe_service.generate_script(
+                    prompt=prompt,
+                    system_prompt=system_prompt,
+                )
+                if script:
+                    logger.info(f"Script generated successfully with Poe: {len(script)} chars")
+                    return script
+                logger.warning("Poe generation returned empty, trying fallback...")
+            
+            # Fallback to Groq (faster and good free tier)
             groq_client = await self._get_groq_client()
             if groq_client:
-                logger.info("Using Groq (Llama 3.3) for script generation")
+                logger.info("Using Groq (Llama 3.3) for script generation - fallback")
                 response = await groq_client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
                     messages=[
@@ -158,16 +176,16 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                 logger.info(f"Script generated successfully with Groq: {len(script)} chars")
                 return script
             
-            # Fallback to Gemini
+            # Final fallback to Gemini
             gemini_client = await self._get_gemini_client()
             if gemini_client:
-                logger.info("Using Gemini for script generation (fallback)")
+                logger.info("Using Gemini for script generation - final fallback")
                 response = await gemini_client.generate_content_async(prompt)
                 script = response.text.strip()
                 logger.info(f"Script generated successfully with Gemini: {len(script)} chars")
                 return script
             
-            raise ValueError("No AI API key configured (Groq or Gemini)")
+            raise ValueError("No AI API key configured (Poe, Groq, or Gemini)")
             
         except Exception as e:
             logger.error(f"Script generation failed: {e}")
@@ -202,7 +220,13 @@ Output the improved script ONLY:
 """
         
         try:
-            # Try Groq first
+            # Try Poe first (FREE Claude)
+            if await poe_service.is_available():
+                response = await poe_service.chat(prompt)
+                if response:
+                    return response
+            
+            # Fallback to Groq
             groq_client = await self._get_groq_client()
             if groq_client:
                 response = await groq_client.chat.completions.create(

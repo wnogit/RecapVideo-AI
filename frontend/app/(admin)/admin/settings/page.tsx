@@ -39,7 +39,9 @@ import { toast } from '@/hooks/use-toast';
 // API Key type display config
 const API_KEY_TYPE_CONFIG: Record<string, { icon: string; color: string }> = {
   gemini: { icon: '🤖', color: 'bg-blue-100 text-blue-700' },
-  transcript_api: { icon: '📝', color: 'bg-purple-100 text-purple-700' },
+  groq: { icon: '⚡', color: 'bg-yellow-100 text-yellow-700' },
+  poe: { icon: '🎭', color: 'bg-purple-100 text-purple-700' },
+  transcript_api: { icon: '📝', color: 'bg-indigo-100 text-indigo-700' },
   r2_access_key: { icon: '☁️', color: 'bg-orange-100 text-orange-700' },
   r2_secret_key: { icon: '🔐', color: 'bg-orange-100 text-orange-700' },
   resend: { icon: '📧', color: 'bg-green-100 text-green-700' },
