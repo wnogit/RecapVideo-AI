@@ -1,0 +1,177 @@
+# RecapVideo.AI - Docker Compose Configuration
+# Optimized for: 12 CPU / 24GB RAM / 720GB NVMe SSD VPS
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: recapvideo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-recapvideo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-recapvideo_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-recapvideo}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-recapvideo}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
+
+  # Redis Cache & Queue
+  redis:
+    image: redis:7-alpine
+    container_name: recapvideo-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+
+  # Backend API (FastAPI)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/Dockerfile.backend
+    container_name: recapvideo-backend
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-recapvideo}:${POSTGRES_PASSWORD:-recapvideo_secret}@postgres:5432/${POSTGRES_DB:-recapvideo}
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - CORS_ORIGINS_STR=${CORS_ORIGINS_STR:-http://localhost:3000,https://studio.recapvideo.ai,https://recapvideo.ai,https://www.recapvideo.ai}
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_BUCKET_NAME=${R2_BUCKET_NAME:-recapvideo}
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL:-https://videos.recapvideo.ai}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount host /tmp for NVMe SSD speed (faster than Docker overlay)
+      - /tmp/recapvideo:/tmp/recapvideo
+      - static_files:/app/static
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  # Frontend (Next.js)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/Dockerfile.frontend
+      args:
+        - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+        - NEXT_PUBLIC_API_URL=${API_URL:-https://api.recapvideo.ai}
+    container_name: recapvideo-frontend
+    restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_API_URL=${API_URL:-https://api.recapvideo.ai}
+      - NEXT_PUBLIC_WS_URL=${WS_URL:-wss://api.recapvideo.ai}
+      - NEXT_PUBLIC_APP_NAME=RecapVideo.AI
+      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # Celery Worker for Video Processing
+  worker:
+    build:
+      context: ./backend
+      dockerfile: ../docker/Dockerfile.backend
+    container_name: recapvideo-worker
+    restart: unless-stopped
+    command: celery -A app.core.celery_app worker --loglevel=info --concurrency=2 -Q celery,video_processing
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-recapvideo}:${POSTGRES_PASSWORD:-recapvideo_secret}@postgres:5432/${POSTGRES_DB:-recapvideo}
+      - REDIS_URL=redis://redis:6379/0
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_BUCKET_NAME=${R2_BUCKET_NAME:-recapvideo}
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL:-https://videos.recapvideo.ai}
+    volumes:
+      - /tmp/recapvideo:/tmp/recapvideo
+      - static_files:/app/static
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          memory: 2G
+  # Nginx Reverse Proxy (Optional - for SSL termination)
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: recapvideo-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx/ssl:/etc/nginx/ssl:ro
+  #   depends_on:
+  #     - frontend
+  #     - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_files:
+
+
+networks:
+  default:
+    name: recapvideo-network

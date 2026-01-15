@@ -1,0 +1,64 @@
+# Build stage
+FROM python:3.11-slim AS builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+
+# Production stage
+FROM python:3.11-slim AS runner
+
+WORKDIR /app
+
+# Install runtime dependencies including fonts and deno for yt-dlp
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    fonts-dejavu-core \
+    fonts-noto-core \
+    curl \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Deno for yt-dlp YouTube extraction
+RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh \
+    && chmod +x /usr/local/bin/deno
+
+# Create non-root user
+RUN groupadd --gid 1001 appgroup && \
+    useradd --uid 1001 --gid 1001 --shell /bin/bash appuser
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy application code
+COPY --chown=appuser:appgroup . .
+
+# Create directories with proper permissions
+RUN mkdir -p /tmp/recapvideo && chmod 777 /tmp/recapvideo
+RUN mkdir -p /app/app/assets/fonts && chown appuser:appgroup /app/app/assets/fonts
+RUN mkdir -p /app/static/payment_screenshots && chown appuser:appgroup /app/static/payment_screenshots
+RUN mkdir -p /app/static/payment_qr && chown appuser:appgroup /app/static/payment_qr
+
+USER appuser
+
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import httpx; httpx.get('http://localhost:8000/health')" || exit 1
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
