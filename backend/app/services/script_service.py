@@ -9,6 +9,7 @@ Priority:
 2. Groq (Llama 3.3) - FREE fallback
 3. Gemini - FREE fallback
 """
+import re
 from typing import Optional
 from loguru import logger
 
@@ -16,6 +17,74 @@ from app.core.config import settings
 from app.services.api_key_service import api_key_service
 from app.services.prompt_service import prompt_service
 from app.services.poe_service import poe_service
+
+
+def convert_burmese_formal_to_casual(text: str) -> str:
+    """
+    Convert formal Burmese writing style to casual/spoken style.
+    
+    Conversions:
+    - ပါသည် → ပါတယ် (polite formal → polite casual)
+    - သည် → တယ် (formal → casual)
+    - ရမည် → ရမယ် (will have to → casual)
+    - မည် → မယ် (will → casual)
+    - ၏ → ရဲ့ (possessive formal → casual)
+    - နှင့် → နဲ့ (and/with formal → casual)
+    - သို့ → ကို (to formal → casual)
+    - ခဲ့သည် → ခဲ့တယ် (past tense formal → casual)
+    - နိုင်သည် → နိုင်တယ် (can formal → casual)
+    - ဖြစ်သည် → ဖြစ်တယ် (is formal → casual)
+    """
+    if not text:
+        return text
+    
+    # Order matters - replace longer patterns first
+    replacements = [
+        # Compound endings (must come first)
+        (r'ခဲ့ပါသည်', 'ခဲ့ပါတယ်'),
+        (r'နေပါသည်', 'နေပါတယ်'),
+        (r'မည်ဖြစ်သည်', 'မယ်ဖြစ်တယ်'),
+        (r'ပြီးဖြစ်သည်', 'ပြီးဖြစ်တယ်'),
+        
+        # Common verb endings
+        (r'ပါသည်', 'ပါတယ်'),  # Polite formal → polite casual
+        (r'ခဲ့သည်', 'ခဲ့တယ်'),  # Past tense
+        (r'နေသည်', 'နေတယ်'),  # Progressive
+        (r'နိုင်သည်', 'နိုင်တယ်'),  # Can/able
+        (r'ဖြစ်သည်', 'ဖြစ်တယ်'),  # Is/are
+        (r'ရှိသည်', 'ရှိတယ်'),  # Have/exist
+        (r'လာသည်', 'လာတယ်'),  # Come
+        (r'သွားသည်', 'သွားတယ်'),  # Go
+        (r'လုပ်သည်', 'လုပ်တယ်'),  # Do
+        (r'ပြောသည်', 'ပြောတယ်'),  # Say
+        (r'မြင်သည်', 'မြင်တယ်'),  # See
+        (r'ကြားသည်', 'ကြားတယ်'),  # Hear
+        (r'စားသည်', 'စားတယ်'),  # Eat
+        (r'သောက်သည်', 'သောက်တယ်'),  # Drink
+        (r'ယူသည်', 'ယူတယ်'),  # Take
+        (r'ပေးသည်', 'ပေးတယ်'),  # Give
+        (r'ဝယ်သည်', 'ဝယ်တယ်'),  # Buy
+        (r'ရောင်းသည်', 'ရောင်းတယ်'),  # Sell
+        
+        # Future/potential
+        (r'ရမည်', 'ရမယ်'),  # Will have to
+        (r'မည်', 'မယ်'),  # Will (be careful - this is short)
+        
+        # Particles
+        (r'၏', 'ရဲ့'),  # Possessive (formal → casual)
+        (r'နှင့်', 'နဲ့'),  # And/with
+        (r'သို့', 'ကို'),  # To (direction) - be careful with context
+        
+        # General သည် → တယ် (last, as fallback)
+        (r'သည်။', 'တယ်။'),  # End of sentence
+        (r'သည်$', 'တယ်'),  # End of text
+    ]
+    
+    result = text
+    for pattern, replacement in replacements:
+        result = re.sub(pattern, replacement, result)
+    
+    return result
 
 
 class ScriptService:
@@ -155,6 +224,10 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                     system_prompt=system_prompt,
                 )
                 if script:
+                    # Apply formal to casual conversion for Burmese
+                    if target_language == "my":
+                        script = convert_burmese_formal_to_casual(script)
+                        logger.info("Applied Burmese formal-to-casual conversion")
                     logger.info(f"Script generated successfully with Poe: {len(script)} chars")
                     return script
                 logger.warning("Poe generation returned empty, trying fallback...")
@@ -173,6 +246,10 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                     temperature=0.7,
                 )
                 script = response.choices[0].message.content.strip()
+                # Apply formal to casual conversion for Burmese
+                if target_language == "my":
+                    script = convert_burmese_formal_to_casual(script)
+                    logger.info("Applied Burmese formal-to-casual conversion")
                 logger.info(f"Script generated successfully with Groq: {len(script)} chars")
                 return script
             
@@ -182,6 +259,10 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                 logger.info("Using Gemini for script generation - final fallback")
                 response = await gemini_client.generate_content_async(prompt)
                 script = response.text.strip()
+                # Apply formal to casual conversion for Burmese
+                if target_language == "my":
+                    script = convert_burmese_formal_to_casual(script)
+                    logger.info("Applied Burmese formal-to-casual conversion")
                 logger.info(f"Script generated successfully with Gemini: {len(script)} chars")
                 return script
             
