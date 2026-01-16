@@ -9,6 +9,7 @@ from app.models.device import DeviceFingerprint, IPSignupLog
 from app.models.payment_method import PaymentMethod, PAYMENT_TYPES
 from app.models.site_settings import SiteSettings, DEFAULT_SETTINGS
 from app.models.prompt import Prompt, PromptCategory
+from app.models.token_blacklist import TokenBlacklist, RefreshTokenFamily
 
 
 __all__ = [
@@ -31,4 +32,6 @@ __all__ = [
     "DEFAULT_SETTINGS",
     "Prompt",
     "PromptCategory",
+    "TokenBlacklist",
+    "RefreshTokenFamily",
 ]

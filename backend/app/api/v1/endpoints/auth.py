@@ -7,12 +7,14 @@ Supports:
 - VPN/Proxy detection
 - Device fingerprinting
 - IP rate limiting
+- Token blacklisting (secure logout)
+- HttpOnly cookie authentication
 """
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 
-from fastapi import APIRouter, HTTPException, status, Request
+from fastapi import APIRouter, HTTPException, status, Request, Header, Response
 from sqlalchemy import select, func
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from loguru import logger
@@ -27,11 +29,13 @@ from app.core.security import (
     get_password_hash,
     verify_password,
 )
+from app.core.cookies import set_auth_cookies, clear_auth_cookies
 from app.models.user import User
 from app.models.device import DeviceFingerprint, IPSignupLog
 from app.services.ip_service import ip_service
 from app.services.rate_limit_service import rate_limit_service
 from app.services.email_service import email_service
+from app.services.token_blacklist_service import token_blacklist_service
 from app.schemas.user import (
     UserResponse,
     Token,
@@ -455,29 +459,111 @@ async def google_auth(request: Request, body: GoogleAuthRequest, db: DBSession):
     
     await db.commit()
     
-    # Generate tokens
-    access_token = create_access_token(subject=str(user.id))
-    refresh_token = create_refresh_token(subject=str(user.id))
+    # Generate tokens with JTI for blacklisting
+    access_token, access_jti = create_access_token(subject=str(user.id))
+    refresh_token, refresh_jti, family_id = create_refresh_token(subject=str(user.id))
     
-    return Token(
+    # Create token family for this login session
+    await token_blacklist_service.create_token_family(
+        db=db,
+        user_id=str(user.id),
+        jti=refresh_jti,
+        family_id=family_id,
+        device_info=request.headers.get("user-agent"),
+        ip_address=request.client.host if request.client else None,
+    )
+    
+    # Create response with cookies
+    response_data = Token(
         access_token=access_token,
         refresh_token=refresh_token,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         user=UserResponse.model_validate(user),
     )
+    
+    # Note: Cookies are set by the frontend callback handler
+    # We return tokens in body for backward compatibility and mobile apps
+    return response_data
+
+
+# ============ Logout Request Schema ============
+
+class LogoutRequest(BaseModel):
+    """Logout request with optional tokens."""
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    logout_all_devices: bool = False
 
 
 # ============ Logout Endpoint ============
 
 @router.post("/logout", status_code=status.HTTP_200_OK)
-async def logout():
+async def logout(
+    db: DBSession,
+    body: Optional[LogoutRequest] = None,
+    authorization: Optional[str] = Header(None),
+):
     """
-    Logout user.
+    Logout user with token blacklisting.
     
-    Note: JWT tokens are stateless, so this endpoint is primarily for
-    frontend to clear tokens. In future, could add token blacklisting.
+    - If tokens provided in body, blacklist those tokens
+    - If Authorization header present, blacklist that token
+    - If logout_all_devices=True, invalidate all token families
     """
-    return {"message": "Logged out successfully"}
+    tokens_blacklisted = []
+    
+    # Get access token from Authorization header
+    if authorization and authorization.startswith("Bearer "):
+        access_token = authorization[7:]
+        payload = verify_token(access_token, token_type="access")
+        
+        if payload and payload.jti:
+            success = await token_blacklist_service.blacklist_token(
+                db=db,
+                token=access_token,
+                user_id=payload.sub,
+                reason="logout",
+            )
+            if success:
+                tokens_blacklisted.append("access_token")
+            
+            # If logout from all devices
+            if body and body.logout_all_devices:
+                await token_blacklist_service.blacklist_all_user_tokens(
+                    db=db,
+                    user_id=payload.sub,
+                    reason="logout_all_devices",
+                )
+                tokens_blacklisted.append("all_devices")
+    
+    # Blacklist tokens from body
+    if body:
+        if body.access_token:
+            payload = verify_token(body.access_token, token_type="access")
+            if payload and payload.jti:
+                success = await token_blacklist_service.blacklist_token(
+                    db=db,
+                    token=body.access_token,
+                    user_id=payload.sub,
+                    reason="logout",
+                )
+                if success:
+                    tokens_blacklisted.append("access_token_body")
+        
+        if body.refresh_token:
+            payload = verify_token(body.refresh_token, token_type="refresh")
+            if payload and payload.jti and payload.family_id:
+                # Invalidate the token family
+                await token_blacklist_service.invalidate_family(
+                    db=db,
+                    family_id=payload.family_id,
+                )
+                tokens_blacklisted.append("refresh_token_family")
+    
+    return {
+        "message": "Logged out successfully",
+        "blacklisted": tokens_blacklisted,
+    }
 
 
 # ============ Token Refresh ============
@@ -486,9 +572,14 @@ async def logout():
 @limiter.limit(AUTH_RATE_LIMITS["refresh"])
 async def refresh_token(request: Request, token_data: TokenRefresh, db: DBSession):
     """
-    Refresh access token using refresh token.
+    Refresh access token using refresh token with rotation.
     
     - **refresh_token**: Valid refresh token
+    
+    Security features:
+    - Token rotation: new refresh token issued each time
+    - Family tracking: reuse of old token invalidates entire family
+    - Blacklist checking: revoked tokens are rejected
     """
     # Verify refresh token
     payload = verify_token(token_data.refresh_token, token_type="refresh")
@@ -498,6 +589,33 @@ async def refresh_token(request: Request, token_data: TokenRefresh, db: DBSessio
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired refresh token",
         )
+    
+    # Check if token is blacklisted
+    if payload.jti:
+        is_blacklisted = await token_blacklist_service.is_token_blacklisted(
+            db=db,
+            jti=payload.jti,
+        )
+        if is_blacklisted:
+            logger.warning(f"Attempted use of blacklisted refresh token: {payload.jti[:8]}...")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked",
+            )
+    
+    # Verify token family is valid (for tokens with family_id)
+    if payload.family_id and payload.jti:
+        is_family_valid = await token_blacklist_service.is_token_family_valid(
+            db=db,
+            family_id=payload.family_id,
+            jti=payload.jti,
+        )
+        if not is_family_valid:
+            logger.warning(f"Invalid token family or potential reuse attack: {payload.family_id[:8]}...")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session has been invalidated. Please login again.",
+            )
     
     # Get user
     result = await db.execute(
@@ -517,9 +635,29 @@ async def refresh_token(request: Request, token_data: TokenRefresh, db: DBSessio
             detail="Account is deactivated",
         )
     
-    # Generate new tokens
-    access_token = create_access_token(subject=str(user.id))
-    new_refresh_token = create_refresh_token(subject=str(user.id))
+    # Generate new tokens with rotation
+    access_token, access_jti = create_access_token(subject=str(user.id))
+    
+    # For refresh token: keep same family_id but new jti
+    new_refresh_token, new_jti, _ = create_refresh_token(
+        subject=str(user.id),
+        family_id=payload.family_id,  # Keep same family
+    )
+    
+    # Rotate the token in the family (invalidates old jti)
+    if payload.family_id and payload.jti:
+        rotated = await token_blacklist_service.rotate_refresh_token(
+            db=db,
+            family_id=payload.family_id,
+            old_jti=payload.jti,
+            new_jti=new_jti,
+        )
+        if not rotated:
+            # Rotation failed - could be reuse attack
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token rotation failed. Please login again.",
+            )
     
     return Token(
         access_token=access_token,
@@ -770,17 +908,27 @@ async def email_login(request: Request, body: EmailLoginRequest, db: DBSession):
     
     await db.commit()
     
-    # Generate tokens
-    access_token = create_access_token(subject=str(user.id))
+    # Generate tokens with JTI for blacklisting
+    access_token, access_jti = create_access_token(subject=str(user.id))
     
     # Longer refresh token for remember me
     if body.remember_me:
-        refresh_token = create_refresh_token(
+        refresh_token, refresh_jti, family_id = create_refresh_token(
             subject=str(user.id),
             expires_delta=timedelta(days=30)
         )
     else:
-        refresh_token = create_refresh_token(subject=str(user.id))
+        refresh_token, refresh_jti, family_id = create_refresh_token(subject=str(user.id))
+    
+    # Create token family for this login session
+    await token_blacklist_service.create_token_family(
+        db=db,
+        user_id=str(user.id),
+        jti=refresh_jti,
+        family_id=family_id,
+        device_info=request.headers.get("user-agent"),
+        ip_address=client_ip,
+    )
     
     return Token(
         access_token=access_token,
@@ -835,9 +983,17 @@ async def verify_email(body: EmailVerifyRequest, db: DBSession):
     
     logger.info(f"User verified: {user.email}")
     
-    # Generate tokens and auto-login
-    access_token = create_access_token(subject=str(user.id))
-    refresh_token = create_refresh_token(subject=str(user.id))
+    # Generate tokens with JTI for blacklisting
+    access_token, access_jti = create_access_token(subject=str(user.id))
+    refresh_token, refresh_jti, family_id = create_refresh_token(subject=str(user.id))
+    
+    # Create token family (no request context available here)
+    await token_blacklist_service.create_token_family(
+        db=db,
+        user_id=str(user.id),
+        jti=refresh_jti,
+        family_id=family_id,
+    )
     
     return Token(
         access_token=access_token,
@@ -887,6 +1043,99 @@ async def resend_verification(body: ResendVerificationRequest, db: DBSession):
         logger.error(f"Failed to send verification email: {e}")
     
     return {"message": "If the email exists, a verification link has been sent."}
+
+
+# ============ Remember Me Token Verification ============
+
+class RememberMeRequest(BaseModel):
+    """Request body for remember me token verification."""
+    remember_token: str
+    device_id: Optional[str] = None
+
+
+@router.post("/remember-me", response_model=Token)
+async def verify_remember_token(
+    request: Request,
+    body: RememberMeRequest,
+    db: DBSession,
+):
+    """
+    Verify remember me token and issue new access/refresh tokens.
+    
+    This endpoint is used to automatically login users who have a valid
+    remember me token stored in their browser.
+    
+    - **remember_token**: The remember me token from cookie
+    - **device_id**: Optional device fingerprint
+    """
+    client_ip = get_client_ip(request)
+    
+    # Find user by remember token
+    result = await db.execute(
+        select(User).where(User.remember_token == body.remember_token)
+    )
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid remember token",
+        )
+    
+    # Check if token is expired
+    if user.remember_expires and user.remember_expires < datetime.now(timezone.utc):
+        # Clear expired token
+        user.remember_token = None
+        user.remember_expires = None
+        await db.commit()
+        
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Remember token has expired. Please login again.",
+        )
+    
+    # Check if user is active
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is deactivated",
+        )
+    
+    # Update last login
+    user.last_login_at = datetime.now(timezone.utc)
+    
+    # Generate new remember token (rotation for security)
+    new_remember_token = secrets.token_urlsafe(32)
+    user.remember_token = new_remember_token
+    user.remember_expires = datetime.now(timezone.utc) + timedelta(days=30)
+    
+    await db.commit()
+    
+    # Generate tokens with JTI for blacklisting
+    access_token, access_jti = create_access_token(subject=str(user.id))
+    refresh_token, refresh_jti, family_id = create_refresh_token(
+        subject=str(user.id),
+        expires_delta=timedelta(days=30)  # Long-lived for remember me
+    )
+    
+    # Create token family
+    await token_blacklist_service.create_token_family(
+        db=db,
+        user_id=str(user.id),
+        jti=refresh_jti,
+        family_id=family_id,
+        device_info=request.headers.get("user-agent"),
+        ip_address=client_ip,
+    )
+    
+    logger.info(f"Remember me login for: {user.email}")
+    
+    return Token(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user=UserResponse.model_validate(user),
+    )
 
 
 # ============ Get Allowed Email Domains ============

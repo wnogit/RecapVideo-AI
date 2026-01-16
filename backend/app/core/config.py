@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
+    # Cookie settings for HttpOnly tokens
+    COOKIE_DOMAIN: str = ".recapvideo.ai"  # Allows sharing between subdomains
+    COOKIE_SECURE: bool = True  # Only send over HTTPS
+    COOKIE_SAMESITE: str = "lax"  # Protect against CSRF while allowing normal links
+    
     @field_validator("JWT_SECRET_KEY")
     @classmethod
     def validate_jwt_secret(cls, v: str) -> str:

@@ -1,6 +1,13 @@
 """
 Security utilities for JWT and password hashing
+
+Includes:
+- JWT token creation with JTI (for blacklisting)
+- Token blacklist checking
+- Password hashing
+- Token rotation support
 """
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
@@ -22,13 +29,25 @@ class TokenPayload(BaseModel):
     type: str
     exp: datetime
     iat: datetime
+    jti: str  # JWT ID for blacklisting
+    family_id: Optional[str] = None  # For refresh token family tracking
+
+
+def generate_jti() -> str:
+    """Generate unique JWT ID."""
+    return str(uuid.uuid4())
 
 
 def create_access_token(
     subject: str | Any,
-    expires_delta: Optional[timedelta] = None
-) -> str:
-    """Create JWT access token."""
+    expires_delta: Optional[timedelta] = None,
+    jti: Optional[str] = None,
+) -> tuple[str, str]:
+    """
+    Create JWT access token.
+    
+    Returns: (token, jti) tuple
+    """
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
@@ -36,25 +55,36 @@ def create_access_token(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
     
+    token_jti = jti or generate_jti()
+    
     to_encode = {
         "sub": str(subject),
         "type": "access",
         "exp": expire,
         "iat": datetime.now(timezone.utc),
+        "jti": token_jti,
     }
     
-    return jwt.encode(
+    token = jwt.encode(
         to_encode,
         settings.JWT_SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM
     )
+    
+    return token, token_jti
 
 
 def create_refresh_token(
     subject: str | Any,
-    expires_delta: Optional[timedelta] = None
-) -> str:
-    """Create JWT refresh token."""
+    expires_delta: Optional[timedelta] = None,
+    jti: Optional[str] = None,
+    family_id: Optional[str] = None,
+) -> tuple[str, str, str]:
+    """
+    Create JWT refresh token with family tracking.
+    
+    Returns: (token, jti, family_id) tuple
+    """
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
@@ -62,18 +92,44 @@ def create_refresh_token(
             days=settings.REFRESH_TOKEN_EXPIRE_DAYS
         )
     
+    token_jti = jti or generate_jti()
+    token_family_id = family_id or generate_jti()
+    
     to_encode = {
         "sub": str(subject),
         "type": "refresh",
         "exp": expire,
         "iat": datetime.now(timezone.utc),
+        "jti": token_jti,
+        "family_id": token_family_id,
     }
     
-    return jwt.encode(
+    token = jwt.encode(
         to_encode,
         settings.JWT_SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM
     )
+    
+    return token, token_jti, token_family_id
+
+
+# Legacy functions for backward compatibility (return just token string)
+def create_access_token_simple(
+    subject: str | Any,
+    expires_delta: Optional[timedelta] = None,
+) -> str:
+    """Create JWT access token (legacy - returns token only)."""
+    token, _ = create_access_token(subject, expires_delta)
+    return token
+
+
+def create_refresh_token_simple(
+    subject: str | Any,
+    expires_delta: Optional[timedelta] = None,
+) -> str:
+    """Create JWT refresh token (legacy - returns token only)."""
+    token, _, _ = create_refresh_token(subject, expires_delta)
+    return token
 
 
 def verify_token(token: str, token_type: str = "access") -> Optional[TokenPayload]:
@@ -94,7 +150,23 @@ def verify_token(token: str, token_type: str = "access") -> Optional[TokenPayloa
             type=payload["type"],
             exp=datetime.fromtimestamp(payload["exp"], tz=timezone.utc),
             iat=datetime.fromtimestamp(payload["iat"], tz=timezone.utc),
+            jti=payload.get("jti", ""),  # Handle tokens without JTI (legacy)
+            family_id=payload.get("family_id"),
         )
+    except PyJWTError:
+        return None
+
+
+def get_token_expiry(token: str) -> Optional[datetime]:
+    """Get token expiry time without full verification."""
+    try:
+        payload = jwt.decode(
+            token,
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM],
+            options={"verify_exp": False}  # Don't fail on expired
+        )
+        return datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
     except PyJWTError:
         return None
 

@@ -92,7 +92,13 @@ class UserResponse(BaseModel):
 
 
 class Token(BaseModel):
-    """Schema for JWT token response."""
+    """
+    Schema for JWT token response.
+    
+    Tokens are also set as HttpOnly cookies for security.
+    The access_token and refresh_token fields are kept for backward compatibility
+    and mobile app support.
+    """
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
@@ -100,9 +106,21 @@ class Token(BaseModel):
     user: UserResponse
 
 
+class TokenCookieResponse(BaseModel):
+    """
+    Schema for cookie-based auth response.
+    
+    Tokens are set as HttpOnly cookies (not in response body).
+    This is more secure against XSS attacks.
+    """
+    message: str = "Login successful"
+    expires_in: int
+    user: UserResponse
+
+
 class TokenRefresh(BaseModel):
     """Schema for token refresh request."""
-    refresh_token: str
+    refresh_token: Optional[str] = None  # Optional - can use cookie instead
 
 
 class PasswordReset(BaseModel):
