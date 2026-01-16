@@ -71,15 +71,27 @@ class APIKeyTypeInfo(BaseModel):
 # Predefined API key types with descriptions
 API_KEY_TYPES = [
     {
-        "key_type": "transcript_api",
-        "name": "TranscriptAPI.com",
-        "description": "YouTube transcript extraction service",
-        "required": True,
+        "key_type": "poe",
+        "name": "Poe API (Claude FREE)",
+        "description": "FREE Claude 3.5 Sonnet access via Poe - Primary AI for script generation",
+        "required": False,
+    },
+    {
+        "key_type": "groq",
+        "name": "Groq (Llama 3.3)",
+        "description": "FREE Llama 3.3 70B - Fast AI for script generation (Fallback)",
+        "required": False,
     },
     {
         "key_type": "gemini",
         "name": "Google Gemini",
-        "description": "AI script generation (Gemini Pro)",
+        "description": "AI script generation (Gemini Pro) - Final Fallback",
+        "required": True,
+    },
+    {
+        "key_type": "transcript_api",
+        "name": "TranscriptAPI.com",
+        "description": "YouTube transcript extraction service",
         "required": True,
     },
     {
