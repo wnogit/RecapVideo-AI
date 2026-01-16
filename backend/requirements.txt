@@ -52,6 +52,7 @@ python-dotenv==1.0.1
 loguru==0.7.2
 tenacity==8.2.3
 user-agents==2.2.0
+slowapi==0.1.9
 
 # Development
 pytest==7.4.4

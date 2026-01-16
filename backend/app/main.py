@@ -4,14 +4,17 @@ RecapVideo.AI - FastAPI Main Application
 import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from sqlalchemy import select
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
+from app.core.rate_limiter import limiter
 from app.api.v1.router import api_router
 from app.core.database import engine, Base, async_session_maker
 
@@ -99,6 +102,10 @@ def create_application() -> FastAPI:
         openapi_url="/api/openapi.json" if settings.ENVIRONMENT != "production" else None,
         lifespan=lifespan,
     )
+    
+    # Add rate limiter state and handler
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
     
     # CORS Middleware
     app.add_middleware(

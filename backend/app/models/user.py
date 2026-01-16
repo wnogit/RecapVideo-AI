@@ -71,31 +71,32 @@ class User(Base):
         nullable=True,
     )
     
-    # Relationships
+    # Relationships - Use lazy="raise" to prevent N+1 queries
+    # Must explicitly load relationships when needed with selectinload/joinedload
     videos: Mapped[List["Video"]] = relationship(
         "Video",
         back_populates="user",
-        lazy="selectin",
+        lazy="raise",  # Raises exception if accessed without explicit loading
     )
     credit_transactions: Mapped[List["CreditTransaction"]] = relationship(
         "CreditTransaction",
         back_populates="user",
-        lazy="selectin",
+        lazy="raise",
     )
     orders: Mapped[List["Order"]] = relationship(
         "Order",
         back_populates="user",
-        lazy="selectin",
+        lazy="raise",
     )
     devices: Mapped[List["DeviceFingerprint"]] = relationship(
         "DeviceFingerprint",
         back_populates="user",
-        lazy="selectin",
+        lazy="raise",
     )
     ip_logs: Mapped[List["IPSignupLog"]] = relationship(
         "IPSignupLog",
         back_populates="user",
-        lazy="selectin",
+        lazy="raise",
     )
     
     # OAuth provider info

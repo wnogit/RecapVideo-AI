@@ -37,6 +37,7 @@ from app.schemas.user import (
     Token,
     TokenRefresh,
 )
+from app.core.rate_limiter import limiter, AUTH_RATE_LIMITS
 from app.api.v1.endpoints.site_settings import get_setting_json
 
 
@@ -291,6 +292,7 @@ async def check_ip(request: Request, db: DBSession, device_id: str = None):
 
 
 @router.post("/google", response_model=Token)
+@limiter.limit(AUTH_RATE_LIMITS["google_auth"])
 async def google_auth(request: Request, body: GoogleAuthRequest, db: DBSession):
     """
     Authenticate with Google OAuth.
@@ -481,7 +483,8 @@ async def logout():
 # ============ Token Refresh ============
 
 @router.post("/refresh", response_model=Token)
-async def refresh_token(token_data: TokenRefresh, db: DBSession):
+@limiter.limit(AUTH_RATE_LIMITS["refresh"])
+async def refresh_token(request: Request, token_data: TokenRefresh, db: DBSession):
     """
     Refresh access token using refresh token.
     
@@ -529,6 +532,7 @@ async def refresh_token(token_data: TokenRefresh, db: DBSession):
 # ============ Email/Password Signup ============
 
 @router.post("/signup", response_model=dict)
+@limiter.limit(AUTH_RATE_LIMITS["signup"])
 async def email_signup(request: Request, body: EmailSignupRequest, db: DBSession):
     """
     Sign up with email and password.
@@ -640,6 +644,7 @@ async def email_signup(request: Request, body: EmailSignupRequest, db: DBSession
 # ============ Email/Password Login ============
 
 @router.post("/login", response_model=Token)
+@limiter.limit(AUTH_RATE_LIMITS["login"])
 async def email_login(request: Request, body: EmailLoginRequest, db: DBSession):
     """
     Login with email and password.

@@ -236,14 +236,18 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
             groq_client = await self._get_groq_client()
             if groq_client:
                 logger.info("Using Groq (Llama 3.3) for script generation - fallback")
-                response = await groq_client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": prompt}
-                    ],
-                    max_tokens=2000,
-                    temperature=0.7,
+                import asyncio
+                response = await asyncio.wait_for(
+                    groq_client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": prompt}
+                        ],
+                        max_tokens=2000,
+                        temperature=0.7,
+                    ),
+                    timeout=60.0  # 60 second timeout
                 )
                 script = response.choices[0].message.content.strip()
                 # Apply formal to casual conversion for Burmese
@@ -257,7 +261,10 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
             gemini_client = await self._get_gemini_client()
             if gemini_client:
                 logger.info("Using Gemini for script generation - final fallback")
-                response = await gemini_client.generate_content_async(prompt)
+                response = await asyncio.wait_for(
+                    gemini_client.generate_content_async(prompt),
+                    timeout=60.0  # 60 second timeout
+                )
                 script = response.text.strip()
                 # Apply formal to casual conversion for Burmese
                 if target_language == "my":
