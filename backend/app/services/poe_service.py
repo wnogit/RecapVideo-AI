@@ -69,7 +69,7 @@ class PoeService:
         self,
         prompt: str,
         system_prompt: str = "",
-        model: str = None,
+        model: Optional[str] = None,
         max_retries: int = 2,
     ) -> Optional[str]:
         """
@@ -118,7 +118,7 @@ class PoeService:
     async def chat(
         self,
         message: str,
-        model: str = None,
+        model: Optional[str] = None,
     ) -> Optional[str]:
         """
         Simple chat with Poe.

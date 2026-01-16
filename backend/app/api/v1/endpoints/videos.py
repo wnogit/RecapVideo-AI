@@ -7,6 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func, select
+from loguru import logger
 
 from app.core.dependencies import CurrentActiveUser, DBSession
 from app.models.video import Video, VideoStatus
@@ -16,7 +17,12 @@ from app.schemas.video import (
     VideoResponse,
     VideoListResponse,
 )
-from app.utils.youtube import validate_youtube_shorts_url
+from app.utils.youtube import (
+    validate_youtube_shorts_url,
+    get_video_duration,
+    validate_video_duration,
+    MAX_VIDEO_DURATION_SECONDS,
+)
 from app.tasks.video_tasks import process_video_task
 
 
@@ -56,6 +62,28 @@ async def create_video(
         )
     
     video_id = result  # YouTube video ID
+    
+    # VP8 FIX: Validate video duration BEFORE credit deduction
+    try:
+        duration = await get_video_duration(video_id)
+        if duration:
+            is_valid_duration, duration_error = validate_video_duration(duration)
+            if not is_valid_duration:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={
+                        "code": "VIDEO_TOO_LONG",
+                        "message": duration_error or f"Video သည် {duration}s ရှိပြီး အများဆုံး {MAX_VIDEO_DURATION_SECONDS}s (5 min) သာ ခွင့်ပြုပါတယ်။",
+                        "duration": duration,
+                        "max_duration": MAX_VIDEO_DURATION_SECONDS,
+                    }
+                )
+            logger.info(f"Video duration validated: {duration}s")
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Don't block if duration check fails - will be checked during processing
+        logger.warning(f"Could not validate video duration: {e}")
     
     # Check for duplicate video (same YouTube ID, same user, not failed/cancelled)
     existing_video = await db.execute(

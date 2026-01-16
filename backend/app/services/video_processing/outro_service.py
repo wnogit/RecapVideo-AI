@@ -1,14 +1,62 @@
 """
 Video Processing - Outro Service
 Outro video generation and concatenation
+
+VP7 FIX: Added font path validation
 """
+import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 from loguru import logger
 
 from .models import OutroOptions
 from .ffmpeg_utils import FFmpegUtils
+
+
+# VP7 FIX: Common system font paths
+DEFAULT_FONT_PATHS = [
+    # Linux
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/TTF/DejaVuSans.ttf",
+    "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf",
+    # Docker/Alpine
+    "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+    # Noto fonts (good for Burmese)
+    "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+    "/usr/share/fonts/noto/NotoSans-Regular.ttf",
+    # Fallback
+    "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+]
+
+
+def find_valid_font(custom_path: Optional[str] = None) -> str:
+    """
+    VP7 FIX: Find a valid font file path.
+    
+    Args:
+        custom_path: Optional custom font path to check first
+        
+    Returns:
+        Valid font path or fallback font name
+    """
+    # Check custom path first
+    if custom_path:
+        if os.path.exists(custom_path):
+            logger.info(f"Using custom font: {custom_path}")
+            return custom_path
+        else:
+            logger.warning(f"Custom font not found: {custom_path}")
+    
+    # Check default paths
+    for font_path in DEFAULT_FONT_PATHS:
+        if os.path.exists(font_path):
+            logger.info(f"Found system font: {font_path}")
+            return font_path
+    
+    # Fallback to FFmpeg built-in font handling
+    logger.warning("No font file found, using FFmpeg default font handling")
+    return "Sans"  # FFmpeg will try to find this
 
 
 class OutroService:
@@ -24,7 +72,8 @@ class OutroService:
     
     def __init__(self, ffmpeg_utils: FFmpegUtils, font_path: Optional[str] = None):
         self.ffmpeg = ffmpeg_utils
-        self.font_path = font_path or "DejaVuSans"
+        # VP7 FIX: Validate font path on initialization
+        self.font_path = find_valid_font(font_path)
     
     async def generate_outro(
         self,
