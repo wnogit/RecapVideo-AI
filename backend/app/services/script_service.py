@@ -1,13 +1,13 @@
 """
-Script Generation Service - Using Poe (Claude FREE) with OpenRouter Gemini fallback
+Script Generation Service - Using DeepInfra (Gemini 2.5 Flash) as PRIMARY
 
 Generates recap/summary scripts from YouTube transcripts.
 Uses custom prompts from database (Admin configurable).
 
 Priority:
-1. Poe API (Claude 3.5 Sonnet) - FREE via Poe
-2. OpenRouter (Gemini 2.0 Flash) - Best for Burmese
-3. Groq (Llama 3.3) - For non-Burmese only
+1. DeepInfra (Gemini 2.5 Flash) - PRIMARY, best for Burmese
+2. Poe API (Claude 3.5 Sonnet) - FREE backup
+3. OpenRouter (Gemini 2.0 Flash) - backup
 4. Gemini Direct - Final fallback
 """
 import re
@@ -136,6 +136,34 @@ Output the script ONLY - no titles, no metadata, no commentary."""
         self._groq_client = None
         self._gemini_client = None
         self._openrouter_client = None
+        self._deepinfra_client = None
+    
+    async def _get_deepinfra_key(self):
+        """Get DeepInfra API key from database."""
+        api_key = await api_key_service.get_deepinfra_key()
+        return api_key
+    
+    async def _call_deepinfra(self, api_key: str, messages: list, model: str = "google/gemini-2.5-flash", max_tokens: int = 4000) -> str:
+        """Call DeepInfra API (OpenAI-compatible)."""
+        import httpx
+        
+        async with httpx.AsyncClient(timeout=180.0) as client:
+            response = await client.post(
+                "https://api.deepinfra.com/v1/openai/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "temperature": 0.7,
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"].strip()
     
     async def _get_openrouter_client(self):
         """Lazy-load OpenRouter client with API key from database."""
@@ -255,9 +283,36 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
 """
         
         try:
-            # Try Poe first (FREE Claude access - best quality)
+            # PRIMARY: DeepInfra (Gemini 2.5 Flash) - Best for Burmese
+            deepinfra_key = await self._get_deepinfra_key()
+            if deepinfra_key:
+                logger.info("Using DeepInfra (Gemini 2.5 Flash) for script generation - PRIMARY")
+                import asyncio
+                try:
+                    script = await asyncio.wait_for(
+                        self._call_deepinfra(
+                            api_key=deepinfra_key,
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": prompt}
+                            ],
+                            model="google/gemini-2.5-flash",
+                            max_tokens=4000,
+                        ),
+                        timeout=180.0
+                    )
+                    # Apply formal to casual conversion for Burmese
+                    if target_language == "my":
+                        script = convert_burmese_formal_to_casual(script)
+                        logger.info("Applied Burmese formal-to-casual conversion")
+                    logger.info(f"Script generated successfully with DeepInfra: {len(script)} chars")
+                    return script
+                except Exception as e:
+                    logger.warning(f"DeepInfra failed: {e}, trying fallback...")
+            
+            # Fallback 1: Poe (FREE Claude access)
             if await poe_service.is_available():
-                logger.info("Using Poe (Claude 3.5 Sonnet) for script generation - FREE")
+                logger.info("Using Poe (Claude 3.5 Sonnet) for script generation - fallback")
                 script = await poe_service.generate_script(
                     prompt=prompt,
                     system_prompt=system_prompt,
@@ -271,10 +326,10 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                     return script
                 logger.warning("Poe generation returned empty, trying fallback...")
             
-            # PRIMARY fallback: OpenRouter with Gemini 2.0 Flash (best for Burmese)
+            # Fallback 2: OpenRouter with Gemini 2.0 Flash
             openrouter_key = await self._get_openrouter_client()
             if openrouter_key:
-                logger.info("Using OpenRouter (Gemini 2.0 Flash) for script generation - PRIMARY fallback")
+                logger.info("Using OpenRouter (Gemini 2.0 Flash) for script generation - fallback")
                 import asyncio
                 try:
                     script = await asyncio.wait_for(
@@ -284,7 +339,7 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                                 {"role": "system", "content": system_prompt},
                                 {"role": "user", "content": prompt}
                             ],
-                            model="google/gemini-2.0-flash-001",  # Gemini via OpenRouter
+                            model="google/gemini-2.0-flash-001",
                             max_tokens=4000,
                         ),
                         timeout=120.0
@@ -293,39 +348,15 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                     if target_language == "my":
                         script = convert_burmese_formal_to_casual(script)
                         logger.info("Applied Burmese formal-to-casual conversion")
-                    logger.info(f"Script generated successfully with OpenRouter Gemini: {len(script)} chars")
+                    logger.info(f"Script generated successfully with OpenRouter: {len(script)} chars")
                     return script
                 except Exception as e:
-                    logger.warning(f"OpenRouter Gemini failed: {e}, trying next fallback...")
+                    logger.warning(f"OpenRouter failed: {e}, trying next fallback...")
             
-            # Secondary fallback: Groq (Llama - for non-Burmese or emergency)
-            groq_client = await self._get_groq_client()
-            if groq_client and target_language != "my":  # Skip Groq for Burmese (poor quality)
-                logger.info("Using Groq (Llama 3.3) for script generation - fallback")
-                import asyncio
-                try:
-                    response = await asyncio.wait_for(
-                        groq_client.chat.completions.create(
-                            model="llama-3.3-70b-versatile",
-                            messages=[
-                                {"role": "system", "content": system_prompt},
-                                {"role": "user", "content": prompt}
-                            ],
-                            max_tokens=4000,
-                            temperature=0.7,
-                        ),
-                        timeout=90.0  # 90 second timeout
-                    )
-                    script = response.choices[0].message.content.strip()
-                    logger.info(f"Script generated successfully with Groq: {len(script)} chars")
-                    return script
-                except Exception as e:
-                    logger.warning(f"Groq failed: {e}, trying next fallback...")
-            
-            # Final fallback to Gemini
+            # Final fallback to Gemini Direct
             gemini_client = await self._get_gemini_client()
             if gemini_client:
-                logger.info("Using Gemini for script generation - final fallback")
+                logger.info("Using Gemini Direct for script generation - final fallback")
                 import asyncio
                 response = await asyncio.wait_for(
                     gemini_client.generate_content_async(prompt),
@@ -336,10 +367,10 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                 if target_language == "my":
                     script = convert_burmese_formal_to_casual(script)
                     logger.info("Applied Burmese formal-to-casual conversion")
-                logger.info(f"Script generated successfully with Gemini: {len(script)} chars")
+                logger.info(f"Script generated successfully with Gemini Direct: {len(script)} chars")
                 return script
             
-            raise ValueError("No AI API key configured (Poe, Groq, OpenRouter, or Gemini)")
+            raise ValueError("No AI API key configured (DeepInfra, Poe, OpenRouter, or Gemini)")
             
         except Exception as e:
             logger.error(f"Script generation failed: {e}")
