@@ -182,7 +182,7 @@ export default function IntegrationsPage() {
     try {
       const [typesRes, keysRes] = await Promise.all([
         adminApiKeysApi.getTypes(),
-        adminApiKeysApi.getAll(),
+        adminApiKeysApi.list(),
       ]);
       setApiKeyTypes(typesRes.data?.types || []);
       setApiKeys(keysRes.data?.keys || []);
@@ -234,7 +234,7 @@ export default function IntegrationsPage() {
     // Fetch the actual key value if needed
     let keyValue = '';
     try {
-      const response = await adminApiKeysApi.getById(key.id);
+      const response = await adminApiKeysApi.reveal(key.id);
       keyValue = response.data?.key_value || '';
     } catch (error) {
       console.error('Error fetching key value:', error);
@@ -341,7 +341,7 @@ export default function IntegrationsPage() {
     }
 
     try {
-      const response = await adminApiKeysApi.getById(keyId);
+      const response = await adminApiKeysApi.reveal(keyId);
       setRevealedKeys(prev => ({
         ...prev,
         [keyId]: response.data?.key_value || '***',
