@@ -584,14 +584,26 @@ class SinglePassProcessorV2:
             current_label = f"v{label_num}"
             label_num += 1
         
-        # Blur regions (complex)
+        # Determine output dimensions for blur calculations
+        if options.aspect_ratio in self.ASPECT_RATIOS:
+            out_w, out_h = self.ASPECT_RATIOS[options.aspect_ratio]
+        else:
+            out_w, out_h = video_width, video_height
+        
+        # Blur regions (complex) - uses OUTPUT dimensions after resize
         if options.blur.enabled and options.blur.regions:
             for i, region in enumerate(options.blur.regions):
-                x = int((region.x / 100) * video_width)
-                y = int((region.y / 100) * video_height)
-                w = int((region.width / 100) * video_width)
-                h = int((region.height / 100) * video_height)
-                w, h = max(w, 10), max(h, 10)
+                # Calculate blur position based on OUTPUT dimensions (after resize)
+                x = int((region.x / 100) * out_w)
+                y = int((region.y / 100) * out_h)
+                w = int((region.width / 100) * out_w)
+                h = int((region.height / 100) * out_h)
+                
+                # Ensure valid dimensions
+                w = max(w, 10)
+                h = max(h, 10)
+                x = max(0, min(x, out_w - w))
+                y = max(0, min(y, out_h - h))
                 
                 intensity = options.blur.intensity
                 
