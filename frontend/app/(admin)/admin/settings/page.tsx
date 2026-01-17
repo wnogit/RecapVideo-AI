@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, Key, Globe, Bell, Database, Plus, Pencil, Trash2, Eye, EyeOff, Loader2, Check, X, RefreshCw, TestTube, Shield, Wifi, WifiOff, AlertTriangle, Send, Bot, Webhook } from 'lucide-react';
+import { Save, Globe, Bell, Database, Plus, Trash2, Loader2, Check, X, RefreshCw, Shield, Wifi, WifiOff, AlertTriangle, Send, Bot, Webhook } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,53 +33,11 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { adminApiKeysApi, siteSettingsApi, siteSettingsPublicApi, telegramApi, type APIKey, type APIKeyTypeInfo, type AllowedIP, type TelegramStatus } from '@/lib/api';
+import { siteSettingsApi, siteSettingsPublicApi, telegramApi, type AllowedIP, type TelegramStatus } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
-
-// API Key type display config
-const API_KEY_TYPE_CONFIG: Record<string, { icon: string; color: string }> = {
-  gemini: { icon: '🤖', color: 'bg-blue-100 text-blue-700' },
-  groq: { icon: '⚡', color: 'bg-yellow-100 text-yellow-700' },
-  poe: { icon: '🎭', color: 'bg-purple-100 text-purple-700' },
-  transcript_api: { icon: '📝', color: 'bg-indigo-100 text-indigo-700' },
-  r2_access_key: { icon: '☁️', color: 'bg-orange-100 text-orange-700' },
-  r2_secret_key: { icon: '🔐', color: 'bg-orange-100 text-orange-700' },
-  resend: { icon: '📧', color: 'bg-green-100 text-green-700' },
-};
-
-interface APIKeyFormData {
-  key_type: string;
-  name: string;
-  description: string;
-  key_value: string;
-  config: string;
-  is_active: boolean;
-  is_primary: boolean;
-}
-
-const defaultFormData: APIKeyFormData = {
-  key_type: '',
-  name: '',
-  description: '',
-  key_value: '',
-  config: '',
-  is_active: true,
-  is_primary: false,
-};
 
 export default function AdminSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
-  
-  // API Keys state
-  const [apiKeyTypes, setApiKeyTypes] = useState<APIKeyTypeInfo[]>([]);
-  const [apiKeys, setApiKeys] = useState<APIKey[]>([]);
-  const [isLoadingKeys, setIsLoadingKeys] = useState(true);
-  const [showKeyDialog, setShowKeyDialog] = useState(false);
-  const [editingKey, setEditingKey] = useState<APIKey | null>(null);
-  const [keyFormData, setKeyFormData] = useState<APIKeyFormData>(defaultFormData);
-  const [isSubmittingKey, setIsSubmittingKey] = useState(false);
-  const [revealedKeys, setRevealedKeys] = useState<Record<string, string>>({});
-  const [testingKey, setTestingKey] = useState<string | null>(null);
   
   // Site Settings state
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
@@ -104,9 +62,8 @@ export default function AdminSettingsPage() {
   const [isTestingTelegram, setIsTestingTelegram] = useState(false);
   const [isSettingWebhook, setIsSettingWebhook] = useState(false);
 
-  // Fetch API keys and site settings on mount
+  // Fetch site settings on mount
   useEffect(() => {
-    fetchApiKeys();
     fetchSiteSettings();
     fetchMyIP();
     fetchTelegramStatus();
@@ -323,138 +280,6 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const fetchApiKeys = async () => {
-    setIsLoadingKeys(true);
-    try {
-      const [typesRes, keysRes] = await Promise.all([
-        adminApiKeysApi.getTypes(),
-        adminApiKeysApi.list(),
-      ]);
-      setApiKeyTypes(typesRes.data || []);
-      setApiKeys(keysRes.data?.keys || []);
-    } catch (error) {
-      console.error('Error fetching API keys:', error);
-      toast({ title: 'Failed to load API keys', variant: 'destructive' });
-    } finally {
-      setIsLoadingKeys(false);
-    }
-  };
-
-  // Open dialog for new key
-  const handleAddKey = (keyType?: string) => {
-    setEditingKey(null);
-    setKeyFormData({
-      ...defaultFormData,
-      key_type: keyType || '',
-      name: keyType ? apiKeyTypes.find(t => t.key_type === keyType)?.name || '' : '',
-    });
-    setShowKeyDialog(true);
-  };
-
-  // Open dialog for editing
-  const handleEditKey = (key: APIKey) => {
-    setEditingKey(key);
-    setKeyFormData({
-      key_type: key.key_type,
-      name: key.name,
-      description: key.description || '',
-      key_value: '', // Don't show existing value
-      config: key.config || '',
-      is_active: key.is_active,
-      is_primary: key.is_primary,
-    });
-    setShowKeyDialog(true);
-  };
-
-  // Save key
-  const handleSaveKey = async () => {
-    if (!keyFormData.key_type || !keyFormData.name || (!editingKey && !keyFormData.key_value)) {
-      toast({ title: 'Please fill in all required fields', variant: 'destructive' });
-      return;
-    }
-
-    setIsSubmittingKey(true);
-    try {
-      if (editingKey) {
-        await adminApiKeysApi.update(editingKey.id, {
-          name: keyFormData.name,
-          description: keyFormData.description || undefined,
-          key_value: keyFormData.key_value || undefined,
-          config: keyFormData.config || undefined,
-          is_active: keyFormData.is_active,
-          is_primary: keyFormData.is_primary,
-        });
-        toast({ title: 'API key updated' });
-      } else {
-        await adminApiKeysApi.create({
-          key_type: keyFormData.key_type,
-          name: keyFormData.name,
-          description: keyFormData.description || undefined,
-          key_value: keyFormData.key_value,
-          config: keyFormData.config || undefined,
-          is_primary: keyFormData.is_primary,
-        });
-        toast({ title: 'API key added' });
-      }
-      setShowKeyDialog(false);
-      fetchApiKeys();
-    } catch (error: any) {
-      toast({ title: error.response?.data?.detail || 'Failed to save API key', variant: 'destructive' });
-    } finally {
-      setIsSubmittingKey(false);
-    }
-  };
-
-  // Delete key
-  const handleDeleteKey = async (key: APIKey) => {
-    if (!confirm(`Delete API key "${key.name}"? This cannot be undone.`)) return;
-
-    try {
-      await adminApiKeysApi.delete(key.id);
-      toast({ title: 'API key deleted' });
-      fetchApiKeys();
-    } catch (error: any) {
-      toast({ title: error.response?.data?.detail || 'Failed to delete API key', variant: 'destructive' });
-    }
-  };
-
-  // Reveal key
-  const handleRevealKey = async (keyId: string) => {
-    if (revealedKeys[keyId]) {
-      // Hide it
-      setRevealedKeys(prev => {
-        const newState = { ...prev };
-        delete newState[keyId];
-        return newState;
-      });
-      return;
-    }
-
-    try {
-      const res = await adminApiKeysApi.reveal(keyId);
-      setRevealedKeys(prev => ({ ...prev, [keyId]: res.data.key_value || '' }));
-    } catch (error: any) {
-      toast({ title: 'Failed to reveal key', variant: 'destructive' });
-    }
-  };
-
-  // Test key
-  const handleTestKey = async (keyId: string) => {
-    setTestingKey(keyId);
-    try {
-      const res = await adminApiKeysApi.test(keyId);
-      if (res.data.status === 'success') {
-        toast({ title: 'API key is working!', description: res.data.message });
-      } else {
-        toast({ title: 'API key test failed', description: res.data.message, variant: 'destructive' });
-      }
-    } catch (error: any) {
-      toast({ title: 'Failed to test API key', variant: 'destructive' });
-    } finally {
-      setTestingKey(null);
-    }
-  };
-
   const handleSave = async () => {
     setIsSaving(true);
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -473,209 +298,12 @@ export default function AdminSettingsPage() {
       </div>
 
       {/* Settings Tabs */}
-      <Tabs defaultValue="api" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:grid-cols-none lg:inline-flex">
-          <TabsTrigger value="api">API Keys</TabsTrigger>
+      <Tabs defaultValue="general" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:grid-cols-none lg:inline-flex">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="storage">Storage</TabsTrigger>
         </TabsList>
-
-        {/* API Keys */}
-        <TabsContent value="api">
-          <div className="space-y-6">
-            {/* API Key Types Overview */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Key className="h-5 w-5" />
-                  API Key Status
-                </CardTitle>
-                <CardDescription>
-                  Overview of required API keys and their configuration status
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoadingKeys ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  </div>
-                ) : (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {apiKeyTypes.map((keyType) => (
-                      <div
-                        key={keyType.key_type}
-                        className="flex items-center justify-between p-4 border rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">
-                            {API_KEY_TYPE_CONFIG[keyType.key_type]?.icon || '🔑'}
-                          </span>
-                          <div>
-                            <p className="font-medium">{keyType.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {keyType.description}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {keyType.has_key ? (
-                            <Badge className={keyType.is_active ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}>
-                              {keyType.is_active ? 'Active' : 'Inactive'}
-                            </Badge>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleAddKey(keyType.key_type)}
-                            >
-                              <Plus className="h-4 w-4 mr-1" />
-                              Add
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* All API Keys Table */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>All API Keys</CardTitle>
-                  <CardDescription>
-                    Manage all configured API keys
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={fetchApiKeys}>
-                    <RefreshCw className="h-4 w-4 mr-1" />
-                    Refresh
-                  </Button>
-                  <Button size="sm" onClick={() => handleAddKey()}>
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Key
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {isLoadingKeys ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  </div>
-                ) : apiKeys.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No API keys configured yet.
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Key</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Usage</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {apiKeys.map((key) => (
-                        <TableRow key={key.id}>
-                          <TableCell>
-                            <Badge className={API_KEY_TYPE_CONFIG[key.key_type]?.color || 'bg-gray-100'}>
-                              {API_KEY_TYPE_CONFIG[key.key_type]?.icon} {key.key_type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{key.name}</p>
-                              {key.description && (
-                                <p className="text-xs text-muted-foreground">{key.description}</p>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <code className="text-sm bg-muted px-2 py-1 rounded">
-                                {revealedKeys[key.id] || key.masked_value}
-                              </code>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => handleRevealKey(key.id)}
-                              >
-                                {revealedKeys[key.id] ? (
-                                  <EyeOff className="h-3 w-3" />
-                                ) : (
-                                  <Eye className="h-3 w-3" />
-                                )}
-                              </Button>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              {key.is_active ? (
-                                <Badge className="bg-green-100 text-green-700">Active</Badge>
-                              ) : (
-                                <Badge variant="secondary">Inactive</Badge>
-                              )}
-                              {key.is_primary && (
-                                <Badge variant="outline">Primary</Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm text-muted-foreground">
-                              {key.usage_count} uses
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleTestKey(key.id)}
-                                disabled={testingKey === key.id}
-                              >
-                                {testingKey === key.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <TestTube className="h-4 w-4" />
-                                )}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleEditKey(key)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive"
-                                onClick={() => handleDeleteKey(key)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
 
         {/* General Settings */}
         <TabsContent value="general">
