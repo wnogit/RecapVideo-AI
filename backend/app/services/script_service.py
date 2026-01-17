@@ -7,7 +7,7 @@ Uses custom prompts from database (Admin configurable).
 Priority:
 1. DeepInfra (Gemini 2.5 Flash) - PRIMARY, best for Burmese
 2. Poe API (Claude 3.5 Sonnet) - FREE backup
-3. OpenRouter (Gemini 2.0 Flash) - backup
+3. OpenRouter (Gemini 2.5 Flash) - backup
 4. Gemini Direct - Final fallback
 """
 import re
@@ -348,10 +348,10 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                     return script
                 logger.warning("Poe generation returned empty, trying fallback...")
             
-            # Fallback 2: OpenRouter with Gemini 2.0 Flash
+            # Fallback 2: OpenRouter with Gemini 2.5 Flash
             openrouter_key = await self._get_openrouter_client()
             if openrouter_key:
-                logger.info("Using OpenRouter (Gemini 2.0 Flash) for script generation - fallback")
+                logger.info("Using OpenRouter (Gemini 2.5 Flash) for script generation - fallback")
                 import asyncio
                 try:
                     script = await asyncio.wait_for(
@@ -361,7 +361,7 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                                 {"role": "system", "content": system_prompt},
                                 {"role": "user", "content": prompt}
                             ],
-                            model="google/gemini-2.0-flash-001",
+                            model="google/gemini-2.5-flash",
                             max_tokens=4000,
                         ),
                         timeout=120.0
