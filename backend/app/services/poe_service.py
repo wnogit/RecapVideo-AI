@@ -116,6 +116,8 @@ class PoeService:
                 response_text = response.choices[0].message.content
                 
                 if response_text:
+                    # Filter out thinking blocks from Gemini-3 output
+                    response_text = self._remove_thinking_blocks(response_text)
                     logger.info(f"Poe script generation successful: {len(response_text)} chars")
                     return response_text.strip()
                 
@@ -127,6 +129,51 @@ class PoeService:
         
         logger.error("Poe script generation failed after all retries")
         return None
+    
+    def _remove_thinking_blocks(self, text: str) -> str:
+        """
+        Remove Gemini-3 thinking blocks from output.
+        Thinking blocks appear as:
+        - *Thinking...*
+        - > **Title**
+        - > content
+        """
+        import re
+        
+        # Remove *Thinking...* marker
+        text = re.sub(r'\*Thinking\.\.\.\*\s*', '', text)
+        
+        # Remove blockquote sections (> **Title** and > content)
+        # These are the thinking reasoning blocks
+        lines = text.split('\n')
+        filtered_lines = []
+        in_thinking_block = False
+        
+        for line in lines:
+            # Check if line starts with > (blockquote - thinking content)
+            if line.strip().startswith('>'):
+                in_thinking_block = True
+                continue
+            
+            # Empty line after thinking block ends the block
+            if in_thinking_block and line.strip() == '':
+                in_thinking_block = False
+                continue
+            
+            # If not in thinking block, keep the line
+            if not in_thinking_block:
+                filtered_lines.append(line)
+        
+        result = '\n'.join(filtered_lines).strip()
+        
+        # Also remove any remaining markdown formatting that might slip through
+        # Remove lines that are just ** bold headers **
+        result = re.sub(r'^\*\*[^*]+\*\*\s*$', '', result, flags=re.MULTILINE)
+        
+        # Clean up multiple newlines
+        result = re.sub(r'\n{3,}', '\n\n', result)
+        
+        return result.strip()
     
     async def chat(
         self,
