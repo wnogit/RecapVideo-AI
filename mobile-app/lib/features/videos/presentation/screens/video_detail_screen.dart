@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/l10n/app_strings.dart';
+import '../../../../core/api/video_service.dart';
 
 /// Video Detail Screen - Shows video player, title, and actions
 class VideoDetailScreen extends ConsumerStatefulWidget {
@@ -10,6 +12,7 @@ class VideoDetailScreen extends ConsumerStatefulWidget {
   final String? thumbnailUrl;
   final String? videoUrl;
   final String status;
+  final Video? video; // Full video object for detailed info
 
   const VideoDetailScreen({
     super.key,
@@ -18,6 +21,7 @@ class VideoDetailScreen extends ConsumerStatefulWidget {
     this.thumbnailUrl,
     this.videoUrl,
     required this.status,
+    this.video,
   });
 
   @override
@@ -85,18 +89,20 @@ class _VideoDetailScreenState extends ConsumerState<VideoDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final isReady = widget.status == 'completed' && widget.videoUrl != null;
+    final colors = context.colors;
+    final strings = ref.watch(stringsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: colors.background,
         elevation: 0,
-        title: const Text('Video Details', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(strings.isEnglish ? 'Video Details' : 'ဗီဒီယို အသေးစိတ်', style: TextStyle(color: colors.textPrimary)),
+        iconTheme: IconThemeData(color: colors.textPrimary),
         actions: [
           IconButton(
             icon: const Icon(Icons.more_vert),
-            onPressed: () => _showOptionsSheet(context),
+            onPressed: () => _showOptionsSheet(context, colors, strings),
           ),
         ],
       ),
@@ -110,7 +116,7 @@ class _VideoDetailScreenState extends ConsumerState<VideoDetailScreen> {
               aspectRatio: _controller?.value.aspectRatio ?? 9 / 16,
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1a1a2e),
+                  color: colors.surface,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 margin: const EdgeInsets.all(16),
@@ -126,10 +132,10 @@ class _VideoDetailScreenState extends ConsumerState<VideoDetailScreen> {
                         Image.network(
                           widget.thumbnailUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                          errorBuilder: (_, __, ___) => _buildPlaceholder(colors),
                         )
                       else
-                        _buildPlaceholder(),
+                        _buildPlaceholder(colors),
 
                       // Tap area for controls toggle
                       if (_initialized)
@@ -190,8 +196,8 @@ class _VideoDetailScreenState extends ConsumerState<VideoDetailScreen> {
                                 VideoProgressIndicator(
                                   _controller!,
                                   allowScrubbing: true,
-                                  colors: const VideoProgressColors(
-                                    playedColor: AppColors.primary,
+                                  colors: VideoProgressColors(
+                                    playedColor: colors.primary,
                                     bufferedColor: Colors.white24,
                                     backgroundColor: Colors.white10,
                                   ),
@@ -244,7 +250,7 @@ class _VideoDetailScreenState extends ConsumerState<VideoDetailScreen> {
                                   const Icon(Icons.error, size: 48, color: Colors.red),
                                 const SizedBox(height: 12),
                                 Text(
-                                  widget.status == 'processing' ? 'Processing...' : 'Failed',
+                                  widget.status == 'processing' ? strings.processing : strings.failed,
                                   style: TextStyle(
                                     color: widget.status == 'processing' ? Colors.orange : Colors.red,
                                     fontWeight: FontWeight.w600,
@@ -270,55 +276,45 @@ class _VideoDetailScreenState extends ConsumerState<VideoDetailScreen> {
                         children: [
                           // Title
                           Text(
-                            widget.title ?? 'Untitled Video',
-                            style: const TextStyle(
-                              color: Colors.white,
+                            widget.title ?? (strings.isEnglish ? 'Untitled Video' : 'ခေါင်းစဉ်မရှိ'),
+                            style: TextStyle(
+                              color: colors.textPrimary,
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 8),
 
-                          // Status badge
-                          _buildStatusBadge(widget.status),
+                          // Status badge with Download/Share buttons
+                          Row(
+                            children: [
+                              _buildStatusBadge(widget.status, strings),
+                              const Spacer(),
+                              if (isReady) ...[
+                                _buildSmallActionButton(
+                                  icon: Icons.download_rounded,
+                                  color: colors.primary,
+                                  onTap: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(strings.downloading)),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(width: 8),
+                                _buildSmallActionButton(
+                                  icon: Icons.share_rounded,
+                                  color: Colors.blue,
+                                  onTap: () {
+                                    // TODO: Share video
+                                  },
+                                ),
+                              ],
+                            ],
+                          ),
                           const SizedBox(height: 16),
 
                           // Video Info Card (Primary Content)
-                          if (isReady) _buildVideoInfoCard(),
-                          
-                          const SizedBox(height: 16),
-
-                          // Compact Action Buttons (Download + Share)
-                          if (isReady)
-                            Row(
-                              children: [
-                                // Download Button (Compact)
-                                Expanded(
-                                  child: _buildCompactButton(
-                                    icon: Icons.download,
-                                    label: 'Download',
-                                    color: AppColors.primary,
-                                    onTap: () {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Downloading...')),
-                                      );
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                // Share Button (Compact)
-                                Expanded(
-                                  child: _buildCompactButton(
-                                    icon: Icons.share,
-                                    label: 'Share',
-                                    color: Colors.blue,
-                                    onTap: () {
-                                      // TODO: Share video
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
+                          if (isReady) _buildVideoInfoCard(colors, strings),
                         ],
                       ),
                     ),
@@ -328,16 +324,16 @@ class _VideoDetailScreenState extends ConsumerState<VideoDetailScreen> {
             );
           }
 
-          Widget _buildPlaceholder() {
+          Widget _buildPlaceholder(AppColorsExtension colors) {
             return Container(
-              color: const Color(0xFF2a2a3a),
-              child: const Center(
-                child: Icon(Icons.videocam, size: 48, color: Colors.white24),
+              color: colors.surfaceVariant,
+              child: Center(
+                child: Icon(Icons.videocam, size: 48, color: colors.textTertiary),
               ),
             );
           }
 
-          Widget _buildStatusBadge(String status) {
+          Widget _buildStatusBadge(String status, AppStrings strings) {
             Color color;
             String label;
             IconData icon;
@@ -345,22 +341,22 @@ class _VideoDetailScreenState extends ConsumerState<VideoDetailScreen> {
             switch (status) {
               case 'completed':
                 color = Colors.green;
-                label = 'Ready to Download';
+                label = strings.videoReady;
                 icon = Icons.check_circle;
                 break;
               case 'processing':
                 color = Colors.orange;
-                label = 'Processing...';
+                label = strings.processing;
                 icon = Icons.hourglass_top;
                 break;
               case 'failed':
                 color = Colors.red;
-                label = 'Processing Failed';
+                label = strings.failed;
                 icon = Icons.error;
                 break;
               default:
                 color = Colors.grey;
-                label = 'Unknown';
+                label = strings.isEnglish ? 'Unknown' : 'မသိရှိ';
                 icon = Icons.help;
             }
 
@@ -382,23 +378,27 @@ class _VideoDetailScreenState extends ConsumerState<VideoDetailScreen> {
           }
 
           /// Video Info Card - Displays metadata
-          Widget _buildVideoInfoCard() {
-            // Get duration from video controller
-            final duration = _controller?.value.duration ?? Duration.zero;
+          Widget _buildVideoInfoCard(AppColorsExtension colors, AppStrings strings) {
+            // Get duration from video controller or video object
+            Duration duration = _controller?.value.duration ?? Duration.zero;
+            if (duration == Duration.zero && widget.video?.durationSeconds != null) {
+              duration = Duration(seconds: widget.video!.durationSeconds!);
+            }
             final durationStr = _formatDuration(duration);
             
-            // TODO: Get these from actual video data API
-            const fileSize = '12.5 MB'; // Placeholder
-            final createdDate = DateTime.now().toString().split(' ')[0];
-            const voice = 'Myanmar Female';
-            const style = 'Professional';
+            // Get actual data from video object
+            final video = widget.video;
+            final fileSize = video?.formattedFileSize ?? '-';
+            final createdDate = video?.createdAt.toString().split(' ')[0] ?? '-';
+            final voice = video?.getVoiceDisplayName(strings.isEnglish) ?? '-';
+            final aspectRatio = video?.getAspectRatioDisplay() ?? '-';
             
             return Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF1a1a2e),
+                color: colors.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withAlpha(20)),
+                border: Border.all(color: colors.border),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -406,12 +406,12 @@ class _VideoDetailScreenState extends ConsumerState<VideoDetailScreen> {
                   // Header
                   Row(
                     children: [
-                      Icon(Icons.info_outline, color: Colors.white.withAlpha(150), size: 18),
+                      Icon(Icons.info_outline, color: colors.textSecondary, size: 18),
                       const SizedBox(width: 8),
                       Text(
-                        'Video Info',
+                        strings.isEnglish ? 'Video Info' : 'ဗီဒီယို အချက်အလက်',
                         style: TextStyle(
-                          color: Colors.white.withAlpha(200),
+                          color: colors.textSecondary,
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                         ),
@@ -424,25 +424,25 @@ class _VideoDetailScreenState extends ConsumerState<VideoDetailScreen> {
                   Row(
                     children: [
                       // Duration
-                      Expanded(child: _buildInfoItem('⏱ Duration', durationStr)),
+                      Expanded(child: _buildInfoItem(strings.isEnglish ? '⏱ Duration' : '⏱ ကြာချိန်', durationStr, colors)),
                       // File Size
-                      Expanded(child: _buildInfoItem('📦 File Size', fileSize)),
+                      Expanded(child: _buildInfoItem(strings.isEnglish ? '📦 File Size' : '📦 ဖိုင်အရွယ်', fileSize, colors)),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
                       // Created Date
-                      Expanded(child: _buildInfoItem('📅 Created', createdDate)),
+                      Expanded(child: _buildInfoItem(strings.isEnglish ? '📅 Created' : '📅 ဖန်တီးခဲ့သည်', createdDate, colors)),
                       // Voice
-                      Expanded(child: _buildInfoItem('🎙 Voice', voice)),
+                      Expanded(child: _buildInfoItem(strings.isEnglish ? '🎙 Voice' : '🎙 အသံ', voice, colors)),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      // Style
-                      Expanded(child: _buildInfoItem('🎨 Style', style)),
+                      // Aspect Ratio
+                      Expanded(child: _buildInfoItem(strings.isEnglish ? '📐 Format' : '📐 ဖော်မက်', aspectRatio, colors)),
                       const Expanded(child: SizedBox()),
                     ],
                   ),
@@ -452,22 +452,22 @@ class _VideoDetailScreenState extends ConsumerState<VideoDetailScreen> {
           }
           
           /// Single info item in the card
-          Widget _buildInfoItem(String label, String value) {
+          Widget _buildInfoItem(String label, String value, AppColorsExtension colors) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   label,
                   style: TextStyle(
-                    color: Colors.white.withAlpha(100),
+                    color: colors.textTertiary,
                     fontSize: 11,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: colors.textPrimary,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -511,6 +511,47 @@ class _VideoDetailScreenState extends ConsumerState<VideoDetailScreen> {
             );
           }
 
+          /// Floating action button for video overlay
+          Widget _buildFloatingActionButton({
+            required IconData icon,
+            required Color color,
+            required VoidCallback onTap,
+          }) {
+            return GestureDetector(
+              onTap: onTap,
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(150),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+            );
+          }
+
+          /// Small action button next to status badge
+          Widget _buildSmallActionButton({
+            required IconData icon,
+            required Color color,
+            required VoidCallback onTap,
+          }) {
+            return GestureDetector(
+              onTap: onTap,
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color.withAlpha(25),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 18),
+              ),
+            );
+          }
+
           Widget _buildActionButton(
             BuildContext context, {
             required IconData icon,
@@ -540,10 +581,10 @@ class _VideoDetailScreenState extends ConsumerState<VideoDetailScreen> {
             );
           }
 
-          void _showOptionsSheet(BuildContext context) {
+          void _showOptionsSheet(BuildContext context, AppColorsExtension colors, AppStrings strings) {
             showModalBottomSheet(
               context: context,
-              backgroundColor: const Color(0xFF1a1a2e),
+              backgroundColor: colors.surface,
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
@@ -556,27 +597,27 @@ class _VideoDetailScreenState extends ConsumerState<VideoDetailScreen> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.white30,
+                        color: colors.textTertiary,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                     const SizedBox(height: 20),
                     ListTile(
-                      leading: const Icon(Icons.info_outline, color: Colors.white70),
-                      title: const Text('Video Info', style: TextStyle(color: Colors.white)),
+                      leading: Icon(Icons.info_outline, color: colors.textSecondary),
+                      title: Text(strings.isEnglish ? 'Video Info' : 'ဗီဒီယို အချက်အလက်', style: TextStyle(color: colors.textPrimary)),
                       onTap: () => Navigator.pop(context),
                     ),
                     ListTile(
-                      leading: const Icon(Icons.refresh, color: Colors.white70),
-                      title: const Text('Retry Processing', style: TextStyle(color: Colors.white)),
+                      leading: Icon(Icons.refresh, color: colors.textSecondary),
+                      title: Text(strings.isEnglish ? 'Retry Processing' : 'ပြန်လုပ်ရန်', style: TextStyle(color: colors.textPrimary)),
                       onTap: () => Navigator.pop(context),
                     ),
                     ListTile(
                       leading: const Icon(Icons.delete, color: Colors.red),
-                      title: const Text('Delete', style: TextStyle(color: Colors.red)),
+                      title: Text(strings.delete, style: const TextStyle(color: Colors.red)),
                       onTap: () {
                         Navigator.pop(context);
-                        _confirmDelete(context);
+                        _confirmDelete(context, colors, strings);
                       },
                     ),
                   ],
@@ -585,20 +626,22 @@ class _VideoDetailScreenState extends ConsumerState<VideoDetailScreen> {
             );
           }
 
-          void _confirmDelete(BuildContext context) {
+          void _confirmDelete(BuildContext context, AppColorsExtension colors, AppStrings strings) {
             showDialog(
               context: context,
               builder: (context) => AlertDialog(
-                backgroundColor: const Color(0xFF1a1a2e),
-                title: const Text('Delete Video?', style: TextStyle(color: Colors.white)),
-                content: const Text(
-                  'This action cannot be undone. Are you sure you want to delete this video?',
-                  style: TextStyle(color: Colors.white70),
+                backgroundColor: colors.surface,
+                title: Text(strings.isEnglish ? 'Delete Video?' : 'ဗီဒီယို ဖျက်မလား?', style: TextStyle(color: colors.textPrimary)),
+                content: Text(
+                  strings.isEnglish 
+                    ? 'This action cannot be undone. Are you sure you want to delete this video?'
+                    : 'ဒီလုပ်ဆောင်ချက်ကို ပြန်ပြင်၍မရပါ။ ဒီဗီဒီယိုကို ဖျက်ချင်တာ သေချာပါသလား?',
+                  style: TextStyle(color: colors.textSecondary),
                 ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
+                    child: Text(strings.cancel),
                   ),
                   TextButton(
                     onPressed: () {
@@ -606,7 +649,7 @@ class _VideoDetailScreenState extends ConsumerState<VideoDetailScreen> {
                       Navigator.pop(context);
                       // TODO: Call delete API
                     },
-                    child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                    child: Text(strings.delete, style: const TextStyle(color: Colors.red)),
                   ),
                 ],
               ),

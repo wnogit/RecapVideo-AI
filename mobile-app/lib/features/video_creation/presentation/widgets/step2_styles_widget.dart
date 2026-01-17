@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/l10n/app_strings.dart';
 import '../providers/video_creation_provider.dart';
 
 /// Step 2 - Video Styles: Copyright, Subtitles, Custom Blur
@@ -22,6 +23,8 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
   Widget build(BuildContext context) {
     final state = ref.watch(videoCreationProvider);
     final options = state.options;
+    final colors = context.colors;
+    final strings = ref.watch(stringsProvider);
 
     return SingleChildScrollView(
       child: Column(
@@ -33,9 +36,9 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
               const Text('🎨', style: TextStyle(fontSize: 20)),
               const SizedBox(width: 8),
               Text(
-                'Video စတိုင်',
+                strings.videoStyles,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
+                  color: colors.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -43,45 +46,51 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Copyright ကာကွယ်ခြင်း၊ စာတန်း နှင့် Logo ရွေးချယ်ပါ',
+            strings.videoStylesDesc,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
+              color: colors.textSecondary,
             ),
           ),
           const SizedBox(height: 20),
 
           // 1. Copyright Protection - Collapsible
           _buildCollapsibleSection(
+            colors: colors,
+            strings: strings,
             icon: Icons.shield_outlined,
             iconColor: Colors.green,
-            title: 'Copyright ကာကွယ်ခြင်း',
-            subtitle: 'Video ကို ပိုဒ်အပ်ပြောင်းလဲ၍ ကာကွယ်ပါ',
+            title: strings.copyrightProtection,
+            subtitle: strings.copyrightProtectionDesc,
             isExpanded: _copyrightExpanded,
             hasSwitch: false,
             onToggle: () => setState(() => _copyrightExpanded = !_copyrightExpanded),
-            child: _buildCopyrightContent(options),
+            child: _buildCopyrightContent(options, colors, strings),
           ),
           const SizedBox(height: 12),
 
           // 2. Custom Blur - Collapsible
           _buildCollapsibleSection(
+            colors: colors,
+            strings: strings,
             icon: Icons.blur_on,
             iconColor: Colors.blue,
-            title: 'Custom Blur',
-            subtitle: 'Logo/watermark များကို ဖုံးထုန်',
+            title: strings.customBlur,
+            subtitle: strings.customBlurDesc,
             isExpanded: _blurExpanded,
             hasSwitch: false,
             onToggle: () => setState(() => _blurExpanded = !_blurExpanded),
-            child: _buildBlurContent(options),
+            child: _buildBlurContent(options, colors),
           ),
           const SizedBox(height: 12),
 
           // 3. Subtitles - Collapsible with Toggle
           _buildCollapsibleSection(
+            colors: colors,
+            strings: strings,
             icon: Icons.subtitles_outlined,
             iconColor: Colors.purple,
-            title: 'စာတန်း (Subtitles)',
-            subtitle: 'မြန်မာဘာသာ စာတန်း ထည့်မည်',
+            title: strings.subtitlesTitle,
+            subtitle: strings.subtitlesDesc,
             isExpanded: _subtitleExpanded,
             hasSwitch: true,
             switchValue: options.subtitleOptions.enabled,
@@ -90,7 +99,7 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
               if (value) setState(() => _subtitleExpanded = true);
             },
             onToggle: () => setState(() => _subtitleExpanded = !_subtitleExpanded),
-            child: _buildSubtitleContent(options),
+            child: _buildSubtitleContent(options, colors),
           ),
           const SizedBox(height: 32),
         ],
@@ -99,6 +108,8 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
   }
 
   Widget _buildCollapsibleSection({
+    required AppColorsExtension colors,
+    AppStrings? strings,
     required IconData icon,
     required Color iconColor,
     required String title,
@@ -112,9 +123,9 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF333333)),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         children: [
@@ -141,8 +152,8 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
                       children: [
                         Text(
                           title,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: colors.textPrimary,
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                           ),
@@ -151,7 +162,7 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
                         Text(
                           subtitle,
                           style: TextStyle(
-                            color: Colors.white.withAlpha(120),
+                            color: colors.textTertiary,
                             fontSize: 12,
                           ),
                         ),
@@ -162,7 +173,7 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
                     Switch(
                       value: switchValue,
                       onChanged: onSwitchChanged,
-                      activeColor: AppColors.primary,
+                      activeColor: colors.primary,
                     )
                   else
                     AnimatedRotation(
@@ -170,7 +181,7 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
                       duration: const Duration(milliseconds: 200),
                       child: Icon(
                         Icons.keyboard_arrow_down,
-                        color: Colors.white.withAlpha(150),
+                        color: colors.textTertiary,
                         size: 24,
                       ),
                     ),
@@ -183,7 +194,7 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
             firstChild: const SizedBox(width: double.infinity),
             secondChild: Column(
               children: [
-                const Divider(height: 1, color: Color(0xFF333333)),
+                Divider(height: 1, color: colors.border),
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: child,
@@ -200,43 +211,47 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
     );
   }
 
-  Widget _buildCopyrightContent(dynamic options) {
+  Widget _buildCopyrightContent(dynamic options, AppColorsExtension colors, AppStrings strings) {
     return Column(
       children: [
         _buildToggleRow(
           icon: Icons.palette_outlined,
           iconColor: Colors.orange,
-          title: 'အရောင် ပြင်ဆင်ခြင်း',
-          subtitle: 'Brightness, Contrast ပြောင်းမည်',
+          title: strings.colorAdjust,
+          subtitle: strings.colorAdjustDesc,
           value: options.copyrightOptions.colorAdjust,
           onChanged: (_) => ref.read(videoCreationProvider.notifier).toggleColorAdjust(),
+          colors: colors,
         ),
         const SizedBox(height: 12),
         _buildToggleRow(
           icon: Icons.flip,
           iconColor: Colors.blue,
-          title: 'အလျားလိုက်လှန်ခြင်း',
-          subtitle: 'Video ကို ဘယ်ညာလှန်မည်',
+          title: strings.horizontalFlip,
+          subtitle: strings.horizontalFlipDesc,
           value: options.copyrightOptions.horizontalFlip,
           onChanged: (_) => ref.read(videoCreationProvider.notifier).toggleHorizontalFlip(),
+          colors: colors,
         ),
         const SizedBox(height: 12),
         _buildToggleRow(
           icon: Icons.zoom_in,
           iconColor: Colors.green,
-          title: 'အနည်းငယ် Zoom',
-          subtitle: '5% Zoom ထည့်မည်',
+          title: strings.slightZoom,
+          subtitle: strings.slightZoomDesc,
           value: options.copyrightOptions.slightZoom,
           onChanged: (_) => ref.read(videoCreationProvider.notifier).toggleSlightZoom(),
+          colors: colors,
         ),
         const SizedBox(height: 12),
         _buildToggleRow(
           icon: Icons.music_note,
           iconColor: Colors.pink,
-          title: 'အသံ Pitch ပြောင်းခြင်း',
-          subtitle: 'Audio pitch ပြောင်း (Copyright bypass)',
+          title: strings.audioPitchShift,
+          subtitle: strings.audioPitchShiftDesc,
           value: options.copyrightOptions.audioPitchShift,
           onChanged: (_) => ref.read(videoCreationProvider.notifier).toggleAudioPitchShift(),
+          colors: colors,
         ),
         if (options.copyrightOptions.audioPitchShift) ...[
           const SizedBox(height: 16),
@@ -252,7 +267,7 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
     );
   }
 
-  Widget _buildBlurContent(dynamic options) {
+  Widget _buildBlurContent(dynamic options, AppColorsExtension colors) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -272,7 +287,7 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
           const SizedBox(height: 12),
           Text(
             'Blur Regions (${options.blurRegions.length})',
-            style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(120)),
+            style: TextStyle(fontSize: 11, color: colors.textTertiary),
           ),
           const SizedBox(height: 8),
           ...options.blurRegions.map<Widget>((region) {
@@ -281,9 +296,9 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
               margin: const EdgeInsets.only(bottom: 6),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFF2D2D2D),
+                color: colors.surface,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF444444)),
+                border: Border.all(color: colors.border),
               ),
               child: Row(
                 children: [
@@ -316,16 +331,16 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFF2D2D2D),
+              color: colors.surfaceVariant,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF444444)),
+              border: Border.all(color: colors.border),
             ),
             child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Blur Intensity', style: TextStyle(fontSize: 12, color: Colors.white.withAlpha(150))),
+                    Text('Blur Intensity', style: TextStyle(fontSize: 12, color: colors.textSecondary)),
                     Text(
                       '${options.blurIntensity}',
                       style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
@@ -379,11 +394,11 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
     );
   }
 
-  Widget _buildSubtitleContent(dynamic options) {
+  Widget _buildSubtitleContent(dynamic options, AppColorsExtension colors) {
     if (!options.subtitleOptions.enabled) {
       return Text(
         'စာတန်း ထည့်ရန် toggle ကို ဖွင့်ပါ',
-        style: TextStyle(fontSize: 12, color: Colors.white.withAlpha(100)),
+        style: TextStyle(fontSize: 12, color: colors.textTertiary),
       );
     }
     
@@ -391,7 +406,7 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Position
-        Text('တည်နေရာ', style: TextStyle(fontSize: 12, color: Colors.white.withAlpha(150))),
+        Text('တည်နေရာ', style: TextStyle(fontSize: 12, color: colors.textSecondary)),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -405,7 +420,7 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
         const SizedBox(height: 16),
         
         // Size
-        Text('အရွယ်အစား', style: TextStyle(fontSize: 12, color: Colors.white.withAlpha(150))),
+        Text('အရွယ်အစား', style: TextStyle(fontSize: 12, color: colors.textSecondary)),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -419,7 +434,7 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
         const SizedBox(height: 16),
         
         // Background Style (new)
-        Text('နောက်ခံ Style', style: TextStyle(fontSize: 12, color: Colors.white.withAlpha(150))),
+        Text('နောက်ခံ Style', style: TextStyle(fontSize: 12, color: colors.textSecondary)),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -517,6 +532,7 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
     required String subtitle,
     required bool value,
     required ValueChanged<bool> onChanged,
+    required AppColorsExtension colors,
   }) {
     return Row(
       children: [
@@ -533,15 +549,15 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(color: Colors.white, fontSize: 13)),
-              Text(subtitle, style: TextStyle(fontSize: 10, color: Colors.white.withAlpha(100))),
+              Text(title, style: TextStyle(color: colors.textPrimary, fontSize: 13)),
+              Text(subtitle, style: TextStyle(fontSize: 10, color: colors.textTertiary)),
             ],
           ),
         ),
         Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: AppColors.primary,
+          activeColor: colors.primary,
           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
       ],
@@ -554,22 +570,27 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
     required double min,
     required double max,
     required ValueChanged<double> onChanged,
+    AppColorsExtension? colors,
   }) {
+    final textColor = colors?.textPrimary ?? Colors.white;
+    final labelColor = colors?.textSecondary ?? Colors.white.withAlpha(150);
+    final primaryColor = colors?.primary ?? AppColors.primary;
+    
     return Column(
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: TextStyle(fontSize: 12, color: Colors.white.withAlpha(150))),
+            Text(label, style: TextStyle(fontSize: 12, color: labelColor)),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.primary.withAlpha(30),
+                color: primaryColor.withAlpha(30),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 '${value.toStringAsFixed(1)}x',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+                style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 12),
               ),
             ),
           ],
@@ -579,7 +600,7 @@ class _Step2StylesWidgetState extends ConsumerState<Step2StylesWidget> {
           min: min,
           max: max,
           divisions: 10,
-          activeColor: AppColors.primary,
+          activeColor: primaryColor,
           onChanged: onChanged,
         ),
       ],

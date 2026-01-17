@@ -93,7 +93,7 @@ async def create_video(
             Video.status.notin_([VideoStatus.FAILED.value, VideoStatus.CANCELLED.value])
         )
     )
-    if existing_video.scalar_one_or_none():
+    if existing_video.scalars().first():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={

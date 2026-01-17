@@ -7,6 +7,7 @@ import '../../features/auth/presentation/screens/signup_screen.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/videos/presentation/screens/video_detail_screen.dart';
 import '../../features/credits/presentation/screens/order_history_screen.dart';
+import '../api/video_service.dart';
 
 /// Deep Link Configuration
 class DeepLinkConfig {
@@ -100,9 +101,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'videoDetail',
         builder: (context, state) {
           final videoId = state.pathParameters['id'] ?? '';
+          final video = state.extra as Video?;
           return VideoDetailScreen(
             videoId: videoId,
-            status: 'completed', // Will be fetched from API
+            title: video?.title,
+            thumbnailUrl: video?.sourceThumbnail,
+            videoUrl: video?.videoUrl,
+            status: video?.status ?? 'completed',
+            video: video,
           );
         },
       ),

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../providers/video_creation_provider.dart';
 
 /// Live Preview Widget - Compact size to match web view
@@ -12,6 +13,7 @@ class LivePreviewWidget extends ConsumerWidget {
     final state = ref.watch(videoCreationProvider);
     final options = state.options;
     final thumbnailUrl = options.thumbnailUrl;
+    final colors = context.colors;
 
     // Smaller dimensions to match web mobile view
     final dimensions = _getDimensions(options.aspectRatio);
@@ -25,12 +27,12 @@ class LivePreviewWidget extends ConsumerWidget {
           // Preview Label - Left aligned like web
           Row(
             children: [
-              const Icon(Icons.visibility, size: 12, color: Colors.white38),
+              Icon(Icons.visibility, size: 12, color: colors.textTertiary),
               const SizedBox(width: 4),
               Text(
                 'Live Preview',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white38,
+                  color: colors.textTertiary,
                   fontWeight: FontWeight.w500,
                   fontSize: 10,
                 ),
@@ -52,13 +54,13 @@ class LivePreviewWidget extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(16),
                     gradient: LinearGradient(
                       colors: [
-                        const Color(0xFF8B5CF6).withAlpha(30),
-                        const Color(0xFFEC4899).withAlpha(30),
+                        colors.primary.withAlpha(30),
+                        colors.secondary.withAlpha(30),
                       ],
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF8B5CF6).withAlpha(40),
+                        color: colors.primary.withAlpha(40),
                         blurRadius: 20,
                         spreadRadius: 2,
                       ),
@@ -71,10 +73,10 @@ class LivePreviewWidget extends ConsumerWidget {
                   width: dimensions.width,
                   height: dimensions.height,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1a1a2e),
+                    color: colors.surface,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: Colors.white.withAlpha(20),
+                      color: colors.border,
                       width: 1.5,
                     ),
                   ),
@@ -85,11 +87,11 @@ class LivePreviewWidget extends ConsumerWidget {
                       children: [
                         // Background gradient
                         Container(
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [Color(0xFF2a1a4a), Color(0xFF1a0a2e)],
+                              colors: [colors.surfaceVariant, colors.surface],
                             ),
                           ),
                         ),
@@ -116,12 +118,12 @@ class LivePreviewWidget extends ConsumerWidget {
                               child: Image.network(
                                 thumbnailUrl,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => _buildPlaceholder(context),
+                                errorBuilder: (_, __, ___) => _buildPlaceholder(context, colors),
                               ),
                             ),
                           )
                         else
-                          _buildPlaceholder(context),
+                          _buildPlaceholder(context, colors),
 
                         // Subtitle preview
                         if (options.subtitleOptions.enabled)
@@ -342,16 +344,16 @@ class LivePreviewWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildPlaceholder(BuildContext context) {
+  Widget _buildPlaceholder(BuildContext context, AppColorsExtension colors) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.smartphone, size: 24, color: Colors.white.withAlpha(80)),
+          Icon(Icons.smartphone, size: 24, color: colors.textTertiary),
           const SizedBox(height: 6),
           Text(
             'URL ထည့်ပါ',
-            style: TextStyle(fontSize: 9, color: Colors.white.withAlpha(80)),
+            style: TextStyle(fontSize: 9, color: colors.textTertiary),
           ),
         ],
       ),

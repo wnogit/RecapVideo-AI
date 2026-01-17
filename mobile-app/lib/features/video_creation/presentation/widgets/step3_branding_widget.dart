@@ -2,7 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/l10n/app_strings.dart';
 import '../providers/video_creation_provider.dart';
 
 /// Step 3 - Branding: Logo and Outro with Web-style collapsible sections
@@ -21,6 +22,8 @@ class _Step3BrandingWidgetState extends ConsumerState<Step3BrandingWidget> {
   Widget build(BuildContext context) {
     final state = ref.watch(videoCreationProvider);
     final options = state.options;
+    final colors = context.colors;
+    final strings = ref.watch(stringsProvider);
 
     return SingleChildScrollView(
       child: Column(
@@ -32,9 +35,9 @@ class _Step3BrandingWidgetState extends ConsumerState<Step3BrandingWidget> {
               const Text('✨', style: TextStyle(fontSize: 20)),
               const SizedBox(width: 8),
               Text(
-                'Branding',
+                strings.branding,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
+                  color: colors.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -42,15 +45,16 @@ class _Step3BrandingWidgetState extends ConsumerState<Step3BrandingWidget> {
           ),
           const SizedBox(height: 4),
           Text(
-            'သင့် Logo နှင့် Outro ထည့်ပါ',
+            strings.brandingSubtitle,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
+              color: colors.textSecondary,
             ),
           ),
           const SizedBox(height: 20),
 
           // 1. Logo - Collapsible with Toggle
           _buildCollapsibleSection(
+            colors: colors,
             icon: Icons.image_outlined,
             iconColor: Colors.pink,
             title: 'Logo ထည့်ခြင်း',
@@ -63,12 +67,13 @@ class _Step3BrandingWidgetState extends ConsumerState<Step3BrandingWidget> {
               if (value) setState(() => _logoExpanded = true);
             },
             onToggle: () => setState(() => _logoExpanded = !_logoExpanded),
-            child: _buildLogoContent(options),
+            child: _buildLogoContent(options, colors),
           ),
           const SizedBox(height: 12),
 
           // 2. Outro - Collapsible with Toggle
           _buildCollapsibleSection(
+            colors: colors,
             icon: Icons.movie_outlined,
             iconColor: Colors.orange,
             title: 'Outro ထည့်ခြင်း',
@@ -81,16 +86,16 @@ class _Step3BrandingWidgetState extends ConsumerState<Step3BrandingWidget> {
               if (value) setState(() => _outroExpanded = true);
             },
             onToggle: () => setState(() => _outroExpanded = !_outroExpanded),
-            child: _buildOutroContent(options),
+            child: _buildOutroContent(options, colors),
           ),
           const SizedBox(height: 24),
 
           // Summary Card
-          _buildSummaryCard(options),
+          _buildSummaryCard(options, colors),
           const SizedBox(height: 16),
 
           // Credit Cost Card
-          _buildCreditCard(),
+          _buildCreditCard(colors, strings),
           const SizedBox(height: 32),
         ],
       ),
@@ -98,6 +103,7 @@ class _Step3BrandingWidgetState extends ConsumerState<Step3BrandingWidget> {
   }
 
   Widget _buildCollapsibleSection({
+    required AppColorsExtension colors,
     required IconData icon,
     required Color iconColor,
     required String title,
@@ -111,9 +117,9 @@ class _Step3BrandingWidgetState extends ConsumerState<Step3BrandingWidget> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF333333)),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         children: [
@@ -139,8 +145,8 @@ class _Step3BrandingWidgetState extends ConsumerState<Step3BrandingWidget> {
                       children: [
                         Text(
                           title,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: colors.textPrimary,
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                           ),
@@ -149,7 +155,7 @@ class _Step3BrandingWidgetState extends ConsumerState<Step3BrandingWidget> {
                         Text(
                           subtitle,
                           style: TextStyle(
-                            color: Colors.white.withAlpha(120),
+                            color: colors.textTertiary,
                             fontSize: 12,
                           ),
                         ),
@@ -160,7 +166,7 @@ class _Step3BrandingWidgetState extends ConsumerState<Step3BrandingWidget> {
                     Switch(
                       value: switchValue,
                       onChanged: onSwitchChanged,
-                      activeColor: AppColors.primary,
+                      activeColor: colors.primary,
                     )
                   else
                     AnimatedRotation(
@@ -168,7 +174,7 @@ class _Step3BrandingWidgetState extends ConsumerState<Step3BrandingWidget> {
                       duration: const Duration(milliseconds: 200),
                       child: Icon(
                         Icons.keyboard_arrow_down,
-                        color: Colors.white.withAlpha(150),
+                        color: colors.textTertiary,
                         size: 24,
                       ),
                     ),
@@ -180,7 +186,7 @@ class _Step3BrandingWidgetState extends ConsumerState<Step3BrandingWidget> {
             firstChild: const SizedBox(width: double.infinity),
             secondChild: Column(
               children: [
-                const Divider(height: 1, color: Color(0xFF333333)),
+                Divider(height: 1, color: colors.border),
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: child,
@@ -197,11 +203,11 @@ class _Step3BrandingWidgetState extends ConsumerState<Step3BrandingWidget> {
     );
   }
 
-  Widget _buildLogoContent(dynamic options) {
+  Widget _buildLogoContent(dynamic options, AppColorsExtension colors) {
     if (!options.logoOptions.enabled) {
       return Text(
         'Logo ထည့်ရန် toggle ကို ဖွင့်ပါ',
-        style: TextStyle(fontSize: 12, color: Colors.white.withAlpha(100)),
+        style: TextStyle(fontSize: 12, color: colors.textTertiary),
       );
     }
     
@@ -224,9 +230,9 @@ class _Step3BrandingWidgetState extends ConsumerState<Step3BrandingWidget> {
             width: double.infinity,
             height: 120, // Slightly taller for preview
             decoration: BoxDecoration(
-              color: const Color(0xFF2D2D2D),
+              color: colors.surfaceVariant,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF444444), style: BorderStyle.solid),
+              border: Border.all(color: colors.border, style: BorderStyle.solid),
               image: options.logoOptions.localFilePath != null
                   ? DecorationImage(
                       image: FileImage(File(options.logoOptions.localFilePath!)),
@@ -392,11 +398,11 @@ class _Step3BrandingWidgetState extends ConsumerState<Step3BrandingWidget> {
     );
   }
 
-  Widget _buildOutroContent(dynamic options) {
+  Widget _buildOutroContent(dynamic options, AppColorsExtension colors) {
     if (!options.outroOptions.enabled) {
       return Text(
         'Outro ထည့်ရန် toggle ကို ဖွင့်ပါ',
-        style: TextStyle(fontSize: 12, color: Colors.white.withAlpha(100)),
+        style: TextStyle(fontSize: 12, color: colors.textTertiary),
       );
     }
     
@@ -506,20 +512,20 @@ class _Step3BrandingWidgetState extends ConsumerState<Step3BrandingWidget> {
     );
   }
 
-  Widget _buildSummaryCard(dynamic options) {
+  Widget _buildSummaryCard(dynamic options, AppColorsExtension colors) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF333333)),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '📋 Video အကျဉ်းချုပ်',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+            style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600, fontSize: 14),
           ),
           const SizedBox(height: 12),
           _buildSummaryRow('Voice', options.voiceId),
@@ -546,12 +552,12 @@ class _Step3BrandingWidgetState extends ConsumerState<Step3BrandingWidget> {
     );
   }
 
-  Widget _buildCreditCard() {
+  Widget _buildCreditCard(AppColorsExtension colors, AppStrings strings) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+        gradient: LinearGradient(
+          colors: [colors.primary, colors.secondary],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [

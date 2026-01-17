@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/api/credits_service.dart';
+import '../../../../core/l10n/app_strings.dart';
 
 /// Order History Screen
 class OrderHistoryScreen extends ConsumerStatefulWidget {
@@ -40,21 +41,24 @@ class _OrderHistoryScreenState extends ConsumerState<OrderHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final strings = ref.watch(stringsProvider);
+    
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
-        title: const Text('Order History', style: TextStyle(color: Colors.white)),
+        backgroundColor: colors.background,
+        title: Text(strings.orderHistory, style: TextStyle(color: colors.textPrimary)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: colors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: _buildContent(),
+      body: _buildContent(colors, strings),
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(AppColorsExtension colors, AppStrings strings) {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -65,9 +69,9 @@ class _OrderHistoryScreenState extends ConsumerState<OrderHistoryScreen> {
           children: [
             const Icon(Icons.error_outline, size: 48, color: Colors.red),
             const SizedBox(height: 16),
-            Text('Error: $_error', style: const TextStyle(color: Colors.white70)),
+            Text('${strings.error}: $_error', style: TextStyle(color: colors.textSecondary)),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: _loadOrders, child: const Text('Retry')),
+            ElevatedButton(onPressed: _loadOrders, child: Text(strings.retry)),
           ],
         ),
       );
@@ -77,9 +81,9 @@ class _OrderHistoryScreenState extends ConsumerState<OrderHistoryScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.receipt_long, size: 48, color: Colors.white.withAlpha(80)),
+            Icon(Icons.receipt_long, size: 48, color: colors.textTertiary),
             const SizedBox(height: 16),
-            Text('No orders yet', style: TextStyle(color: Colors.white.withAlpha(120))),
+            Text(strings.noData, style: TextStyle(color: colors.textSecondary)),
           ],
         ),
       );
@@ -87,29 +91,29 @@ class _OrderHistoryScreenState extends ConsumerState<OrderHistoryScreen> {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _orders.length,
-      itemBuilder: (context, index) => _buildOrderCard(_orders[index]),
+      itemBuilder: (context, index) => _buildOrderCard(_orders[index], colors, strings),
     );
   }
 
-  Widget _buildOrderCard(Order order) {
+  Widget _buildOrderCard(Order order, AppColorsExtension colors, AppStrings strings) {
     final statusColor = switch (order.status) {
       'approved' => Colors.green,
       'rejected' => Colors.red,
       _ => Colors.orange,
     };
     final statusText = switch (order.status) {
-      'approved' => 'Approved ✅',
-      'rejected' => 'Rejected ❌',
-      _ => 'Pending ⏳',
+      'approved' => strings.isEnglish ? 'Approved ✅' : 'အတည်ပြုပြီး ✅',
+      'rejected' => strings.isEnglish ? 'Rejected ❌' : 'ငြင်းဆိုပြီး ❌',
+      _ => strings.isEnglish ? 'Pending ⏳' : 'စောင့်ဆိုင်းနေ ⏳',
     };
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF333333)),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,11 +122,11 @@ class _OrderHistoryScreenState extends ConsumerState<OrderHistoryScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${order.credits} Credits',
-                style: const TextStyle(
+                '${order.credits} ${strings.credits}',
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: colors.textPrimary,
                 ),
               ),
               Container(
@@ -141,12 +145,12 @@ class _OrderHistoryScreenState extends ConsumerState<OrderHistoryScreen> {
           const SizedBox(height: 8),
           Text(
             '${order.amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')} MMK',
-            style: const TextStyle(fontSize: 14, color: Colors.white70),
+            style: TextStyle(fontSize: 14, color: colors.textSecondary),
           ),
           const SizedBox(height: 4),
           Text(
             _formatDate(order.createdAt),
-            style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(100)),
+            style: TextStyle(fontSize: 11, color: colors.textTertiary),
           ),
         ],
       ),

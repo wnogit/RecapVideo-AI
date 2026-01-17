@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/l10n/app_strings.dart';
 import '../providers/video_creation_provider.dart';
 
 /// Step 1 Input Widget - URL, Voice, Language, Format
@@ -41,6 +42,8 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
   Widget build(BuildContext context) {
     final state = ref.watch(videoCreationProvider);
     final options = state.options;
+    final colors = context.colors;
+    final strings = ref.watch(stringsProvider);
 
     return SingleChildScrollView(
       child: Column(
@@ -52,9 +55,9 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
               const Text('🎬', style: TextStyle(fontSize: 20)),
               const SizedBox(width: 8),
               Text(
-                'Video အချက်အလက်',
+                strings.videoDetails,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
+                  color: colors.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -62,18 +65,18 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
           ),
           const SizedBox(height: 4),
           Text(
-            'YouTube Shorts URL ထည့်ပြီး Voice ရွေးချယ်ပါ',
+            strings.videoDetailsDesc,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
+              color: colors.textSecondary,
             ),
           ),
           const SizedBox(height: 20),
 
           // YouTube URL Input
           Text(
-            'YouTube Shorts URL',
+            strings.youtubeShortUrl,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.white,
+              color: colors.textPrimary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -83,24 +86,24 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
               Expanded(
                 child: TextFormField(
                   controller: _urlController,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  style: TextStyle(color: colors.textPrimary, fontSize: 14),
                   decoration: InputDecoration(
                     hintText: 'https://www.youtube.com/shorts/...',
-                    hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                    prefixIcon: Icon(Icons.link, color: AppColors.textSecondary, size: 20),
+                    hintStyle: TextStyle(color: colors.textSecondary, fontSize: 13),
+                    prefixIcon: Icon(Icons.link, color: colors.textSecondary, size: 20),
                     filled: false,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF3a3a4a)),
+                      borderSide: BorderSide(color: colors.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF3a3a4a)),
+                      borderSide: BorderSide(color: colors.border),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                      borderSide: BorderSide(color: colors.primary, width: 2),
                     ),
                   ),
                   onChanged: (value) {
@@ -111,11 +114,11 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
               const SizedBox(width: 8),
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2a2a3a),
+                  color: colors.surfaceVariant,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
-                  icon: const Icon(Icons.content_paste, color: Colors.white70),
+                  icon: Icon(Icons.content_paste, color: colors.textSecondary),
                   onPressed: _pasteFromClipboard,
                   tooltip: 'Paste',
                 ),
@@ -126,7 +129,7 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
 
           // Output Language
           Text(
-            'Output Language',
+            strings.language,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w500,
             ),
@@ -138,7 +141,7 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.transparent,
-                    border: Border.all(color: const Color(0xFF3a3a4a)),
+                    border: Border.all(color: colors.border),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButtonFormField<String>(
@@ -154,17 +157,17 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
                       ),
                       prefixIconConstraints: BoxConstraints(minWidth: 0, minHeight: 0),
                     ),
-                    dropdownColor: const Color(0xFF1a1a2e),
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                    icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white54, size: 20),
-                    items: const [
+                    dropdownColor: colors.surface,
+                    style: TextStyle(color: colors.textPrimary, fontSize: 14),
+                    icon: Icon(Icons.keyboard_arrow_down, color: colors.textSecondary, size: 20),
+                    items: [
                       DropdownMenuItem(
                         value: 'my', 
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('🇲🇲 ', style: TextStyle(fontSize: 18)),
-                            Text('မြန်မာ (Burmese)', style: TextStyle(color: Colors.white, fontSize: 14)),
+                            const Text('🇲🇲 ', style: TextStyle(fontSize: 18)),
+                            Text('မြန်မာ (Burmese)', style: TextStyle(color: colors.textPrimary, fontSize: 14)),
                           ],
                         ),
                       ),
@@ -173,15 +176,15 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('🇬🇧 ', style: TextStyle(fontSize: 18)),
-                            Text('English', style: TextStyle(color: Colors.white, fontSize: 14)),
+                            const Text('🇬🇧 ', style: TextStyle(fontSize: 18)),
+                            Text('English', style: TextStyle(color: colors.textPrimary, fontSize: 14)),
                           ],
                         ),
                       ),
                     ],
-                    selectedItemBuilder: (context) => const [
-                      Text('မြန်မာ (Burmese)', style: TextStyle(color: Colors.white, fontSize: 14)),
-                      Text('English', style: TextStyle(color: Colors.white, fontSize: 14)),
+                    selectedItemBuilder: (context) => [
+                      Text('မြန်မာ (Burmese)', style: TextStyle(color: colors.textPrimary, fontSize: 14)),
+                      Text('English', style: TextStyle(color: colors.textPrimary, fontSize: 14)),
                     ],
                     onChanged: (value) {
                       if (value != null) {
@@ -198,9 +201,9 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Video ကို ဘာသာပြန်မည့် ဘာသာစကား ရွေးချယ်ပါ',
+            strings.selectLanguageDesc,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
+              color: colors.textSecondary,
               fontSize: 11,
             ),
           ),
@@ -208,9 +211,9 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
 
           // Voice Selector
           Text(
-            'Voice ရွေးချယ်ပါ',
+            strings.selectVoice,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.white,
+              color: colors.textPrimary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -220,8 +223,10 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
               Expanded(
                 child: _buildVoiceCard(
                   context,
-                  name: 'Nilar',
-                  subtitle: 'Female Voice',
+                  colors: colors,
+                  strings: strings,
+                  name: strings.voiceNameFemale,
+                  subtitle: strings.femaleVoice,
                   emoji: '👩',
                   isSelected: options.voiceId == 'Nilar',
                   isPopular: true,
@@ -232,8 +237,10 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
               Expanded(
                 child: _buildVoiceCard(
                   context,
-                  name: 'Thiha',
-                  subtitle: 'Male Voice',
+                  colors: colors,
+                  strings: strings,
+                  name: strings.voiceNameMale,
+                  subtitle: strings.maleVoice,
                   emoji: '👨',
                   isSelected: options.voiceId == 'Thiha',
                   isPopular: false,
@@ -246,9 +253,9 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
 
           // Video Format
           Text(
-            'Video Format',
+            strings.videoFormat,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.white,
+              color: colors.textPrimary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -257,17 +264,17 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _buildFormatChip(context, '9:16', 'Vertical', options.aspectRatio == '9:16'),
-              _buildFormatChip(context, '16:9', 'Horizontal', options.aspectRatio == '16:9'),
-              _buildFormatChip(context, '1:1', 'Square', options.aspectRatio == '1:1'),
-              _buildFormatChip(context, '4:5', 'Portrait', options.aspectRatio == '4:5'),
+              _buildFormatChip(context, colors, '9:16', 'Vertical', options.aspectRatio == '9:16'),
+              _buildFormatChip(context, colors, '16:9', 'Horizontal', options.aspectRatio == '16:9'),
+              _buildFormatChip(context, colors, '1:1', 'Square', options.aspectRatio == '1:1'),
+              _buildFormatChip(context, colors, '4:5', 'Portrait', options.aspectRatio == '4:5'),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             _getFormatHelperText(options.aspectRatio),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
+              color: colors.textSecondary,
               fontSize: 11,
             ),
           ),
@@ -279,6 +286,8 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
 
   Widget _buildVoiceCard(
     BuildContext context, {
+    required AppColorsExtension colors,
+    required AppStrings strings,
     required String name,
     required String subtitle,
     required String emoji,
@@ -291,10 +300,10 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withAlpha(30) : const Color(0xFF1a1a2e),
+          color: isSelected ? colors.primary.withAlpha(30) : colors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? AppColors.primary : const Color(0xFF3a3a4a),
+            color: isSelected ? colors.primary : colors.border,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -311,9 +320,9 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
                       color: Colors.orange.withAlpha(40),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text(
-                      '🔥 Popular',
-                      style: TextStyle(fontSize: 9, color: Colors.orange),
+                    child: Text(
+                      '🔥 ${strings.popularLabel}',
+                      style: const TextStyle(fontSize: 9, color: Colors.orange),
                     ),
                   ),
               ],
@@ -327,13 +336,13 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
                     Text(
                       name,
                       style: TextStyle(
-                        color: Colors.white,
+                        color: colors.textPrimary,
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                       ),
                     ),
                     Text(
                       subtitle,
-                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                      style: TextStyle(fontSize: 11, color: colors.textSecondary),
                     ),
                   ],
                 ),
@@ -341,9 +350,9 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
                 Icon(
                   Icons.volume_up,
                   size: 16,
-                  color: AppColors.textSecondary,
+                  color: colors.textSecondary,
                 ),
-                const Text(' Preview', style: TextStyle(fontSize: 10, color: Colors.white54)),
+                Text(' ${strings.preview}', style: TextStyle(fontSize: 10, color: colors.textTertiary)),
               ],
             ),
           ],
@@ -352,16 +361,16 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
     );
   }
 
-  Widget _buildFormatChip(BuildContext context, String ratio, String label, bool isSelected) {
+  Widget _buildFormatChip(BuildContext context, AppColorsExtension colors, String ratio, String label, bool isSelected) {
     return GestureDetector(
       onTap: () => ref.read(videoCreationProvider.notifier).setAspectRatio(ratio),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withAlpha(30) : const Color(0xFF1a1a2e),
+          color: isSelected ? colors.primary.withAlpha(30) : colors.surface,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? AppColors.primary : const Color(0xFF3a3a4a),
+            color: isSelected ? colors.primary : colors.border,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -374,14 +383,14 @@ class _Step1InputWidgetState extends ConsumerState<Step1InputWidget> {
               ratio == '1:1' ? Icons.crop_square :
               Icons.crop_portrait,
               size: 16,
-              color: isSelected ? AppColors.primary : Colors.white70,
+              color: isSelected ? colors.primary : colors.textSecondary,
             ),
             const SizedBox(width: 6),
             Text(
               '$ratio $label',
               style: TextStyle(
                 fontSize: 12,
-                color: isSelected ? AppColors.primary : Colors.white70,
+                color: isSelected ? colors.primary : colors.textSecondary,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
             ),

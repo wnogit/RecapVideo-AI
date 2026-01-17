@@ -37,8 +37,8 @@ class Order {
   final String id;
   final String packageId;
   final String status; // pending, approved, rejected
-  final int amount;
-  final int credits;
+  final int amount;  // price_mmk
+  final int credits; // credits_amount
   final String? paymentMethod;
   final String? screenshotUrl;
   final DateTime createdAt;
@@ -55,12 +55,24 @@ class Order {
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
+    // Parse amount - could be price_mmk or amount
+    int amount = 0;
+    if (json['price_mmk'] != null) {
+      final priceVal = json['price_mmk'];
+      if (priceVal is num) amount = priceVal.toInt();
+      if (priceVal is String) amount = int.tryParse(priceVal) ?? 0;
+    } else if (json['amount'] != null) {
+      final amtVal = json['amount'];
+      if (amtVal is num) amount = amtVal.toInt();
+      if (amtVal is String) amount = int.tryParse(amtVal) ?? 0;
+    }
+    
     return Order(
-      id: json['id'] ?? '',
-      packageId: json['package_id'] ?? '',
+      id: json['id']?.toString() ?? '',
+      packageId: json['package_id']?.toString() ?? '',
       status: json['status'] ?? 'pending',
-      amount: json['amount'] ?? 0,
-      credits: json['credits'] ?? 0,
+      amount: amount,
+      credits: json['credits_amount'] ?? json['credits'] ?? 0,
       paymentMethod: json['payment_method'],
       screenshotUrl: json['screenshot_url'],
       createdAt: json['created_at'] != null
@@ -141,7 +153,16 @@ class CreditsService {
   Future<List<Order>> getOrders() async {
     try {
       final response = await _client.get(ApiEndpoints.orders);
-      final List<dynamic> data = response.data['data'] ?? response.data ?? [];
+      // API returns: {orders: [...], total: x, page: x, ...}
+      final responseData = response.data;
+      List<dynamic> data;
+      if (responseData is Map<String, dynamic>) {
+        data = responseData['orders'] ?? responseData['data'] ?? [];
+      } else if (responseData is List) {
+        data = responseData;
+      } else {
+        data = [];
+      }
       return data.map((json) => Order.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Failed to fetch orders: $e');
@@ -152,7 +173,16 @@ class CreditsService {
   Future<List<Transaction>> getTransactions() async {
     try {
       final response = await _client.get(ApiEndpoints.transactions);
-      final List<dynamic> data = response.data['data'] ?? response.data ?? [];
+      // API returns: {transactions: [...], total: x, page: x, ...}
+      final responseData = response.data;
+      List<dynamic> data;
+      if (responseData is Map<String, dynamic>) {
+        data = responseData['transactions'] ?? responseData['data'] ?? [];
+      } else if (responseData is List) {
+        data = responseData;
+      } else {
+        data = [];
+      }
       return data.map((json) => Transaction.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Failed to fetch transactions: $e');

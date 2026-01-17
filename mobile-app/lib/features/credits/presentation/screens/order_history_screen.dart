@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/l10n/app_strings.dart';
 
 /// Order model for display
 class OrderItem {
@@ -56,38 +57,40 @@ class OrderHistoryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final orders = ref.watch(ordersProvider);
+    final colors = context.colors;
+    final strings = ref.watch(stringsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: colors.background,
         elevation: 0,
-        title: const Text('Order History', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(strings.orderHistory, style: TextStyle(color: colors.textPrimary)),
+        iconTheme: IconThemeData(color: colors.textPrimary),
       ),
       body: orders.isEmpty
-          ? _buildEmptyState()
+          ? _buildEmptyState(colors, strings)
           : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: orders.length,
               itemBuilder: (context, index) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: _OrderCard(order: orders[index]),
+                child: _OrderCard(order: orders[index], colors: colors, strings: strings),
               ),
             ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppColorsExtension colors, AppStrings strings) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.receipt_long, size: 64, color: Colors.white.withAlpha(50)),
+          Icon(Icons.receipt_long, size: 64, color: colors.textTertiary),
           const SizedBox(height: 16),
           Text(
-            'No orders yet',
-            style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 16),
+            strings.noData,
+            style: TextStyle(color: colors.textSecondary, fontSize: 16),
           ),
         ],
       ),
@@ -98,17 +101,19 @@ class OrderHistoryScreen extends ConsumerWidget {
 /// Order Card
 class _OrderCard extends StatelessWidget {
   final OrderItem order;
+  final AppColorsExtension colors;
+  final AppStrings strings;
 
-  const _OrderCard({required this.order});
+  const _OrderCard({required this.order, required this.colors, required this.strings});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1a1a2e),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF3a3a4a)),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,7 +124,7 @@ class _OrderCard extends StatelessWidget {
             children: [
               Text(
                 '#${order.id}',
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                style: TextStyle(color: colors.textSecondary, fontSize: 12),
               ),
               _buildStatusBadge(order.status),
             ],
@@ -132,8 +137,8 @@ class _OrderCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                  gradient: LinearGradient(
+                    colors: [colors.primary, colors.secondary],
                   ),
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -150,10 +155,10 @@ class _OrderCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Credits', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+                  Text(strings.credits, style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w500)),
                   Text(
                     '${_formatPrice(order.amount)} MMK',
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                    style: TextStyle(color: colors.textSecondary, fontSize: 12),
                   ),
                 ],
               ),
@@ -161,8 +166,8 @@ class _OrderCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(order.paymentMethod, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                  Text(_formatDate(order.createdAt), style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                  Text(order.paymentMethod, style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+                  Text(_formatDate(order.createdAt), style: TextStyle(color: colors.textTertiary, fontSize: 11)),
                 ],
               ),
             ],
@@ -179,15 +184,15 @@ class _OrderCard extends StatelessWidget {
     switch (status) {
       case 'approved':
         color = Colors.green;
-        label = 'Approved ✓';
+        label = strings.isEnglish ? 'Approved ✓' : 'အတည်ပြုပြီး ✓';
         break;
       case 'pending':
         color = Colors.orange;
-        label = 'Pending';
+        label = strings.isEnglish ? 'Pending' : 'စောင့်ဆိုင်းနေ';
         break;
       case 'rejected':
         color = Colors.red;
-        label = 'Rejected';
+        label = strings.isEnglish ? 'Rejected' : 'ငြင်းဆိုပြီး';
         break;
       default:
         color = Colors.grey;
@@ -216,11 +221,11 @@ class _OrderCard extends StatelessWidget {
     final diff = now.difference(date);
 
     if (diff.inDays == 0) {
-      return 'Today';
+      return strings.isEnglish ? 'Today' : 'ဒီနေ့';
     } else if (diff.inDays == 1) {
-      return 'Yesterday';
+      return strings.isEnglish ? 'Yesterday' : 'မနေ့က';
     } else if (diff.inDays < 7) {
-      return '${diff.inDays} days ago';
+      return strings.isEnglish ? '${diff.inDays} days ago' : 'လွန်ခဲ့သော ${diff.inDays} ရက်';
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }

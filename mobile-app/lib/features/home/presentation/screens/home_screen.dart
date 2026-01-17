@@ -5,8 +5,11 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 
 import 'package:go_router/go_router.dart';
 import '../../../../core/api/video_service.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/l10n/app_strings.dart';
+import '../../../../core/utils/burmese_numbers.dart';
 import '../../../videos/presentation/widgets/video_card.dart';
+import '../widgets/home_slide_ads.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -47,16 +50,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  /// Format number based on current locale
+  String _formatNumber(dynamic number) {
+    final strings = ref.read(stringsProvider);
+    if (strings.isEnglish) {
+      return number.toString();
+    } else {
+      return BurmeseNumbers.convert(number);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final user = authState.user;
+    final colors = context.colors;
+    final strings = ref.watch(stringsProvider);
     
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: colors.background,
       appBar: AppBar(
         // ... (Keep existing AppBar code, omit for brevity in thought but include in replacement)
-        backgroundColor: const Color(0xFF0A0A0A),
+        backgroundColor: colors.background,
         elevation: 0,
         title: Row(
           children: [
@@ -88,10 +103,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Text('Pro', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
-                    SizedBox(width: 2),
-                    Text('⚡', style: TextStyle(fontSize: 10)),
+                  children: [
+                    Text(strings.pro, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
+                    const SizedBox(width: 2),
+                    const Text('⚡', style: TextStyle(fontSize: 10)),
                   ],
                 ),
               ),
@@ -103,17 +118,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             margin: const EdgeInsets.only(right: 16),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1A1A),
+              color: colors.surface,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFF333333)),
+              border: Border.all(color: colors.border),
             ),
             child: Row(
               children: [
                 const Icon(Icons.diamond, color: Color(0xFF8B5CF6), size: 16),
                 const SizedBox(width: 4),
                 Text(
-                  '${user?.credits ?? 0}',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                  _formatNumber(user?.credits ?? 0),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.textPrimary),
                 ),
               ],
             ),
@@ -123,7 +138,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: RefreshIndicator(
         onRefresh: _loadData,
         color: AppColors.primary,
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: colors.surface,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
@@ -131,87 +146,95 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Welcome back, ${user?.name.split(' ').first ?? 'User'}! 👋',
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                '${strings.welcomeBack}, ${user?.name.split(' ').first ?? 'User'}! 👋',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: colors.textPrimary),
               ),
               const SizedBox(height: 4),
               Text(
-                'Create engaging recap videos from YouTube content',
-                style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.6)),
+                strings.appTagline,
+                style: TextStyle(fontSize: 14, color: colors.textSecondary),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               
               // Stats
               GridView.count(
                 crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                childAspectRatio: 1.5,
+                childAspectRatio: 1.6,
                 children: [
                   _buildStatCard(
                     context,
-                    title: 'Credit Balance',
-                    value: '${user?.credits ?? 0}',
-                    subtitle: 'Buy more credits',
+                    title: strings.creditBalance,
+                    value: _formatNumber(user?.credits ?? 0),
+                    subtitle: strings.buyCredits,
                     icon: Icons.monetization_on_outlined,
                     gradient: const [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+                    colors: colors,
                   ),
                   _buildStatCard(
                     context,
-                    title: 'My Orders',
-                    value: 'View',
-                    subtitle: 'Order history',
+                    title: strings.myOrders,
+                    value: strings.viewAll,
+                    subtitle: strings.orderHistory,
                     icon: Icons.shopping_cart_outlined,
                     gradient: const [Color(0xFF10B981), Color(0xFF059669)],
+                    colors: colors,
                   ),
                   _buildStatCard(
                     context,
-                    title: 'Processing',
-                    value: _isLoading ? '-' : _recentVideos.where((v) => v.status == 'processing').length.toString(),
-                    subtitle: 'Videos in progress',
+                    title: strings.processing,
+                    value: _isLoading ? '-' : _formatNumber(_recentVideos.where((v) => v.status == 'processing').length),
+                    subtitle: strings.processingVideo,
                     icon: Icons.access_time,
                     gradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
+                    colors: colors,
                   ),
                   _buildStatCard(
                     context,
-                    title: 'Completed',
-                    value: _isLoading ? '-' : _recentVideos.where((v) => v.status == 'completed').length.toString(),
-                    subtitle: 'Total videos created',
+                    title: strings.completed,
+                    value: _isLoading ? '-' : _formatNumber(_recentVideos.where((v) => v.status == 'completed').length),
+                    subtitle: strings.videoReady,
                     icon: Icons.check_circle_outline,
                     gradient: const [Color(0xFF22C55E), Color(0xFF16A34A)],
+                    colors: colors,
                   ),
                 ],
               ),
-              const SizedBox(height: 28),
+              // Slide Ads Banner - pulled up
+              Transform.translate(
+                offset: const Offset(0, -35),
+                child: const HomeSlideAds(),
+              ),
   
               // Recent Videos Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Recent Videos',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                  Text(
+                    strings.recentVideos,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.textPrimary),
                   ),
                   TextButton(
                     onPressed: () {
                       // Navigate to Videos tab
-                       ref.read(navigationIndexProvider.notifier).state = 1;
+                      ref.read(navigationIndexProvider.notifier).state = 1;
                     },
-                    child: const Text('All', style: TextStyle(fontSize: 14, color: Color(0xFF8B5CF6))),
+                    child: Text(strings.all, style: const TextStyle(fontSize: 14, color: Color(0xFF8B5CF6))),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
   
               // Videos List
               if (_isLoading)
                 const Center(child: CircularProgressIndicator(color: AppColors.primary))
               else if (_error != null)
-                Center(child: Text('Error: $_error', style: const TextStyle(color: Colors.red)))
+                Center(child: Text('${strings.error}: $_error', style: const TextStyle(color: Colors.red)))
               else if (_recentVideos.isEmpty)
-                _buildEmptyState()
+                _buildEmptyState(colors, strings)
               else
                 ListView.separated(
                   physics: const NeverScrollableScrollPhysics(),
@@ -223,7 +246,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     return VideoCard(
                       video: video, 
                       onTap: () {
-                         context.push('/video/${video.id}', extra: video);
+                        context.push('/video/${video.id}', extra: video);
                       },
                     );
                   },
@@ -237,30 +260,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppColorsExtension colors, AppStrings strings) {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF333333)),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: Color(0xFF2D2D2D),
+            decoration: BoxDecoration(
+              color: colors.surfaceVariant,
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.video_library_outlined, color: Color(0xFF8B5CF6), size: 40),
           ),
           const SizedBox(height: 16),
-          const Text('No videos yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+          Text(strings.noVideosYet, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.textPrimary)),
           const SizedBox(height: 8),
           Text(
-            'Create your first recap video!',
-            style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.6)),
+            strings.createFirstVideo,
+            style: TextStyle(fontSize: 14, color: colors.textSecondary),
           ),
           const SizedBox(height: 20),
           Container(
@@ -279,7 +302,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Create Video', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+              child: Text(strings.createVideo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
             ),
           ),
         ],
@@ -294,54 +317,64 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     required String subtitle,
     required IconData icon,
     required List<Color> gradient,
+    required AppColorsExtension colors,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF333333)),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.white.withOpacity(0.6),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colors.textSecondary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 4),
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: gradient),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, color: Colors.white, size: 16),
+                child: Icon(icon, color: Colors.white, size: 14),
               ),
             ],
           ),
-          const Spacer(),
+          const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 28,
+            style: TextStyle(
+              fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: colors.textPrimary,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2),
           Text(
             subtitle,
             style: TextStyle(
-              fontSize: 11,
-              color: Colors.white.withOpacity(0.5),
+              fontSize: 10,
+              color: colors.textTertiary,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

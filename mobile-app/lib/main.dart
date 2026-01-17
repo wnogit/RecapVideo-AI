@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/app_colors.dart';
+import 'core/providers/theme_provider.dart';
+import 'core/providers/locale_provider.dart';
+import 'core/l10n/app_strings.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 
 void main() {
@@ -40,19 +45,35 @@ class _RecapVideoAppState extends ConsumerState<RecapVideoApp> {
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
+    final themeMode = ref.watch(themeModeProvider);
+    final locale = ref.watch(localeProvider);
+    final strings = ref.watch(stringsProvider);
     
     return MaterialApp.router(
-      title: 'RecapVideo.ai',
+      title: strings.appName,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      
+      // Theme Configuration
+      theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.dark, // Always dark mode
+      themeMode: themeMode,
+      
+      // Locale Configuration
+      locale: locale,
+      supportedLocales: AppLocales.supportedLocales,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      
       routerConfig: router,
+      
       // Auth initialize မပြီးခင် splash screen ပြမယ်
       builder: (context, child) {
         final authState = ref.watch(authProvider);
         if (!authState.isInitialized) {
-          return _buildSplashScreen(context);
+          return _buildSplashScreen(context, themeMode);
         }
         return child ?? const SizedBox.shrink();
       },
@@ -60,9 +81,16 @@ class _RecapVideoAppState extends ConsumerState<RecapVideoApp> {
   }
 
   // Splash Screen - Auth loading ပြနေစဉ် (Lottie Animation)
-  Widget _buildSplashScreen(BuildContext context) {
+  Widget _buildSplashScreen(BuildContext context, ThemeMode themeMode) {
+    final isDark = themeMode == ThemeMode.dark || 
+        (themeMode == ThemeMode.system && 
+         WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark);
+    
+    final backgroundColor = isDark ? AppColors.darkBackground : AppColors.lightBackground;
+    final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: backgroundColor,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -94,7 +122,7 @@ class _RecapVideoAppState extends ConsumerState<RecapVideoApp> {
               'AI Video Creation',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.white.withAlpha(150),
+                color: textColor.withAlpha(150),
               ),
             ),
             const SizedBox(height: 40),

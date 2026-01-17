@@ -1,20 +1,28 @@
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
-
-/// SSL Pinning ဖွင့်/ပိတ် control
-/// TODO: Production မထုတ်ခင် SSL Pinning ထည့်ရန်။ 
-/// NOTE: Temporarily disabled - will add with proper conditional imports
+import '../config/app_config.dart';
+import '../utils/token_storage_service.dart';
+import 'ssl_pinning.dart';
+import 'token_refresh_interceptor.dart';
 
 /// API Client using Dio
+/// 
+/// Features:
+/// - SSL Pinning (production only)
+/// - Token Refresh Interceptor
+/// - Request/Response Logging
+/// - Error Handling
 class ApiClient {
   late final Dio _dio;
+  final TokenStorageService _tokenStorage;
   
-  ApiClient({String? baseUrl}) {
+  ApiClient({String? baseUrl, TokenStorageService? tokenStorage}) 
+      : _tokenStorage = tokenStorage ?? TokenStorageService() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: baseUrl ?? 'https://api.recapvideo.ai/api/v1',
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
+        baseUrl: baseUrl ?? AppConfig.apiBaseUrl,
+        connectTimeout: AppConfig.connectTimeout,
+        receiveTimeout: AppConfig.receiveTimeout,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -22,12 +30,27 @@ class ApiClient {
       ),
     );
     
-    // Add interceptors
+    // Configure SSL Pinning (production only)
+    if (AppConfig.enableSSLPinning) {
+      SSLPinning.configureDio(_dio);
+    }
+    
+    // Add interceptors in order
     _dio.interceptors.addAll([
-      _loggingInterceptor(),
+      // Token refresh should be first to handle 401s
+      TokenRefreshInterceptor(_dio, _tokenStorage),
+      // Logging in debug mode only
+      if (AppConfig.enableNetworkLogging) _loggingInterceptor(),
       _errorInterceptor(),
     ]);
+    
+    if (kDebugMode) {
+      debugPrint('🌐 ApiClient initialized: ${baseUrl ?? AppConfig.apiBaseUrl}');
+    }
   }
+  
+  /// Get Dio instance (for advanced usage)
+  Dio get dio => _dio;
   
   /// Add auth token to requests
   void setAuthToken(String token) {

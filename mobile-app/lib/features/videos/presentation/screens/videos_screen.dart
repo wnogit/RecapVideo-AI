@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/l10n/app_strings.dart';
+import '../../../../core/utils/burmese_numbers.dart';
+import '../../../../core/providers/locale_provider.dart';
 import '../../../../core/api/video_service.dart';
 import 'video_detail_screen.dart';
 import '../widgets/video_card.dart';
@@ -83,12 +86,22 @@ final videosNotifierProvider = StateNotifierProvider<VideosNotifier, VideosState
 class VideosScreen extends ConsumerWidget {
   const VideosScreen({super.key});
 
+  String _formatNumber(int number, Locale locale) {
+    if (locale.languageCode == 'my') {
+      return number.toBurmese();
+    }
+    return number.toString();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(videosNotifierProvider);
+    final colors = context.colors;
+    final strings = ref.watch(stringsProvider);
+    final locale = ref.watch(localeProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: colors.background,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,9 +114,9 @@ class VideosScreen extends ConsumerWidget {
                   const Text('🎬', style: TextStyle(fontSize: 24)),
                   const SizedBox(width: 8),
                   Text(
-                    'My Videos',
+                    strings.myVideos,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
+                      color: colors.textPrimary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -115,7 +128,7 @@ class VideosScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      '${state.videos.length} videos',
+                      '${_formatNumber(state.videos.length, locale)} ${strings.videos.toLowerCase()}',
                       style: const TextStyle(color: AppColors.primary, fontSize: 12),
                     ),
                   ),
@@ -129,13 +142,13 @@ class VideosScreen extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  _buildFilterChip(context, ref, 'all', 'All', state.filter),
+                  _buildFilterChip(context, ref, 'all', strings.all, state.filter, colors),
                   const SizedBox(width: 8),
-                  _buildFilterChip(context, ref, 'completed', 'Completed', state.filter),
+                  _buildFilterChip(context, ref, 'completed', strings.completed, state.filter, colors),
                   const SizedBox(width: 8),
-                  _buildFilterChip(context, ref, 'processing', 'Processing', state.filter),
+                  _buildFilterChip(context, ref, 'processing', strings.processing, state.filter, colors),
                   const SizedBox(width: 8),
-                  _buildFilterChip(context, ref, 'failed', 'Failed', state.filter),
+                  _buildFilterChip(context, ref, 'failed', strings.failed, state.filter, colors),
                 ],
               ),
             ),
@@ -146,9 +159,9 @@ class VideosScreen extends ConsumerWidget {
               child: state.isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : state.error != null
-                      ? _buildErrorState(context, ref, state.error!)
+                      ? _buildErrorState(context, ref, state.error!, colors, strings)
                       : state.filteredVideos.isEmpty
-                          ? _buildEmptyState(context)
+                          ? _buildEmptyState(context, colors, strings)
                           : RefreshIndicator(
                               onRefresh: () => ref.read(videosNotifierProvider.notifier).refresh(),
                               child: ListView.builder(
@@ -173,21 +186,21 @@ class VideosScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFilterChip(BuildContext context, WidgetRef ref, String value, String label, String current) {
+  Widget _buildFilterChip(BuildContext context, WidgetRef ref, String value, String label, String current, AppColorsExtension colors) {
     final isSelected = current == value;
     return GestureDetector(
       onTap: () => ref.read(videosNotifierProvider.notifier).setFilter(value),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : const Color(0xFF2a2a3a),
+          color: isSelected ? AppColors.primary : colors.surface,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 12,
-            color: isSelected ? Colors.white : Colors.white70,
+            color: isSelected ? Colors.white : colors.textSecondary,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
@@ -195,33 +208,33 @@ class VideosScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, AppColorsExtension colors, AppStrings strings) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.video_library_outlined, size: 64, color: Colors.white.withAlpha(50)),
+          Icon(Icons.video_library_outlined, size: 64, color: colors.textTertiary),
           const SizedBox(height: 16),
-          Text('No videos yet', style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 16)),
+          Text(strings.noVideosYet, style: TextStyle(color: colors.textSecondary, fontSize: 16)),
           const SizedBox(height: 8),
-          Text('Create your first AI video!', style: TextStyle(color: Colors.white.withAlpha(60), fontSize: 13)),
+          Text(strings.createFirstVideo, style: TextStyle(color: colors.textTertiary, fontSize: 13)),
         ],
       ),
     );
   }
 
-  Widget _buildErrorState(BuildContext context, WidgetRef ref, String error) {
+  Widget _buildErrorState(BuildContext context, WidgetRef ref, String error, AppColorsExtension colors, AppStrings strings) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(Icons.error_outline, size: 48, color: Colors.red),
           const SizedBox(height: 12),
-          Text('Failed to load videos', style: TextStyle(color: Colors.white.withAlpha(100))),
+          Text(strings.failedToLoad, style: TextStyle(color: colors.textSecondary)),
           const SizedBox(height: 8),
           TextButton(
             onPressed: () => ref.read(videosNotifierProvider.notifier).refresh(),
-            child: const Text('Retry'),
+            child: Text(strings.retry),
           ),
         ],
       ),
@@ -238,6 +251,7 @@ class VideosScreen extends ConsumerWidget {
           thumbnailUrl: video.sourceThumbnail,
           videoUrl: video.videoUrl,
           status: video.status,
+          video: video,
         ),
       ),
     );

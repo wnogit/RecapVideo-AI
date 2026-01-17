@@ -15,6 +15,13 @@ class Video {
   final String? videoUrl;
   final String? statusMessage;
   final DateTime createdAt;
+  
+  // Additional fields from backend
+  final String? voiceType;
+  final int? fileSizeBytes;
+  final int? durationSeconds;
+  final String? aspectRatio;
+  final Map<String, dynamic>? options;
 
   Video({
     required this.id,
@@ -26,9 +33,21 @@ class Video {
     this.videoUrl,
     this.statusMessage,
     required this.createdAt,
+    this.voiceType,
+    this.fileSizeBytes,
+    this.durationSeconds,
+    this.aspectRatio,
+    this.options,
   });
 
   factory Video.fromJson(Map<String, dynamic> json) {
+    // Extract aspect_ratio from options if available
+    String? aspectRatio;
+    final options = json['options'] as Map<String, dynamic>?;
+    if (options != null) {
+      aspectRatio = options['aspect_ratio'] as String?;
+    }
+    
     return Video(
       id: json['id'] ?? '',
       title: json['title'] ?? json['source_title'] ?? 'Untitled',
@@ -41,7 +60,46 @@ class Video {
       createdAt: json['created_at'] != null 
           ? DateTime.parse(json['created_at']) 
           : DateTime.now(),
+      voiceType: json['voice_type'],
+      fileSizeBytes: json['file_size_bytes'],
+      durationSeconds: json['duration_seconds'],
+      aspectRatio: aspectRatio,
+      options: options,
     );
+  }
+  
+  /// Format file size to human readable
+  String get formattedFileSize {
+    if (fileSizeBytes == null) return '-';
+    final bytes = fileSizeBytes!;
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+  }
+  
+  /// Get voice display name
+  String getVoiceDisplayName(bool isEnglish) {
+    if (voiceType == null) return '-';
+    // Map voice_type to display name
+    if (voiceType!.contains('Nilar') || voiceType!.toLowerCase().contains('female')) {
+      return isEnglish ? 'Ma Ma (Female)' : 'မမ (အမျိုးသမီး)';
+    } else if (voiceType!.contains('Thiha') || voiceType!.toLowerCase().contains('male')) {
+      return isEnglish ? 'Mg Lay (Male)' : 'မောင်လေး (အမျိုးသား)';
+    }
+    return voiceType!;
+  }
+  
+  /// Get aspect ratio display name
+  String getAspectRatioDisplay() {
+    if (aspectRatio == null) return '-';
+    switch (aspectRatio) {
+      case '9:16': return '9:16 (Vertical)';
+      case '16:9': return '16:9 (Horizontal)';
+      case '1:1': return '1:1 (Square)';
+      case '4:5': return '4:5 (Portrait)';
+      default: return aspectRatio!;
+    }
   }
 }
 

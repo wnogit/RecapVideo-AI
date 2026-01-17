@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/l10n/app_strings.dart';
 import '../../../../core/navigation/main_navigation.dart';
 import '../providers/video_creation_provider.dart';
 import '../widgets/live_preview_widget.dart';
@@ -14,21 +16,24 @@ import '../widgets/complete_view_widget.dart';
 class CreateVideoScreen extends ConsumerWidget {
   const CreateVideoScreen({super.key});
 
-  static const List<_StepInfo> _steps = [
-    _StepInfo(id: 1, name: 'Input', icon: '🎬'),
-    _StepInfo(id: 2, name: 'Styles', icon: '🎨'),
-    _StepInfo(id: 3, name: 'Branding', icon: '✨'),
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
+    final strings = ref.watch(stringsProvider);
     final state = ref.watch(videoCreationProvider);
     final currentStep = state.currentStep;
+    
+    // Dynamic step info with localization
+    final steps = [
+      _StepInfo(id: 1, name: strings.isEnglish ? 'Input' : 'ထည့်သွင်း', icon: '🎬'),
+      _StepInfo(id: 2, name: strings.isEnglish ? 'Styles' : 'ပုံစံ', icon: '🎨'),
+      _StepInfo(id: 3, name: strings.branding, icon: '✨'),
+    ];
     
     // Show Processing View
     if (state.isProcessing) {
       return Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: colors.background,
         body: SafeArea(
           child: ProcessingViewWidget(
             progress: state.processingProgress,
@@ -42,10 +47,10 @@ class CreateVideoScreen extends ConsumerWidget {
     // Show Complete View
     if (state.isComplete) {
       return Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: colors.background,
         body: SafeArea(
           child: CompleteViewWidget(
-            title: state.completedVideoTitle ?? 'Video Created',
+            title: state.completedVideoTitle ?? (strings.isEnglish ? 'Video Created' : 'ဖန်တီးပြီးပါပြီ'),
             duration: '~2:30',
             appliedFeatures: _getAppliedFeatures(state.options),
             onCreateAnother: () => ref.read(videoCreationProvider.notifier).resetAfterComplete(),
@@ -55,7 +60,7 @@ class CreateVideoScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: colors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -70,9 +75,9 @@ class CreateVideoScreen extends ConsumerWidget {
                       const Text('🎥', style: TextStyle(fontSize: 20)),
                       const SizedBox(width: 8),
                       Text(
-                        'Video ဖန်တီးမည်',
+                        strings.createVideo,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
+                          color: colors.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -83,7 +88,7 @@ class CreateVideoScreen extends ConsumerWidget {
                           // Navigate back to Home tab (index 0)
                           ref.read(navigationIndexProvider.notifier).state = 0;
                         },
-                        icon: const Icon(Icons.close, color: Colors.white54, size: 22),
+                        icon: Icon(Icons.close, color: colors.textSecondary, size: 22),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
@@ -95,23 +100,24 @@ class CreateVideoScreen extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      for (int i = 0; i < _steps.length; i++) ...[
+                      for (int i = 0; i < steps.length; i++) ...[
                         _buildStepPill(
                           context,
                           ref,
-                          step: _steps[i],
-                          isActive: currentStep == _steps[i].id,
-                          isCompleted: currentStep > _steps[i].id,
+                          colors: colors,
+                          step: steps[i],
+                          isActive: currentStep == steps[i].id,
+                          isCompleted: currentStep > steps[i].id,
                         ),
-                        if (i < _steps.length - 1)
+                        if (i < steps.length - 1)
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4),
                             child: Icon(
                               Icons.chevron_right,
                               size: 16,
-                              color: currentStep > _steps[i].id 
-                                  ? AppColors.primary 
-                                  : Colors.white30,
+                              color: currentStep > steps[i].id 
+                                  ? colors.primary 
+                                  : colors.textTertiary,
                             ),
                           ),
                       ],
@@ -153,9 +159,9 @@ class CreateVideoScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: colors.background,
                 border: Border(
-                  top: BorderSide(color: const Color(0xFF3a3a4a).withAlpha(80)),
+                  top: BorderSide(color: colors.border),
                 ),
               ),
               child: SafeArea(
@@ -169,16 +175,16 @@ class CreateVideoScreen extends ConsumerWidget {
                           onPressed: () => ref.read(videoCreationProvider.notifier).prevStep(),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 12),
-                            side: const BorderSide(color: Color(0xFF3a3a4a)),
+                            side: BorderSide(color: colors.border),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.chevron_left, color: Colors.white70, size: 20),
-                              Text('နောက်သို့', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                            children: [
+                              Icon(Icons.chevron_left, color: colors.textSecondary, size: 20),
+                              Text(strings.back, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
                             ],
                           ),
                         ),
@@ -197,8 +203,8 @@ class CreateVideoScreen extends ConsumerWidget {
                                   ? () => ref.read(videoCreationProvider.notifier).nextStep()
                                   : null,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                disabledBackgroundColor: const Color(0xFF3a3a4a),
+                                backgroundColor: colors.primary,
+                                disabledBackgroundColor: colors.surfaceVariant,
                                 padding: const EdgeInsets.symmetric(vertical: 12),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
@@ -206,10 +212,10 @@ class CreateVideoScreen extends ConsumerWidget {
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Text('ရှေ့ဆက်ရန်', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
-                                  SizedBox(width: 4),
-                                  Icon(Icons.chevron_right, size: 18, color: Colors.white),
+                                children: [
+                                  Text(strings.next, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.chevron_right, size: 18, color: Colors.white),
                                 ],
                               ),
                             )
@@ -243,12 +249,12 @@ class CreateVideoScreen extends ConsumerWidget {
                                       )
                                     : Row(
                                         mainAxisAlignment: MainAxisAlignment.center,
-                                        children: const [
-                                          Icon(Icons.auto_awesome, size: 16, color: Colors.white),
-                                          SizedBox(width: 6),
+                                        children: [
+                                          const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
+                                          const SizedBox(width: 6),
                                           Text(
-                                            'Video ဖန်တီးမည်',
-                                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white),
+                                            strings.createVideo,
+                                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white),
                                           ),
                                         ],
                                       ),
@@ -268,6 +274,7 @@ class CreateVideoScreen extends ConsumerWidget {
   Widget _buildStepPill(
     BuildContext context,
     WidgetRef ref, {
+    required AppColorsExtension colors,
     required _StepInfo step,
     required bool isActive,
     required bool isCompleted,
@@ -278,13 +285,13 @@ class CreateVideoScreen extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: isActive
-              ? AppColors.primary
+              ? colors.primary
               : isCompleted
-                  ? AppColors.primary.withAlpha(40)
-                  : const Color(0xFF2a2a3a),
+                  ? colors.primary.withAlpha(40)
+                  : colors.surfaceVariant,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isActive || isCompleted ? AppColors.primary : Colors.transparent,
+            color: isActive || isCompleted ? colors.primary : Colors.transparent,
             width: isActive ? 1.5 : 1,
           ),
         ),
@@ -299,8 +306,8 @@ class CreateVideoScreen extends ConsumerWidget {
                 color: isActive
                     ? Colors.white.withAlpha(50)
                     : isCompleted
-                        ? AppColors.primary
-                        : Colors.white.withAlpha(20),
+                        ? colors.primary
+                        : colors.textTertiary.withAlpha(40),
               ),
               child: Center(
                 child: isCompleted
@@ -310,7 +317,7 @@ class CreateVideoScreen extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 8,
                           fontWeight: FontWeight.bold,
-                          color: isActive ? Colors.white : Colors.white60,
+                          color: isActive ? Colors.white : colors.textSecondary,
                         ),
                       ),
               ),
@@ -321,7 +328,7 @@ class CreateVideoScreen extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                color: isActive ? Colors.white : Colors.white60,
+                color: isActive ? Colors.white : colors.textSecondary,
               ),
             ),
           ],

@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/l10n/app_strings.dart';
+import '../../../../core/utils/burmese_numbers.dart';
+import '../../../../core/providers/locale_provider.dart';
 import '../../../../core/api/credits_service.dart';
 import 'order_history_screen.dart';
 
@@ -140,30 +143,40 @@ final orderFlowProvider = StateNotifierProvider<OrderFlowNotifier, OrderFlowStat
 class CreditsScreen extends ConsumerWidget {
   const CreditsScreen({super.key});
 
+  String _formatNumber(int number, Locale locale) {
+    if (locale.languageCode == 'my') {
+      return number.toBurmese();
+    }
+    return number.toString();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(orderFlowProvider);
     final notifier = ref.read(orderFlowProvider.notifier);
+    final colors = context.colors;
+    final strings = ref.watch(stringsProvider);
+    final locale = ref.watch(localeProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: colors.background,
         title: Row(
-          children: const [
-            Text('Buy Credits', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            SizedBox(width: 8),
-            Text('💎', style: TextStyle(fontSize: 20)),
+          children: [
+            Text(strings.buyCredits, style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.bold)),
+            const SizedBox(width: 8),
+            const Text('💎', style: TextStyle(fontSize: 20)),
           ],
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: colors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.info_outline, color: Colors.white),
-            onPressed: () => _showInfoDialog(context),
+            icon: Icon(Icons.info_outline, color: colors.textPrimary),
+            onPressed: () => _showInfoDialog(context, colors, strings),
           ),
         ],
       ),
@@ -175,29 +188,32 @@ class CreditsScreen extends ConsumerWidget {
               // Step 1
               _buildStep(
                 stepNumber: 1,
-                title: 'Select Package',
+                title: strings.selectPackage,
                 isActive: state.currentStep == 0,
                 isDone: state.currentStep > 0,
                 showLine: true,
-                content: state.currentStep == 0 ? _buildStep1Content(context, state, notifier) : null,
+                colors: colors,
+                content: state.currentStep == 0 ? _buildStep1Content(context, state, notifier, colors, strings, locale) : null,
               ),
               // Step 2
               _buildStep(
                 stepNumber: 2,
-                title: 'Payment Method',
+                title: strings.paymentMethod,
                 isActive: state.currentStep == 1,
                 isDone: state.currentStep > 1,
                 showLine: true,
-                content: state.currentStep == 1 ? _buildStep2Content(context, state, notifier) : null,
+                colors: colors,
+                content: state.currentStep == 1 ? _buildStep2Content(context, state, notifier, colors, strings, locale) : null,
               ),
               // Step 3 (no line below)
               _buildStep(
                 stepNumber: 3,
-                title: 'Confirmation',
+                title: strings.confirmation,
                 isActive: state.currentStep == 2,
                 isDone: false,
                 showLine: false,
-                content: state.currentStep == 2 ? _buildStep3Content(context, state, notifier, ref) : null,
+                colors: colors,
+                content: state.currentStep == 2 ? _buildStep3Content(context, state, notifier, ref, colors, strings, locale) : null,
               ),
             ],
           ),
@@ -213,6 +229,7 @@ class CreditsScreen extends ConsumerWidget {
     required bool isActive,
     required bool isDone,
     required bool showLine,
+    required AppColorsExtension colors,
     Widget? content,
   }) {
     return IntrinsicHeight(
@@ -230,13 +247,13 @@ class CreditsScreen extends ConsumerWidget {
                   height: 28,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isDone ? AppColors.primary : isActive ? AppColors.primary : AppColors.surfaceVariant,
+                    color: isDone ? AppColors.primary : isActive ? AppColors.primary : colors.surfaceVariant,
                   ),
                   child: Center(
                     child: isDone
                         ? const Icon(Icons.check, color: Colors.white, size: 16)
                         : Text('$stepNumber', style: TextStyle(
-                            color: isActive ? Colors.white : AppColors.textSecondary,
+                            color: isActive ? Colors.white : colors.textSecondary,
                             fontWeight: FontWeight.bold, fontSize: 14,
                           )),
                   ),
@@ -247,7 +264,7 @@ class CreditsScreen extends ConsumerWidget {
                     child: Container(
                       width: 2,
                       margin: const EdgeInsets.only(top: 4),
-                      color: isDone ? AppColors.primary : AppColors.surfaceVariant,
+                      color: isDone ? AppColors.primary : colors.surfaceVariant,
                     ),
                   ),
               ],
@@ -265,7 +282,7 @@ class CreditsScreen extends ConsumerWidget {
                   child: Text(
                     title,
                     style: TextStyle(
-                      color: isActive || isDone ? Colors.white : AppColors.textSecondary,
+                      color: isActive || isDone ? colors.textPrimary : colors.textSecondary,
                       fontSize: 16,
                       fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
                     ),
@@ -287,7 +304,7 @@ class CreditsScreen extends ConsumerWidget {
   }
 
   /// Step 1 Content: Package Selection
-  Widget _buildStep1Content(BuildContext context, OrderFlowState state, OrderFlowNotifier notifier) {
+  Widget _buildStep1Content(BuildContext context, OrderFlowState state, OrderFlowNotifier notifier, AppColorsExtension colors, AppStrings strings, Locale locale) {
     return Column(
       children: [
         // Package cards
@@ -301,7 +318,7 @@ class CreditsScreen extends ConsumerWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: colors.surface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: isSelected ? AppColors.primary : Colors.transparent, width: 2),
                 ),
@@ -309,10 +326,10 @@ class CreditsScreen extends ConsumerWidget {
                   children: [
                     Text('💎', style: TextStyle(fontSize: isSelected ? 22 : 18)),
                     const SizedBox(width: 12),
-                    Text('${pkg['credits']} Credits', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    Text('${_formatNumber(pkg['credits'] as int, locale)} ${strings.credits}', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
                     const Spacer(),
                     Text('${_formatPrice(pkg['price'] as int)} MMK',
-                      style: TextStyle(color: isSelected ? AppColors.primary : AppColors.textSecondary, fontWeight: FontWeight.bold)),
+                      style: TextStyle(color: isSelected ? AppColors.primary : colors.textSecondary, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -322,15 +339,16 @@ class CreditsScreen extends ConsumerWidget {
         const SizedBox(height: 8),
         // Continue button (same width as cards)
         _buildGradientButton(
-          label: 'Continue',
+          label: strings.continueButton,
           onPressed: state.canProceedStep1 ? notifier.nextStep : null,
+          colors: colors,
         ),
       ],
     );
   }
 
   /// Step 2 Content: Payment Selection
-  Widget _buildStep2Content(BuildContext context, OrderFlowState state, OrderFlowNotifier notifier) {
+  Widget _buildStep2Content(BuildContext context, OrderFlowState state, OrderFlowNotifier notifier, AppColorsExtension colors, AppStrings strings, Locale locale) {
     final pkg = state.selectedPackage;
     return Column(
       children: [
@@ -338,7 +356,7 @@ class CreditsScreen extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: colors.surface,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColors.primary.withOpacity(0.3)),
           ),
@@ -346,8 +364,8 @@ class CreditsScreen extends ConsumerWidget {
             children: [
               const Text('📦', style: TextStyle(fontSize: 18)),
               const SizedBox(width: 8),
-              Text('${pkg?['credits']} Credits', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-              const Text(' - ', style: TextStyle(color: AppColors.textSecondary)),
+              Text('${_formatNumber(pkg?['credits'] as int? ?? 0, locale)} ${strings.credits}', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
+              Text(' - ', style: TextStyle(color: colors.textSecondary)),
               Text('${_formatPrice(pkg?['price'] as int? ?? 0)} MMK',
                 style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
             ],
@@ -357,7 +375,7 @@ class CreditsScreen extends ConsumerWidget {
         // Payment card
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)),
+          decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(16)),
           child: Column(
             children: [
               // Account info
@@ -377,28 +395,28 @@ class CreditsScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(children: [
-                          const Icon(Icons.person_outline, size: 16, color: AppColors.textSecondary),
+                          Icon(Icons.person_outline, size: 16, color: colors.textSecondary),
                           const SizedBox(width: 4),
-                          Text(_accountInfo['name']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                          Text(_accountInfo['name']!, style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
                         ]),
                         const SizedBox(height: 4),
                         Row(children: [
-                          const Icon(Icons.phone_outlined, size: 16, color: AppColors.textSecondary),
+                          Icon(Icons.phone_outlined, size: 16, color: colors.textSecondary),
                           const SizedBox(width: 4),
-                          Text(_accountInfo['phone']!, style: const TextStyle(color: AppColors.textSecondary)),
+                          Text(_accountInfo['phone']!, style: TextStyle(color: colors.textSecondary)),
                           const SizedBox(width: 8),
                           GestureDetector(
-                            onTap: () => _copyToClipboard(context, _accountInfo['phone']!),
+                            onTap: () => _copyToClipboard(context, _accountInfo['phone']!, strings),
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: AppColors.primary.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Row(mainAxisSize: MainAxisSize.min, children: const [
-                                Icon(Icons.copy, size: 14, color: AppColors.primary),
-                                SizedBox(width: 4),
-                                Text('Copy', style: TextStyle(color: AppColors.primary, fontSize: 12)),
+                              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                const Icon(Icons.copy, size: 14, color: AppColors.primary),
+                                const SizedBox(width: 4),
+                                Text(strings.copy, style: const TextStyle(color: AppColors.primary, fontSize: 12)),
                               ]),
                             ),
                           ),
@@ -441,16 +459,16 @@ class CreditsScreen extends ConsumerWidget {
         const SizedBox(height: 16),
         // Buttons
         Row(children: [
-          Expanded(child: _buildOutlineButton(label: 'Back', onPressed: notifier.prevStep)),
+          Expanded(child: _buildOutlineButton(label: strings.back, onPressed: notifier.prevStep, colors: colors)),
           const SizedBox(width: 12),
-          Expanded(child: _buildGradientButton(label: 'Continue', onPressed: state.canProceedStep2 ? notifier.nextStep : null)),
+          Expanded(child: _buildGradientButton(label: strings.continueButton, onPressed: state.canProceedStep2 ? notifier.nextStep : null, colors: colors)),
         ]),
       ],
     );
   }
 
   /// Step 3 Content: Confirmation
-  Widget _buildStep3Content(BuildContext context, OrderFlowState state, OrderFlowNotifier notifier, WidgetRef ref) {
+  Widget _buildStep3Content(BuildContext context, OrderFlowState state, OrderFlowNotifier notifier, WidgetRef ref, AppColorsExtension colors, AppStrings strings, Locale locale) {
     final pkg = state.selectedPackage;
     final payment = _paymentMethods.firstWhere((m) => m['id'] == state.selectedPaymentId, orElse: () => {});
 
@@ -461,19 +479,19 @@ class CreditsScreen extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: colors.surface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.primary.withOpacity(0.3)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('📋 ORDER SUMMARY', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              Text('📋 ${strings.orderSummary.toUpperCase()}', style: TextStyle(color: colors.textSecondary, fontSize: 12)),
               const SizedBox(height: 12),
-              _buildSummaryRow('Package', '${pkg?['credits']} Credits'),
-              _buildSummaryRow('Price', '${_formatPrice(pkg?['price'] as int? ?? 0)} MMK'),
-              _buildSummaryRow('Payment', payment['name'] as String? ?? ''),
-              const Divider(color: AppColors.surfaceVariant, height: 24),
+              _buildSummaryRow(strings.package, '${_formatNumber(pkg?['credits'] as int? ?? 0, locale)} ${strings.credits}', colors),
+              _buildSummaryRow(strings.price, '${_formatPrice(pkg?['price'] as int? ?? 0)} MMK', colors),
+              _buildSummaryRow(strings.payment, payment['name'] as String? ?? '', colors),
+              Divider(color: colors.surfaceVariant, height: 24),
               Row(children: [
                 Container(
                   width: 40, height: 40,
@@ -482,11 +500,11 @@ class CreditsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(_accountInfo['name']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
-                  Text(_accountInfo['phone']!, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                  Text(_accountInfo['name']!, style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w500)),
+                  Text(_accountInfo['phone']!, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
                 ])),
                 GestureDetector(
-                  onTap: () => _copyToClipboard(context, _accountInfo['phone']!),
+                  onTap: () => _copyToClipboard(context, _accountInfo['phone']!, strings),
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
@@ -500,12 +518,12 @@ class CreditsScreen extends ConsumerWidget {
         const SizedBox(height: 16),
 
         // Transaction ID
-        const Text('Transaction ID (last 7 digits)', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+        Text(strings.transactionIdLabel, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: AppColors.surface, // Same as other cards
+            color: colors.surface,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Row(children: [
@@ -513,20 +531,20 @@ class CreditsScreen extends ConsumerWidget {
               child: TextField(
                 keyboardType: TextInputType.number,
                 maxLength: 7,
-                style: const TextStyle(color: Colors.white, letterSpacing: 4, fontSize: 16),
+                style: TextStyle(color: colors.textPrimary, letterSpacing: 4, fontSize: 16),
                 textAlign: TextAlign.center,
                 decoration: InputDecoration(
                   counterText: '',
                   hintText: '- - - - - - -',
-                  hintStyle: TextStyle(color: AppColors.textTertiary.withOpacity(0.5), letterSpacing: 4),
+                  hintStyle: TextStyle(color: colors.textTertiary.withOpacity(0.5), letterSpacing: 4),
                   border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero,
                   filled: true,
-                  fillColor: Colors.transparent, // Override theme's fillColor
+                  fillColor: Colors.transparent,
                 ),
                 onChanged: notifier.setTransactionId,
               ),
             ),
-            Text('${state.transactionId.length}/7', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            Text('${state.transactionId.length}/7', style: TextStyle(color: colors.textSecondary, fontSize: 12)),
           ]),
         ),
         const SizedBox(height: 16),
@@ -553,13 +571,13 @@ class CreditsScreen extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.surface, borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.surfaceVariant),
+                color: colors.surface, borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: colors.surfaceVariant),
               ),
-              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: const [
-                Icon(Icons.camera_alt_outlined, color: AppColors.textSecondary),
-                SizedBox(width: 8),
-                Text('Upload Screenshot', style: TextStyle(color: AppColors.textSecondary)),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(Icons.camera_alt_outlined, color: colors.textSecondary),
+                const SizedBox(width: 8),
+                Text(strings.uploadScreenshot, style: TextStyle(color: colors.textSecondary)),
               ]),
             ),
           ),
@@ -572,16 +590,17 @@ class CreditsScreen extends ConsumerWidget {
         const SizedBox(height: 16),
         // Buttons
         Row(children: [
-          Expanded(child: _buildOutlineButton(label: 'Back', onPressed: notifier.prevStep)),
+          Expanded(child: _buildOutlineButton(label: strings.back, onPressed: notifier.prevStep, colors: colors)),
           const SizedBox(width: 12),
           Expanded(child: _buildGradientButton(
-            label: 'Submit',
+            label: strings.submit,
             isLoading: state.isSubmitting,
+            colors: colors,
             onPressed: state.canSubmit ? () async {
               final success = await ref.read(orderFlowProvider.notifier).submitOrder();
               if (success && context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Order submitted! We\'ll review it soon.')),
+                  SnackBar(content: Text(strings.orderSubmitted)),
                 );
                 Navigator.pop(context);
               }
@@ -592,25 +611,25 @@ class CreditsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryRow(String label, String value) {
+  Widget _buildSummaryRow(String label, String value, AppColorsExtension colors) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppColors.textSecondary)),
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+          Text(label, style: TextStyle(color: colors.textSecondary)),
+          Text(value, style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w500)),
         ],
       ),
     );
   }
 
-  Widget _buildGradientButton({required String label, VoidCallback? onPressed, bool isLoading = false}) {
+  Widget _buildGradientButton({required String label, VoidCallback? onPressed, bool isLoading = false, required AppColorsExtension colors}) {
     return Container(
       height: 48,
       decoration: BoxDecoration(
         gradient: onPressed != null ? AppColors.primaryGradient : null,
-        color: onPressed == null ? AppColors.surfaceVariant : null,
+        color: onPressed == null ? colors.surfaceVariant : null,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Material(
@@ -628,14 +647,14 @@ class CreditsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildOutlineButton({required String label, VoidCallback? onPressed}) {
+  Widget _buildOutlineButton({required String label, VoidCallback? onPressed, required AppColorsExtension colors}) {
     return SizedBox(
       height: 48,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.white,
-          side: const BorderSide(color: AppColors.surfaceVariant),
+          foregroundColor: colors.textPrimary,
+          side: BorderSide(color: colors.surfaceVariant),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         ),
         child: Text(label),
@@ -643,24 +662,24 @@ class CreditsScreen extends ConsumerWidget {
     );
   }
 
-  void _showInfoDialog(BuildContext context) {
+  void _showInfoDialog(BuildContext context, AppColorsExtension colors, AppStrings strings) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('မှာဝယ်ရန် အဆင့် ၃ ဆင့်', style: TextStyle(color: Colors.white)),
-        content: const Column(
+        title: Text(strings.orderInstructions, style: TextStyle(color: colors.textPrimary)),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('၁။ မှာဝယ်မည့် ပက်ကေ့ နှင့် ငွေပမာဏ ရွေးချယ်ပါ', style: TextStyle(color: Colors.white70)),
-            SizedBox(height: 12),
-            Text('၂။ ငွေလွှဲမည့် အကောင့်ကို ရွေးချယ်ပြီး ရွေးချယ်ထားသော အကောင့်ကိုသာ ငွေလွှဲရပါမည်', style: TextStyle(color: Colors.white70)),
-            SizedBox(height: 12),
-            Text('၃။ ငွေလွှဲပြီးမှ Transaction ID နောက်ဆုံး ၇ လုံး နှင့် Screenshot ကို ပူးတွဲတင်ပါ', style: TextStyle(color: Colors.white70)),
-            SizedBox(height: 16),
-            Text('ကြာချိန် ၃ မိနစ်မှ ၃၀ အထိ ကြာနိုင်ပါသည်', style: TextStyle(color: AppColors.warning, fontWeight: FontWeight.w500)),
+            Text(strings.orderStep1, style: TextStyle(color: colors.textSecondary)),
+            const SizedBox(height: 12),
+            Text(strings.orderStep2, style: TextStyle(color: colors.textSecondary)),
+            const SizedBox(height: 12),
+            Text(strings.orderStep3, style: TextStyle(color: colors.textSecondary)),
+            const SizedBox(height: 16),
+            Text(strings.orderProcessingTime, style: const TextStyle(color: AppColors.warning, fontWeight: FontWeight.w500)),
           ],
         ),
         actions: [
@@ -673,10 +692,10 @@ class CreditsScreen extends ConsumerWidget {
     );
   }
 
-  void _copyToClipboard(BuildContext context, String text) {
+  void _copyToClipboard(BuildContext context, String text, AppStrings strings) {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Copied: $text'), duration: const Duration(seconds: 1)),
+      SnackBar(content: Text('${strings.copied}: $text'), duration: const Duration(seconds: 1)),
     );
   }
 

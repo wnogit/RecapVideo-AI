@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/l10n/app_strings.dart';
 import '../../../../core/api/credits_service.dart';
 
 /// Transaction History Screen - Like web credits page
@@ -40,21 +41,24 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistoryScr
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final strings = ref.watch(stringsProvider);
+    
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
-        title: const Text('Transaction History', style: TextStyle(color: Colors.white)),
+        backgroundColor: colors.background,
+        title: Text(strings.transactionHistory, style: TextStyle(color: colors.textPrimary)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: colors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: _buildContent(),
+      body: _buildContent(colors, strings),
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(AppColorsExtension colors, AppStrings strings) {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -65,9 +69,9 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistoryScr
           children: [
             const Icon(Icons.error_outline, size: 48, color: Colors.red),
             const SizedBox(height: 16),
-            Text('Error: $_error', style: const TextStyle(color: Colors.white70)),
+            Text('${strings.error}: $_error', style: TextStyle(color: colors.textSecondary)),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: _loadTransactions, child: const Text('Retry')),
+            ElevatedButton(onPressed: _loadTransactions, child: Text(strings.retry)),
           ],
         ),
       );
@@ -77,9 +81,9 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistoryScr
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.receipt_long, size: 48, color: Colors.white.withAlpha(80)),
+            Icon(Icons.receipt_long, size: 48, color: colors.textTertiary),
             const SizedBox(height: 16),
-            Text('No transactions yet', style: TextStyle(color: Colors.white.withAlpha(120))),
+            Text(strings.noData, style: TextStyle(color: colors.textTertiary)),
           ],
         ),
       );
@@ -87,18 +91,18 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistoryScr
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _transactions.length,
-      itemBuilder: (context, index) => _buildTransactionRow(_transactions[index]),
+      itemBuilder: (context, index) => _buildTransactionRow(_transactions[index], colors),
     );
   }
 
-  Widget _buildTransactionRow(Transaction tx) {
+  Widget _buildTransactionRow(Transaction tx, AppColorsExtension colors) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF333333)),
+        border: Border.all(color: colors.border),
       ),
       child: Row(
         children: [
@@ -125,18 +129,18 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistoryScr
               children: [
                 Text(
                   tx.typeLabel,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600),
                 ),
                 if (tx.description != null)
                   Text(
                     tx.description!,
-                    style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(120)),
+                    style: TextStyle(fontSize: 11, color: colors.textTertiary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 Text(
                   _formatDate(tx.createdAt),
-                  style: TextStyle(fontSize: 10, color: Colors.white.withAlpha(80)),
+                  style: TextStyle(fontSize: 10, color: colors.textTertiary),
                 ),
               ],
             ),
@@ -156,7 +160,7 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistoryScr
               ),
               Text(
                 'Balance: ${tx.balanceAfter}',
-                style: TextStyle(fontSize: 10, color: Colors.white.withAlpha(80)),
+                style: TextStyle(fontSize: 10, color: colors.textTertiary),
               ),
             ],
           ),
