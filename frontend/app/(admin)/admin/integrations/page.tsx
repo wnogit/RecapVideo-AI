@@ -275,7 +275,7 @@ export default function IntegrationsPage() {
       const payload = {
         key_type: keyFormData.key_type,
         name: keyFormData.name,
-        description: keyFormData.description || null,
+        description: keyFormData.description || undefined,
         key_value: keyFormData.key_value,
         config,
         is_active: keyFormData.is_active,
