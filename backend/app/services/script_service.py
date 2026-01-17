@@ -270,7 +270,35 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                     return script
                 logger.warning("Poe generation returned empty, trying fallback...")
             
-            # Fallback to OpenRouter (pay-as-you-go, many models)
+            # Primary fallback: Groq (FREE and fast)
+            groq_client = await self._get_groq_client()
+            if groq_client:
+                logger.info("Using Groq (Llama 3.3) for script generation - PRIMARY fallback")
+                import asyncio
+                try:
+                    response = await asyncio.wait_for(
+                        groq_client.chat.completions.create(
+                            model="llama-3.3-70b-versatile",
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": prompt}
+                            ],
+                            max_tokens=4000,
+                            temperature=0.7,
+                        ),
+                        timeout=90.0  # 90 second timeout
+                    )
+                    script = response.choices[0].message.content.strip()
+                    # Apply formal to casual conversion for Burmese
+                    if target_language == "my":
+                        script = convert_burmese_formal_to_casual(script)
+                        logger.info("Applied Burmese formal-to-casual conversion")
+                    logger.info(f"Script generated successfully with Groq: {len(script)} chars")
+                    return script
+                except Exception as e:
+                    logger.warning(f"Groq failed: {e}, trying next fallback...")
+            
+            # Secondary fallback: OpenRouter (pay-as-you-go)
             openrouter_key = await self._get_openrouter_client()
             if openrouter_key:
                 logger.info("Using OpenRouter (DeepSeek V3) for script generation - fallback")
@@ -283,9 +311,9 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                                 {"role": "system", "content": system_prompt},
                                 {"role": "user", "content": prompt}
                             ],
-                            model="deepseek/deepseek-chat",  # DeepSeek V3 - cheapest & good quality
+                            model="deepseek/deepseek-chat",
                         ),
-                        timeout=120.0  # 120 second timeout for OpenRouter
+                        timeout=120.0
                     )
                     # Apply formal to casual conversion for Burmese
                     if target_language == "my":
@@ -296,35 +324,11 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                 except Exception as e:
                     logger.warning(f"OpenRouter failed: {e}, trying next fallback...")
             
-            # Fallback to Groq (faster and good free tier)
-            groq_client = await self._get_groq_client()
-            if groq_client:
-                logger.info("Using Groq (Llama 3.3) for script generation - fallback")
-                import asyncio
-                response = await asyncio.wait_for(
-                    groq_client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": prompt}
-                        ],
-                        max_tokens=4000,
-                        temperature=0.7,
-                    ),
-                    timeout=90.0  # 90 second timeout
-                )
-                script = response.choices[0].message.content.strip()
-                # Apply formal to casual conversion for Burmese
-                if target_language == "my":
-                    script = convert_burmese_formal_to_casual(script)
-                    logger.info("Applied Burmese formal-to-casual conversion")
-                logger.info(f"Script generated successfully with Groq: {len(script)} chars")
-                return script
-            
             # Final fallback to Gemini
             gemini_client = await self._get_gemini_client()
             if gemini_client:
                 logger.info("Using Gemini for script generation - final fallback")
+                import asyncio
                 response = await asyncio.wait_for(
                     gemini_client.generate_content_async(prompt),
                     timeout=60.0  # 60 second timeout
@@ -337,7 +341,7 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                 logger.info(f"Script generated successfully with Gemini: {len(script)} chars")
                 return script
             
-            raise ValueError("No AI API key configured (Poe, OpenRouter, Groq, or Gemini)")
+            raise ValueError("No AI API key configured (Poe, Groq, OpenRouter, or Gemini)")
             
         except Exception as e:
             logger.error(f"Script generation failed: {e}")
