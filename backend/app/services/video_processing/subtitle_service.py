@@ -85,9 +85,9 @@ class SubtitleService:
         ass_path = work_dir / "subtitles.ass"
         font_size = self.FONT_SIZES.get(options.size, 36)
         
-        # Position mapping (MarginV)
-        positions = {"top": 20, "center": 200, "bottom": 50}
-        margin_v = positions.get(options.position, 50)
+        # Position mapping (MarginV) - higher value moves subtitle UP from bottom
+        positions = {"top": 900, "center": 400, "bottom": 120}
+        margin_v = positions.get(options.position, 120)
         
         # Background style
         backgrounds = {"none": 0, "semi": 1, "solid": 3}

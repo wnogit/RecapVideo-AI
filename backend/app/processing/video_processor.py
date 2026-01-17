@@ -91,9 +91,9 @@ class VideoProcessor:
             ),
             copyright=CopyrightOptions(
                 color_adjust=copyright_opts.get("color_adjust", True),
-                horizontal_flip=copyright_opts.get("horizontal_flip", True),
+                horizontal_flip=copyright_opts.get("horizontal_flip", False),
                 slight_zoom=copyright_opts.get("slight_zoom", False),
-                audio_pitch_shift=copyright_opts.get("audio_pitch_shift", True),
+                audio_pitch_shift=copyright_opts.get("audio_pitch_shift", False),
                 pitch_value=float(copyright_opts.get("pitch_value", copyright_opts.get("pitchValue", 1.0))),
             ),
             subtitles=SubtitleOptions(
@@ -325,8 +325,8 @@ class VideoProcessor:
         options = video.options or {}
         voice_settings = options.get("voice_settings", {})
         
-        # Default: normal speech rate (was -10% but too slow)
-        rate = voice_settings.get("rate", "+10%")  # Default 10% faster for better video sync
+        # Default: 20% faster speech rate for better video sync (2:20 original → ~3:00 output)
+        rate = voice_settings.get("rate", "+20%")  # Default 20% faster for better video sync
         volume = voice_settings.get("volume", "+0%")
         pitch = voice_settings.get("pitch", "+0Hz")
         

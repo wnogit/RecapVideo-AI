@@ -16,9 +16,9 @@ from app.utils.youtube import is_youtube_url
 class CopyrightOptionsSchema(BaseModel):
     """Copyright bypass options."""
     color_adjust: bool = Field(default=True, description="Adjust colors slightly")
-    horizontal_flip: bool = Field(default=True, description="Flip video horizontally")
+    horizontal_flip: bool = Field(default=False, description="Flip video horizontally")
     slight_zoom: bool = Field(default=False, description="Apply slight zoom effect")
-    audio_pitch_shift: bool = Field(default=True, description="Shift audio pitch slightly")
+    audio_pitch_shift: bool = Field(default=False, description="Shift audio pitch slightly")
     pitch_value: float = Field(default=1.0, ge=0.5, le=1.5, description="Pitch multiplier (0.5-1.5, default 1.0)")
 
 
