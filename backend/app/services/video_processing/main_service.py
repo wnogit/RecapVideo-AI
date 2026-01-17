@@ -313,7 +313,7 @@ class VideoProcessingService:
             "-vf", filter_str,
             "-c:a", "copy",
             "-c:v", "libx264",
-            "-preset", "fast",
+            "-preset", "ultrafast",
             "-crf", "23",
             str(output_path)
         ]
@@ -410,7 +410,7 @@ class VideoProcessingService:
                 "-map", "0:a?",
                 "-c:a", "copy",
                 "-c:v", "libx264",
-                "-preset", "fast",
+                "-preset", "ultrafast",
                 "-crf", "23",
                 str(output_path)
             ]
@@ -423,7 +423,7 @@ class VideoProcessingService:
                     "-filter_complex", filter_complex.rstrip(f"[{current_label}]"),
                     "-c:a", "copy",
                     "-c:v", "libx264",
-                    "-preset", "fast",
+                    "-preset", "ultrafast",
                     "-crf", "23",
                     str(output_path)
                 ]

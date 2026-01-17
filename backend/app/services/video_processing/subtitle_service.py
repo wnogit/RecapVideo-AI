@@ -63,7 +63,7 @@ class SubtitleService:
             "-vf", f"ass={ass_path_escaped}",
             "-c:a", "copy",
             "-c:v", "libx264",
-            "-preset", "fast",
+            "-preset", "ultrafast",
             "-crf", "23",
             str(output_path)
         ]

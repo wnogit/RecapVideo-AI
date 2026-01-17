@@ -62,7 +62,7 @@ class AudioService:
                 "-i", video_path,
                 "-t", str(audio_duration + 1),
                 "-c:v", "libx264",
-                "-preset", "fast",
+                "-preset", "ultrafast",
                 "-crf", "23",
                 "-an",
                 str(looped_path)

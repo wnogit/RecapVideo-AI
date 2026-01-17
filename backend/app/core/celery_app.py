@@ -41,8 +41,9 @@ celery_app.conf.update(
     worker_concurrency=4,  # 4 concurrent video tasks
     
     # Task time limits (video processing can take time)
-    task_soft_time_limit=600,   # 10 minutes soft limit
-    task_time_limit=900,        # 15 minutes hard limit
+    # Long videos with 3+ min audio need more time for FFmpeg processing
+    task_soft_time_limit=1800,   # 30 minutes soft limit
+    task_time_limit=2100,        # 35 minutes hard limit
     
     # Memory optimization
     worker_max_tasks_per_child=50,  # Restart worker after 50 tasks to free memory

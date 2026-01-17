@@ -56,7 +56,7 @@ class ResizeService:
             "-vf", filter_str,
             "-c:a", "copy",
             "-c:v", "libx264",
-            "-preset", "fast",
+            "-preset", "ultrafast",
             "-crf", "23",
             str(output_path)
         ]
@@ -125,7 +125,7 @@ class ResizeService:
             "-vf", filter_str,
             "-c:a", "copy",
             "-c:v", "libx264",
-            "-preset", "fast",
+            "-preset", "ultrafast",
             "-crf", "23",
             str(output_path)
         ]

@@ -120,7 +120,7 @@ class OutroService:
             "-vf", f"drawtext=text='{channel_text}':fontsize=60:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2-50,drawtext=text='{style['text']}':fontsize=40:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2+50",
             "-c:v", "libx264",
             "-c:a", "aac",
-            "-preset", "fast",
+            "-preset", "ultrafast",
             str(output_path)
         ]
         
@@ -155,7 +155,7 @@ class OutroService:
             "-i", str(concat_file),
             "-c:v", "libx264",
             "-c:a", "aac",
-            "-preset", "fast",
+            "-preset", "ultrafast",
             str(output_path)
         ]
         
