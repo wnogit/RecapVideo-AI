@@ -46,7 +46,7 @@ const INTEGRATION_CATEGORIES = {
     icon: Sparkles,
     color: 'text-purple-500',
     bgColor: 'bg-purple-500/10',
-    providers: ['poe', 'groq', 'gemini', 'openrouter']
+    providers: ['deepinfra', 'poe', 'groq', 'gemini', 'openrouter']
   },
   transcript: {
     title: 'Transcript',
@@ -82,16 +82,23 @@ const PROVIDER_CONFIG: Record<string, {
   docsUrl?: string;
   category: string;
 }> = {
+  deepinfra: { 
+    name: 'DeepInfra (Gemini 2.5 Flash)', 
+    description: 'PRIMARY AI - Best for Burmese scripts',
+    icon: '🚀',
+    docsUrl: 'https://deepinfra.com/dash/api_keys',
+    category: 'script_generation'
+  },
   poe: { 
     name: 'Poe (Claude FREE)', 
-    description: 'Primary AI for script generation via Poe',
+    description: 'Backup AI for script generation via Poe',
     icon: '🎭',
     docsUrl: 'https://poe.com/api_pricing',
     category: 'script_generation'
   },
   groq: { 
     name: 'Groq (Llama 3.3)', 
-    description: 'Fast AI fallback - FREE tier available',
+    description: 'Fast AI fallback - English only',
     icon: '⚡',
     docsUrl: 'https://console.groq.com/',
     category: 'script_generation'
