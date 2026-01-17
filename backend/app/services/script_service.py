@@ -377,10 +377,11 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                             # Strip <think> block from thinking models
                             script = strip_thinking_block(script)
                             
-                            # Apply formal to casual conversion for Burmese
-                            if target_language == "my":
-                                script = convert_burmese_formal_to_casual(script)
-                                logger.info("Applied Burmese formal-to-casual conversion")
+                            # Note: Formal-to-casual conversion disabled - AI prompt already requests casual style
+                            # and conversion was causing spelling errors (e.g., "သို့" → "ကို" in wrong contexts)
+                            # if target_language == "my":
+                            #     script = convert_burmese_formal_to_casual(script)
+                            #     logger.info("Applied Burmese formal-to-casual conversion")
                             
                             logger.info(f"Script generated successfully with {provider} (priority {priority}): {len(script)} chars")
                             return script
