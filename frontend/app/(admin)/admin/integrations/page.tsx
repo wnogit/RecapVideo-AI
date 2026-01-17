@@ -356,12 +356,12 @@ export default function IntegrationsPage() {
     setTestingKey(key.id);
     try {
       const response = await adminApiKeysApi.test(key.id);
-      if (response.data?.success) {
+      if (response.data?.status === 'success') {
         toast({ title: 'Connection test successful!' });
       } else {
         toast({ 
           title: 'Connection test failed', 
-          description: response.data?.error || 'Unknown error',
+          description: response.data?.message || 'Unknown error',
           variant: 'destructive' 
         });
       }
