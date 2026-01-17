@@ -216,12 +216,7 @@ export default function IntegrationsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [revealedKeys, setRevealedKeys] = useState<Record<string, string>>({});
   const [testingKey, setTestingKey] = useState<string | null>(null);
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
-    script_generation: true,
-    transcript: true,
-    storage: true,
-    email: true,
-  });
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<APIKey | null>(null);
 
   const fetchApiKeys = useCallback(async () => {
@@ -246,11 +241,18 @@ export default function IntegrationsPage() {
     fetchApiKeys();
   }, [fetchApiKeys]);
 
+  // Auto-select first provider with keys
+  useEffect(() => {
+    if (!selectedProvider && apiKeys.length > 0) {
+      const firstProvider = apiKeys[0]?.key_type;
+      if (firstProvider) {
+        setSelectedProvider(firstProvider);
+      }
+    }
+  }, [apiKeys, selectedProvider]);
+
   const toggleCategory = (category: string) => {
-    setExpandedCategories(prev => ({
-      ...prev,
-      [category]: !prev[category]
-    }));
+    // No longer needed for tag-based layout
   };
 
   const getKeysByProvider = (provider: string) => {
@@ -630,81 +632,50 @@ export default function IntegrationsPage() {
         </div>
       </div>
 
-      {/* Quick Status Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {Object.entries(INTEGRATION_CATEGORIES).map(([key, category]) => {
-          const CategoryIcon = category.icon;
-          const activeCount = category.providers.filter(p => getProviderStatus(p) === 'active').length;
-          const totalCount = category.providers.length;
-          
-          return (
-            <Card key={key} className="cursor-pointer hover:border-primary/50 transition-colors"
-              onClick={() => {
-                setExpandedCategories(prev => ({ ...prev, [key]: true }));
-                document.getElementById(`category-${key}`)?.scrollIntoView({ behavior: 'smooth' });
-              }}
-            >
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${category.bgColor}`}>
-                    <CategoryIcon className={`h-5 w-5 ${category.color}`} />
-                  </div>
-                  <div>
-                    <p className="font-medium">{category.title}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {activeCount}/{totalCount} active
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+      {/* Provider Tag Buttons */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Select Provider</CardTitle>
+          <CardDescription>Click on a provider to view and manage its API keys</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {Object.keys(PROVIDER_CONFIG).map((provider) => {
+              const config = PROVIDER_CONFIG[provider];
+              const status = getProviderStatus(provider);
+              const keys = getKeysByProvider(provider);
+              const isSelected = selectedProvider === provider;
 
-      {/* Integration Categories */}
-      <div className="space-y-4">
-        {Object.entries(INTEGRATION_CATEGORIES).map(([categoryKey, category]) => {
-          const CategoryIcon = category.icon;
-          const isExpanded = expandedCategories[categoryKey];
-          
-          return (
-            <Card key={categoryKey} id={`category-${categoryKey}`}>
-              <Collapsible open={isExpanded} onOpenChange={() => toggleCategory(categoryKey)}>
-                <CollapsibleTrigger asChild>
-                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${category.bgColor}`}>
-                          <CategoryIcon className={`h-5 w-5 ${category.color}`} />
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg">{category.title}</CardTitle>
-                          <CardDescription>{category.description}</CardDescription>
-                        </div>
-                      </div>
-                      {isExpanded ? (
-                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                      ) : (
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                      )}
-                    </div>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent className="pt-0">
-                    <div className="grid gap-4">
-                      {category.providers.map(provider => 
-                        renderProviderCard(provider, categoryKey)
-                      )}
-                    </div>
-                  </CardContent>
-                </CollapsibleContent>
-              </Collapsible>
-            </Card>
-          );
-        })}
-      </div>
+              return (
+                <Button
+                  key={provider}
+                  variant={isSelected ? 'default' : 'outline'}
+                  className={`h-auto py-3 px-4 flex flex-col items-start gap-1 ${
+                    isSelected ? '' : 'hover:border-primary/50'
+                  }`}
+                  onClick={() => setSelectedProvider(provider)}
+                >
+                  <div className="flex items-center gap-2 w-full">
+                    <span className="text-xl">{config.icon}</span>
+                    <span className="font-medium text-sm">{config.name.split(' ')[0]}</span>
+                    {status === 'active' && (
+                      <CheckCircle2 className="h-3 w-3 text-green-500 ml-auto" />
+                    )}
+                  </div>
+                  {keys.length > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      {keys.length} key{keys.length > 1 ? 's' : ''}
+                    </span>
+                  )}
+                </Button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Selected Provider Details */}
+      {selectedProvider && renderProviderCard(selectedProvider, '')}
 
       {/* Add/Edit Key Dialog */}
       <Dialog open={showKeyDialog} onOpenChange={setShowKeyDialog}>
