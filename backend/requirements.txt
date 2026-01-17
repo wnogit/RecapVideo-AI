@@ -43,6 +43,7 @@ curl_cffi>=0.13.0,<0.14.0
 # External APIs
 google-generativeai>=0.8.0
 groq>=0.11.0
+openai>=1.0.0
 poe-api-wrapper>=1.6.0
 resend==0.7.2
 boto3==1.34.34
