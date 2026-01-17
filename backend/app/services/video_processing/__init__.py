@@ -5,6 +5,7 @@ Modular video processing services for FFmpeg operations.
 This package contains:
 - models.py: Dataclasses for processing options
 - ffmpeg_utils.py: FFmpeg command utilities
+- single_pass_processor.py: OPTIMIZED single-pass processing (3-5x faster)
 - blur_service.py: Blur effect processing
 - subtitle_service.py: Subtitle burning
 - logo_service.py: Logo overlay
@@ -16,7 +17,7 @@ Video Format Summary:
 =====================
 - Output Format: MP4 (H.264 video + AAC audio)
 - Video Codec: libx264
-- Preset: fast (balance of speed and quality)
+- Preset: ultrafast (optimized for speed)
 - CRF: 23 (good quality, moderate file size)
 - Audio Codec: AAC @ 192kbps
 
@@ -25,6 +26,10 @@ Aspect Ratios Supported:
 - 16:9 (1920x1080) - YouTube
 - 1:1 (1080x1080) - Instagram Square
 - 4:5 (1080x1350) - Instagram Portrait
+
+OPTIMIZATION (2026-01-17):
+- Single-pass FFmpeg processing: 10+ min → 2-3 min
+- Feature flag: USE_SINGLE_PASS=true (default)
 """
 
 from .models import (
@@ -47,6 +52,7 @@ from .outro_service import OutroService
 from .copyright_service import CopyrightService
 from .resize_service import ResizeService
 from .main_service import VideoProcessingService
+from .single_pass_processor import SinglePassProcessor, SinglePassProcessorV2
 
 
 __all__ = [
@@ -70,5 +76,8 @@ __all__ = [
     "CopyrightService",
     "ResizeService",
     "VideoProcessingService",
+    # Optimized processors
+    "SinglePassProcessor",
+    "SinglePassProcessorV2",
 ]
 

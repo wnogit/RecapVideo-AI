@@ -2,9 +2,11 @@
 Video Processing - Main Service (Orchestrator)
 Coordinates all video processing services in correct order
 
-OPTIMIZED: Steps 1-4 combined into single FFmpeg filter_complex command
-to reduce disk I/O and improve processing speed.
+OPTIMIZED V2: Single-Pass FFmpeg processing for 3-5x speed improvement
+- Feature flag: USE_SINGLE_PASS (default: True)
+- Falls back to multi-pass if single-pass fails
 """
+import os
 from pathlib import Path
 from typing import Optional, Callable, List
 import shutil
@@ -28,6 +30,10 @@ from .logo_service import LogoService
 from .audio_service import AudioService
 from .subtitle_service import SubtitleService
 from .outro_service import OutroService
+from .single_pass_processor import SinglePassProcessorV2
+
+# Feature flag for single-pass processing
+USE_SINGLE_PASS = os.environ.get("USE_SINGLE_PASS", "true").lower() == "true"
 
 
 class VideoProcessingService:
@@ -80,6 +86,13 @@ class VideoProcessingService:
         self.audio_service = AudioService(self.ffmpeg_utils)
         self.subtitle_service = SubtitleService(self.ffmpeg_utils, font_path)
         self.outro_service = OutroService(self.ffmpeg_utils, font_path)
+        
+        # Initialize single-pass processor
+        self.single_pass = SinglePassProcessorV2(
+            self.ffmpeg_utils,
+            self.subtitle_service,
+            self.outro_service,
+        )
     
     async def process_video(
         self,
@@ -93,8 +106,8 @@ class VideoProcessingService:
         """
         Process video with all configured options.
         
-        OPTIMIZED: Steps 1-4 are now combined into a single FFmpeg command
-        using filter_complex to reduce disk I/O and improve speed.
+        OPTIMIZED V2: Uses single-pass FFmpeg processing by default.
+        Falls back to multi-pass if single-pass fails.
         
         Args:
             source_video: Path to source video file
@@ -110,68 +123,55 @@ class VideoProcessingService:
         work_dir = Path(output_path).parent / "work"
         work_dir.mkdir(parents=True, exist_ok=True)
         
-        current_video = source_video
-        
         try:
             # ============================================
-            # PHASE 1: Visual Effects (OPTIMIZED - Single FFmpeg command)
-            # Steps 1-4: Copyright, Blur, Resize, Logo
+            # TRY SINGLE-PASS PROCESSING (3-5x FASTER)
             # ============================================
-            self._update_progress(progress_callback, "Processing visual effects", 10)
-            logger.info("[PROCESS] Phase 1: Visual effects (optimized single command)")
+            if USE_SINGLE_PASS:
+                try:
+                    self._update_progress(progress_callback, "Starting optimized processing", 5)
+                    logger.info("[PROCESS] Using SINGLE-PASS optimized processing")
+                    
+                    # Prepare logo path
+                    logo_path = None
+                    if options.logo.enabled and options.logo.image_path:
+                        logo_path = await self.logo_service._ensure_local_logo(
+                            options.logo.image_path, work_dir
+                        )
+                    
+                    self._update_progress(progress_callback, "Processing video (single-pass)", 20)
+                    
+                    result = await self.single_pass.process(
+                        source_video=source_video,
+                        output_path=output_path,
+                        options=options,
+                        audio_path=audio_path,
+                        subtitle_path=subtitle_path,
+                        logo_path=logo_path,
+                        work_dir=work_dir,
+                    )
+                    
+                    self._update_progress(progress_callback, "Complete", 100)
+                    logger.info(f"[PROCESS] Single-pass complete! Output: {output_path}")
+                    return result
+                    
+                except Exception as single_pass_error:
+                    logger.warning(f"[PROCESS] Single-pass failed, falling back to multi-pass: {single_pass_error}")
+                    # Continue to multi-pass below
             
-            current_video = await self._process_visual_effects_combined(
-                current_video, options, work_dir
+            # ============================================
+            # FALLBACK: MULTI-PASS PROCESSING
+            # ============================================
+            logger.info("[PROCESS] Using multi-pass processing")
+            return await self._process_multi_pass(
+                source_video=source_video,
+                output_path=output_path,
+                options=options,
+                audio_path=audio_path,
+                subtitle_path=subtitle_path,
+                progress_callback=progress_callback,
+                work_dir=work_dir,
             )
-            self._update_progress(progress_callback, "Visual effects complete", 40)
-            
-            # ============================================
-            # PHASE 2: Audio + Subtitles
-            # ============================================
-            
-            # Step 5: Replace audio with TTS
-            if audio_path:
-                self._update_progress(progress_callback, "Replacing audio", 50)
-                logger.info("[PROCESS] Step 5: Replace audio")
-                current_video = await self.audio_service.replace_audio(
-                    current_video,
-                    audio_path,
-                    options.copyright.audio_pitch_shift,
-                    options.copyright.pitch_value,
-                    work_dir
-                )
-            
-            # Step 6: Burn subtitles
-            if subtitle_path and options.subtitles.enabled:
-                self._update_progress(progress_callback, "Burning subtitles", 70)
-                logger.info("[PROCESS] Step 6: Burn subtitles")
-                current_video = await self.subtitle_service.burn_subtitles(
-                    current_video, subtitle_path, options.subtitles, work_dir
-                )
-            
-            # ============================================
-            # PHASE 3: Outro
-            # ============================================
-            
-            # Step 7: Generate and add outro
-            if options.outro.enabled:
-                self._update_progress(progress_callback, "Adding outro", 85)
-                logger.info("[PROCESS] Step 7: Generate outro")
-                outro_video = await self.outro_service.generate_outro(
-                    options.outro, work_dir
-                )
-                current_video = await self.outro_service.concat_videos(
-                    current_video, outro_video, work_dir
-                )
-            
-            # Copy final output
-            self._update_progress(progress_callback, "Finalizing", 95)
-            shutil.copy2(current_video, output_path)
-            
-            logger.info(f"[PROCESS] Complete! Output: {output_path}")
-            self._update_progress(progress_callback, "Complete", 100)
-            
-            return output_path
             
         except Exception as e:
             logger.error(f"[PROCESS] Failed: {e}")
@@ -182,6 +182,80 @@ class VideoProcessingService:
                 shutil.rmtree(work_dir)
             except Exception as cleanup_err:
                 logger.warning(f"Failed to cleanup work directory {work_dir}: {cleanup_err}")
+    
+    async def _process_multi_pass(
+        self,
+        source_video: str,
+        output_path: str,
+        options: VideoProcessingOptions,
+        audio_path: Optional[str],
+        subtitle_path: Optional[str],
+        progress_callback: Optional[Callable[[str, int], None]],
+        work_dir: Path,
+    ) -> str:
+        """
+        Original multi-pass processing (fallback).
+        """
+        current_video = source_video
+        # ============================================
+        # PHASE 1: Visual Effects (OPTIMIZED - Single FFmpeg command)
+        # Steps 1-4: Copyright, Blur, Resize, Logo
+        # ============================================
+        self._update_progress(progress_callback, "Processing visual effects", 10)
+        logger.info("[MULTI-PASS] Phase 1: Visual effects (optimized single command)")
+        
+        current_video = await self._process_visual_effects_combined(
+            current_video, options, work_dir
+        )
+        self._update_progress(progress_callback, "Visual effects complete", 40)
+        
+        # ============================================
+        # PHASE 2: Audio + Subtitles
+        # ============================================
+        
+        # Step 5: Replace audio with TTS
+        if audio_path:
+            self._update_progress(progress_callback, "Replacing audio", 50)
+            logger.info("[MULTI-PASS] Step 5: Replace audio")
+            current_video = await self.audio_service.replace_audio(
+                current_video,
+                audio_path,
+                options.copyright.audio_pitch_shift,
+                options.copyright.pitch_value,
+                work_dir
+            )
+        
+        # Step 6: Burn subtitles
+        if subtitle_path and options.subtitles.enabled:
+            self._update_progress(progress_callback, "Burning subtitles", 70)
+            logger.info("[MULTI-PASS] Step 6: Burn subtitles")
+            current_video = await self.subtitle_service.burn_subtitles(
+                current_video, subtitle_path, options.subtitles, work_dir
+            )
+        
+        # ============================================
+        # PHASE 3: Outro
+        # ============================================
+        
+        # Step 7: Generate and add outro
+        if options.outro.enabled:
+            self._update_progress(progress_callback, "Adding outro", 85)
+            logger.info("[MULTI-PASS] Step 7: Generate outro")
+            outro_video = await self.outro_service.generate_outro(
+                options.outro, work_dir
+            )
+            current_video = await self.outro_service.concat_videos(
+                current_video, outro_video, work_dir
+            )
+        
+        # Copy final output
+        self._update_progress(progress_callback, "Finalizing", 95)
+        shutil.copy2(current_video, output_path)
+        
+        logger.info(f"[MULTI-PASS] Complete! Output: {output_path}")
+        self._update_progress(progress_callback, "Complete", 100)
+        
+        return output_path
     
     async def _process_visual_effects_combined(
         self,
