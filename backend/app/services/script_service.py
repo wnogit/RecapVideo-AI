@@ -312,48 +312,80 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
             if not providers:
                 raise ValueError("No AI providers configured in database or environment")
             
-            logger.info(f"AI Provider priority order: {[p['provider'] for p in providers]}")
+            # Group providers by priority
+            import random
+            from itertools import groupby
             
-            # Try each provider in priority order
+            providers_by_priority = {}
             for provider_info in providers:
-                provider = provider_info["provider"]
-                keys = provider_info["keys"]
-                default_model = provider_info.get("model")
-                
-                # Randomly select a key from available keys for this provider
-                import random
-                selected_key = random.choice(keys)
-                api_key = selected_key["key_value"]
-                model = selected_key.get("model") or default_model
-                
-                logger.info(f"Trying {provider} (model: {model}, keys available: {len(keys)})")
-                
-                try:
-                    script = await self._call_provider(
-                        provider=provider,
-                        api_key=api_key,
-                        model=model,
-                        system_prompt=system_prompt,
-                        prompt=prompt,
-                    )
-                    
-                    if script:
-                        # Strip <think> block from thinking models
-                        script = strip_thinking_block(script)
-                        
-                        # Apply formal to casual conversion for Burmese
-                        if target_language == "my":
-                            script = convert_burmese_formal_to_casual(script)
-                            logger.info("Applied Burmese formal-to-casual conversion")
-                        
-                        logger.info(f"Script generated successfully with {provider}: {len(script)} chars")
-                        return script
-                        
-                except Exception as e:
-                    logger.warning(f"{provider} failed: {e}, trying next provider...")
-                    continue
+                priority = provider_info["priority"]
+                if priority not in providers_by_priority:
+                    providers_by_priority[priority] = []
+                providers_by_priority[priority].append(provider_info)
             
-            raise ValueError("All AI providers failed")
+            sorted_priorities = sorted(providers_by_priority.keys())
+            logger.info(f"AI Provider priorities: {sorted_priorities}, providers: {[[p['provider'] for p in providers_by_priority[pri]] for pri in sorted_priorities]}")
+            
+            # Try each priority level, exhausting all keys before moving to next priority
+            for priority in sorted_priorities:
+                priority_providers = providers_by_priority[priority]
+                logger.info(f"Trying priority {priority} providers: {[p['provider'] for p in priority_providers]}")
+                
+                # Collect all keys from all providers at this priority level
+                all_keys_at_priority = []
+                for provider_info in priority_providers:
+                    provider = provider_info["provider"]
+                    keys = provider_info["keys"]
+                    default_model = provider_info.get("model")
+                    
+                    for key in keys:
+                        all_keys_at_priority.append({
+                            "provider": provider,
+                            "key_value": key["key_value"],
+                            "model": key.get("model") or default_model,
+                        })
+                
+                # Shuffle keys at this priority level for random distribution
+                random.shuffle(all_keys_at_priority)
+                
+                logger.info(f"Total keys at priority {priority}: {len(all_keys_at_priority)}")
+                
+                # Try all keys at this priority level
+                for key_info in all_keys_at_priority:
+                    provider = key_info["provider"]
+                    api_key = key_info["key_value"]
+                    model = key_info["model"]
+                    
+                    logger.info(f"Trying {provider} (model: {model}, priority: {priority})")
+                    
+                    try:
+                        script = await self._call_provider(
+                            provider=provider,
+                            api_key=api_key,
+                            model=model,
+                            system_prompt=system_prompt,
+                            prompt=prompt,
+                        )
+                        
+                        if script:
+                            # Strip <think> block from thinking models
+                            script = strip_thinking_block(script)
+                            
+                            # Apply formal to casual conversion for Burmese
+                            if target_language == "my":
+                                script = convert_burmese_formal_to_casual(script)
+                                logger.info("Applied Burmese formal-to-casual conversion")
+                            
+                            logger.info(f"Script generated successfully with {provider} (priority {priority}): {len(script)} chars")
+                            return script
+                            
+                    except Exception as e:
+                        logger.warning(f"{provider} (priority {priority}) failed: {e}, trying next key...")
+                        continue
+                
+                logger.warning(f"All keys at priority {priority} failed, moving to next priority...")
+            
+            raise ValueError("All AI providers at all priority levels failed")
             
         except Exception as e:
             logger.error(f"Script generation failed: {e}")

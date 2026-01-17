@@ -435,137 +435,168 @@ export default function IntegrationsPage() {
 
     const status = getProviderStatus(provider);
     const keys = getKeysByProvider(provider);
-    const primaryKey = keys.find(k => k.is_primary && k.is_active);
-    const activeKey = primaryKey || keys.find(k => k.is_active);
+    
+    // Group keys by priority for better visualization
+    const keysByPriority = keys.reduce((acc, key) => {
+      if (!acc[key.priority]) {
+        acc[key.priority] = [];
+      }
+      acc[key.priority].push(key);
+      return acc;
+    }, {} as Record<number, typeof keys>);
+    
+    const sortedPriorities = Object.keys(keysByPriority).sort((a, b) => Number(a) - Number(b));
 
     return (
-      <div 
-        key={provider}
-        className="border rounded-lg p-4 hover:border-primary/50 transition-colors"
-      >
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="text-2xl">{config.icon}</div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h4 className="font-medium">{config.name}</h4>
-                {status === 'active' && (
-                  <Badge variant="default" className="bg-green-500 hover:bg-green-600">
-                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                    Active
-                  </Badge>
-                )}
-                {status === 'inactive' && (
-                  <Badge variant="secondary">Inactive</Badge>
-                )}
-                {status === 'not_configured' && (
-                  <Badge variant="outline" className="text-muted-foreground">
-                    Not Configured
-                  </Badge>
-                )}
+      <Card key={provider} className="overflow-hidden hover:shadow-md transition-shadow">
+        {/* Provider Header */}
+        <div className="bg-gradient-to-r from-background to-muted/30 p-4 border-b">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="text-3xl">{config.icon}</div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <h4 className="font-semibold text-base">{config.name}</h4>
+                  {status === 'active' && (
+                    <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-xs">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Active
+                    </Badge>
+                  )}
+                  {status === 'inactive' && (
+                    <Badge variant="secondary" className="text-xs">Inactive</Badge>
+                  )}
+                  {status === 'not_configured' && (
+                    <Badge variant="outline" className="text-xs text-muted-foreground">
+                      Not Configured
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground line-clamp-1">{config.description}</p>
               </div>
-              <p className="text-sm text-muted-foreground">{config.description}</p>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {config.docsUrl && (
+            <div className="flex items-center gap-1">
+              {config.docsUrl && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="h-8 px-2 text-xs"
+                  onClick={() => window.open(config.docsUrl, '_blank')}
+                >
+                  Docs
+                </Button>
+              )}
               <Button 
-                variant="ghost" 
+                variant="outline" 
                 size="sm"
-                onClick={() => window.open(config.docsUrl, '_blank')}
+                className="h-8 px-3 text-xs"
+                onClick={() => handleAddKey(provider)}
               >
-                Docs
+                <Plus className="h-3 w-3 mr-1" />
+                Add Key
               </Button>
-            )}
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => handleAddKey(provider)}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add
-            </Button>
+            </div>
           </div>
         </div>
 
-        {/* Existing keys for this provider */}
+        {/* Keys Grid - Grouped by Priority */}
         {keys.length > 0 && (
-          <div className="mt-4 space-y-2">
-            {keys.map(key => (
-              <div 
-                key={key.id}
-                className="flex items-center justify-between p-3 bg-muted/50 rounded-md"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{key.name}</span>
-                      {key.is_primary && (
-                        <Badge variant="outline" className="text-xs">Primary</Badge>
-                      )}
-                      <Badge variant="secondary" className="text-xs">
-                        Priority: {key.priority}
+          <CardContent className="p-4">
+            <div className="space-y-4">
+              {sortedPriorities.map((priority) => {
+                const priorityKeys = keysByPriority[Number(priority)];
+                return (
+                  <div key={priority}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="secondary" className="text-xs font-normal">
+                        Priority {priority}
                       </Badge>
+                      <div className="text-xs text-muted-foreground">
+                        {priorityKeys.length} key{priorityKeys.length > 1 ? 's' : ''} 
+                        {Number(priority) === 1 && ' (Primary)'}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>
-                        {revealedKeys[key.id] 
-                          ? revealedKeys[key.id].substring(0, 20) + '...'
-                          : '••••••••••••'}
-                      </span>
-                      {key.model && (
-                        <span>• Model: {key.model.split('/').pop()}</span>
-                      )}
-                      {key.usage_count > 0 && (
-                        <span>• {key.usage_count} uses</span>
-                      )}
+                    <div className="grid grid-cols-1 gap-2">
+                      {priorityKeys.map(key => (
+                        <div 
+                          key={key.id}
+                          className="flex items-center justify-between p-3 border rounded-md bg-card hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${key.is_active ? 'bg-green-500' : 'bg-gray-300'}`} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-medium truncate">{key.name}</span>
+                                {key.is_primary && (
+                                  <Badge variant="outline" className="text-xs">⭐ Primary</Badge>
+                                )}
+                                {key.model && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {key.model.includes('/') ? key.model.split('/').pop() : key.model}
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                <span className="font-mono">
+                                  {revealedKeys[key.id] 
+                                    ? revealedKeys[key.id].substring(0, 24) + '...'
+                                    : '••••••••••••••••'}
+                                </span>
+                                {key.usage_count > 0 && (
+                                  <span>• {key.usage_count} uses</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleRevealKey(key.id)}
+                            >
+                              {revealedKeys[key.id] ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleTestKey(key)}
+                              disabled={testingKey === key.id}
+                            >
+                              {testingKey === key.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <TestTube className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleEditKey(key)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Switch
+                              checked={key.is_active}
+                              onCheckedChange={() => handleToggleActive(key)}
+                            />
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleRevealKey(key.id)}
-                  >
-                    {revealedKeys[key.id] ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleTestKey(key)}
-                    disabled={testingKey === key.id}
-                  >
-                    {testingKey === key.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <TestTube className="h-4 w-4" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleEditKey(key)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Switch
-                    checked={key.is_active}
-                    onCheckedChange={() => handleToggleActive(key)}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          </CardContent>
         )}
-      </div>
+      </Card>
     );
   };
 

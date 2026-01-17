@@ -37,12 +37,16 @@ async def get_api_key_types(
     result = []
     
     for key_type_info in API_KEY_TYPES:
-        # Check if key exists in database
+        # Check if key exists in database (get primary/highest priority active key)
         query = select(APIKey).where(
             APIKey.key_type == key_type_info["key_type"]
+        ).order_by(
+            APIKey.is_primary.desc(),
+            APIKey.priority.asc(),
+            APIKey.is_active.desc()
         )
         db_result = await db.execute(query)
-        api_key = db_result.scalar_one_or_none()
+        api_key = db_result.scalars().first()
         
         result.append(APIKeyTypeInfo(
             key_type=key_type_info["key_type"],
