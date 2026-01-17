@@ -17,6 +17,7 @@ import {
   Package,
   Wallet,
   Gift,
+  Plug,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -62,6 +63,11 @@ const adminNavItems = [
     title: "Prompts",
     href: "/admin/prompts",
     icon: FileText,
+  },
+  {
+    title: "Integrations",
+    href: "/admin/integrations",
+    icon: Plug,
   },
   {
     title: "Settings",
