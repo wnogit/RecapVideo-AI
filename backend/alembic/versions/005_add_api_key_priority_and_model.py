@@ -1,7 +1,7 @@
 """Add priority and model fields to api_keys table
 
-Revision ID: 005
-Revises: 004
+Revision ID: 005_add_api_key_priority_and_model
+Revises: 004_add_purchased_credits
 Create Date: 2026-01-17
 """
 from alembic import op
@@ -9,8 +9,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers
-revision = '005'
-down_revision = '004'
+revision = '005_add_api_key_priority_and_model'
+down_revision = '004_add_purchased_credits'
 branch_labels = None
 depends_on = None
 
