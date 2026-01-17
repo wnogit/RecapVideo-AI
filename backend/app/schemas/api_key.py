@@ -77,6 +77,12 @@ API_KEY_TYPES = [
         "required": False,
     },
     {
+        "key_type": "openrouter",
+        "name": "OpenRouter",
+        "description": "Pay-as-you-go AI API - Access to DeepSeek, Claude, GPT models",
+        "required": False,
+    },
+    {
         "key_type": "groq",
         "name": "Groq (Llama 3.3)",
         "description": "FREE Llama 3.3 70B - Fast AI for script generation (Fallback)",

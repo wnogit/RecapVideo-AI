@@ -131,6 +131,41 @@ Output the script ONLY - no titles, no metadata, no commentary."""
         """Initialize script generation service."""
         self._groq_client = None
         self._gemini_client = None
+        self._openrouter_client = None
+    
+    async def _get_openrouter_client(self):
+        """Lazy-load OpenRouter client with API key from database."""
+        import httpx
+        
+        api_key = await api_key_service.get_openrouter_key()
+        if not api_key:
+            return None
+        
+        return api_key  # Return just the key, we'll use httpx directly
+    
+    async def _call_openrouter(self, api_key: str, messages: list, model: str = "deepseek/deepseek-chat") -> str:
+        """Call OpenRouter API directly."""
+        import httpx
+        
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://recapvideo.com",
+                    "X-Title": "RecapVideo AI",
+                },
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "max_tokens": 2000,
+                    "temperature": 0.7,
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"].strip()
     
     async def _get_groq_client(self):
         """Lazy-load Groq client with API key from database."""
@@ -232,6 +267,32 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                     return script
                 logger.warning("Poe generation returned empty, trying fallback...")
             
+            # Fallback to OpenRouter (pay-as-you-go, many models)
+            openrouter_key = await self._get_openrouter_client()
+            if openrouter_key:
+                logger.info("Using OpenRouter (DeepSeek V3) for script generation - fallback")
+                import asyncio
+                try:
+                    script = await asyncio.wait_for(
+                        self._call_openrouter(
+                            api_key=openrouter_key,
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": prompt}
+                            ],
+                            model="deepseek/deepseek-chat",  # DeepSeek V3 - cheapest & good quality
+                        ),
+                        timeout=120.0  # 120 second timeout for OpenRouter
+                    )
+                    # Apply formal to casual conversion for Burmese
+                    if target_language == "my":
+                        script = convert_burmese_formal_to_casual(script)
+                        logger.info("Applied Burmese formal-to-casual conversion")
+                    logger.info(f"Script generated successfully with OpenRouter: {len(script)} chars")
+                    return script
+                except Exception as e:
+                    logger.warning(f"OpenRouter failed: {e}, trying next fallback...")
+            
             # Fallback to Groq (faster and good free tier)
             groq_client = await self._get_groq_client()
             if groq_client:
@@ -273,7 +334,7 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                 logger.info(f"Script generated successfully with Gemini: {len(script)} chars")
                 return script
             
-            raise ValueError("No AI API key configured (Poe, Groq, or Gemini)")
+            raise ValueError("No AI API key configured (Poe, OpenRouter, Groq, or Gemini)")
             
         except Exception as e:
             logger.error(f"Script generation failed: {e}")
@@ -313,6 +374,15 @@ Output the improved script ONLY:
                 response = await poe_service.chat(prompt)
                 if response:
                     return response
+            
+            # Fallback to OpenRouter
+            openrouter_key = await self._get_openrouter_client()
+            if openrouter_key:
+                return await self._call_openrouter(
+                    api_key=openrouter_key,
+                    messages=[{"role": "user", "content": prompt}],
+                    model="deepseek/deepseek-chat",
+                )
             
             # Fallback to Groq
             groq_client = await self._get_groq_client()
