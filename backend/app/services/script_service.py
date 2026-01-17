@@ -96,10 +96,12 @@ Create a compelling, story-driven recap script from the transcript.
 
 ## CRITICAL GUIDELINES:
 
-### 1. LENGTH & TIMING
-- Script should be 2-3 minutes speaking time (300-500 words)
-- Do NOT shorten content unnecessarily
-- Include all key points from the original video
+### 1. LENGTH & FULL COVERAGE (MOST IMPORTANT!)
+- MUST cover the ENTIRE story from beginning to END
+- Script length should match video length (3-4 minutes = 500-700 words)
+- Do NOT cut off mid-story or leave ending incomplete
+- Include EVERY major plot point, twist, and conclusion
+- If the story has an ending, YOU MUST include it
 
 ### 2. SENTENCE STRUCTURE (FOR TTS)
 - Use SHORT sentences: 8-15 words maximum per sentence
@@ -109,9 +111,9 @@ Create a compelling, story-driven recap script from the transcript.
 
 ### 3. STORYTELLING
 - Start with a HOOK that grabs attention
-- Build curiosity and tension
+- Build curiosity and tension throughout
 - Use conversational, friendly tone
-- End with a memorable conclusion
+- ALWAYS end with the story's actual conclusion
 
 ### 4. BURMESE WRITING (if မြန်မာ)
 - Use natural spoken Burmese, not formal
@@ -125,6 +127,7 @@ Create a compelling, story-driven recap script from the transcript.
 - Pure narration text only
 - Natural paragraph breaks
 
+IMPORTANT: The script MUST tell the COMPLETE story with its ending. Never stop in the middle.
 Output the script ONLY - no titles, no metadata, no commentary."""
 
     def __init__(self):
@@ -143,11 +146,11 @@ Output the script ONLY - no titles, no metadata, no commentary."""
         
         return api_key  # Return just the key, we'll use httpx directly
     
-    async def _call_openrouter(self, api_key: str, messages: list, model: str = "deepseek/deepseek-chat") -> str:
+    async def _call_openrouter(self, api_key: str, messages: list, model: str = "deepseek/deepseek-chat", max_tokens: int = 4000) -> str:
         """Call OpenRouter API directly."""
         import httpx
         
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=180.0) as client:
             response = await client.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers={
@@ -159,7 +162,7 @@ Output the script ONLY - no titles, no metadata, no commentary."""
                 json={
                     "model": model,
                     "messages": messages,
-                    "max_tokens": 2000,
+                    "max_tokens": max_tokens,
                     "temperature": 0.7,
                 },
             )
@@ -305,10 +308,10 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                             {"role": "system", "content": system_prompt},
                             {"role": "user", "content": prompt}
                         ],
-                        max_tokens=2000,
+                        max_tokens=4000,
                         temperature=0.7,
                     ),
-                    timeout=60.0  # 60 second timeout
+                    timeout=90.0  # 90 second timeout
                 )
                 script = response.choices[0].message.content.strip()
                 # Apply formal to casual conversion for Burmese
