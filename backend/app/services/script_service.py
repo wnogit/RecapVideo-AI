@@ -139,8 +139,14 @@ Create a compelling, story-driven recap script from the transcript.
 - Use conversational, friendly tone
 - ALWAYS end with the story's actual conclusion
 
-### 4. BURMESE WRITING (if မြန်မာ)
+### 4. BURMESE WRITING (if မြန်မာ) - SPELLING IS CRITICAL!
+- Use CORRECT Burmese spelling and grammar ALWAYS
+- Double-check every word for correct spelling (ပေါင်းစပ်)
 - Use natural spoken Burmese, not formal
+- Common mistakes to avoid:
+  * "ဗအ" → "ဘို့" (for "for/to")
+  * "တောင်း" → "တောင့်" (context-dependent)
+  * "နူမာ" → "နောက်မှာ" or "နောက်ဆုံး" (context-dependent)
 - Avoid complex compound words
 - Use simple punctuation (။ ၊)
 - Write numbers as words when possible

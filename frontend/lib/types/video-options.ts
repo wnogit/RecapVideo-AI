@@ -43,10 +43,10 @@ export interface CopyrightOptions {
 }
 
 export const DEFAULT_COPYRIGHT_OPTIONS: CopyrightOptions = {
-  colorAdjust: true,
-  horizontalFlip: true,
+  colorAdjust: false,
+  horizontalFlip: false,
   slightZoom: false,
-  audioPitchShift: true,
+  audioPitchShift: false,
   pitchValue: 1.0,
 };
 
