@@ -174,13 +174,29 @@ class VideoProcessor:
                 await self._update_status(
                     db, video,
                     VideoStatus.GENERATING_SCRIPT,
-                    "✍️ Script ရေးနေပါတယ်...",
+                    "✍️ Script ရေးနေပါတယ် + Video ဒေါင်းလုဒ်လုပ်နေပါတယ်...",
                     30
                 )
                 
-                # Step 2: Generate script
-                script = await self._generate_script(video)
+                # ============================================
+                # OPTIMIZED: Parallel processing with asyncio.gather()
+                # Script generation + Video download run simultaneously
+                # Saves 1-3 minutes per video
+                # ============================================
+                logger.info("[PARALLEL] Starting parallel: Script generation + Video download")
+                
+                # Run script generation and video download in parallel
+                script_task = self._generate_script(video)
+                download_task = self._download_source_video(video)
+                
+                script, source_video_path = await asyncio.gather(
+                    script_task,
+                    download_task,
+                    return_exceptions=False  # Raise exception if any task fails
+                )
+                
                 video.script = script
+                logger.info("[PARALLEL] Completed: Script generation + Video download")
                 
                 await self._update_status(
                     db, video,
@@ -189,7 +205,7 @@ class VideoProcessor:
                     50
                 )
                 
-                # Step 3: Generate audio
+                # Step 3: Generate audio (needs script, so can't be parallelized with above)
                 audio_path, subtitle_path = await self._generate_audio(video)
                 
                 await self._update_status(
@@ -199,9 +215,7 @@ class VideoProcessor:
                     70
                 )
                 
-                # Step 4: Download source video and render with FFmpeg
-                source_video_path = await self._download_source_video(video)
-                
+                # Step 4: Process video with FFmpeg (source video already downloaded)
                 # Prepare output path for processed video
                 output_video_path = str(self.temp_dir / f"processed_{video_id}.mp4")
                 

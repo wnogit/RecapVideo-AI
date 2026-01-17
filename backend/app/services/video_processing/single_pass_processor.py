@@ -115,7 +115,7 @@ class SinglePassProcessor:
         # Convert subtitles to ASS format
         ass_path = None
         if subtitle_path and options.subtitles.enabled:
-            ass_path = await self.subtitle_service._convert_to_ass(
+            ass_path = await self.subtitle_service.convert_to_ass(
                 subtitle_path, options.subtitles, work_dir
             )
             logger.info(f"[SINGLE-PASS] Subtitles converted to ASS: {ass_path}")
@@ -474,7 +474,7 @@ class SinglePassProcessorV2:
         # Convert subtitles
         ass_path = None
         if subtitle_path and options.subtitles.enabled:
-            ass_path = await self.subtitle_service._convert_to_ass(
+            ass_path = await self.subtitle_service.convert_to_ass(
                 subtitle_path, options.subtitles, work_dir
             )
         

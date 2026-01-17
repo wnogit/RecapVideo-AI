@@ -52,7 +52,7 @@ class SubtitleService:
         output_path = work_dir / "with_subs.mp4"
         
         # Convert subtitle to ASS for better styling
-        ass_path = await self._convert_to_ass(subtitle_path, options, work_dir)
+        ass_path = await self.convert_to_ass(subtitle_path, options, work_dir)
         
         # Escape path for FFmpeg (Windows compatibility)
         ass_path_escaped = str(ass_path).replace("\\", "/").replace(":", "\\\\:")
@@ -71,13 +71,17 @@ class SubtitleService:
         await self.ffmpeg.run_ffmpeg(cmd)
         return str(output_path)
     
-    async def _convert_to_ass(
+    async def convert_to_ass(
         self,
         subtitle_path: str,
         options: SubtitleOptions,
         work_dir: Path,
     ) -> Path:
-        """Convert VTT/SRT to ASS with styling."""
+        """
+        Convert VTT/SRT to ASS with styling.
+        
+        Public method for external use (e.g., SinglePassProcessor).
+        """
         ass_path = work_dir / "subtitles.ass"
         font_size = self.FONT_SIZES.get(options.size, 36)
         
