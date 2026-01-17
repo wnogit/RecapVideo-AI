@@ -176,7 +176,15 @@ export const useVideoStore = create<VideoState>((set, get) => ({
       
       return video;
     } catch (error: any) {
-      const message = error.response?.data?.detail || 'Failed to create video';
+      const detail = error.response?.data?.detail;
+      let message = 'Failed to create video';
+      if (typeof detail === 'string') {
+        message = detail;
+      } else if (detail?.message) {
+        message = detail.message;
+      } else if (detail?.code) {
+        message = detail.code;
+      }
       set({ error: message, isLoading: false });
       throw new Error(message);
     }
@@ -190,7 +198,13 @@ export const useVideoStore = create<VideoState>((set, get) => ({
         currentVideo: state.currentVideo?.id === id ? null : state.currentVideo,
       }));
     } catch (error: any) {
-      const message = error.response?.data?.detail || 'Failed to cancel video';
+      const detail = error.response?.data?.detail;
+      let message = 'Failed to cancel video';
+      if (typeof detail === 'string') {
+        message = detail;
+      } else if (detail?.message) {
+        message = detail.message;
+      }
       set({ error: message });
     }
   },
