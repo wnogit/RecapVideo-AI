@@ -172,13 +172,13 @@ const PROVIDER_MODELS: Record<string, { value: string; label: string }[]> = {
     { value: 'gemini-pro', label: 'Gemini Pro' },
   ],
   poe: [
-    { value: 'Gemini-2.5-Flash-Lite', label: '💰 Gemini 2.5 Flash Lite (Cheapest - 52 pts/script)' },
-    { value: 'Gemini-2.5-Flash', label: 'Gemini 2.5 Flash (264 pts/script)' },
-    { value: 'Gemini-3-Flash', label: 'Gemini 3 Flash (Latest)' },
-    { value: 'Claude-3.5-Sonnet', label: 'Claude 3.5 Sonnet (Best Quality)' },
-    { value: 'Claude-3-Haiku', label: 'Claude 3 Haiku (Fast)' },
-    { value: 'GPT-4o', label: 'GPT-4o' },
-    { value: 'GPT-4o-Mini', label: 'GPT-4o Mini' },
+    { value: 'gemini-2.5-flash-lite', label: '💰 Gemini 2.5 Flash Lite (Cheapest - 52 pts/script)' },
+    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (264 pts/script)' },
+    { value: 'gemini-3-flash', label: 'Gemini 3 Flash (Latest)' },
+    { value: 'claude-3.5-sonnet', label: 'Claude 3.5 Sonnet (Best Quality)' },
+    { value: 'claude-3-haiku', label: 'Claude 3 Haiku (Fast)' },
+    { value: 'gpt-4o', label: 'GPT-4o' },
+    { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
   ],
 };
 

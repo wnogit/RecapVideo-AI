@@ -1,49 +1,54 @@
 """
-Poe API Service - FREE Claude Access via Poe
+Poe API Service - Official Poe API (OpenAI SDK Compatible)
 
-Poe provides free access to Claude, GPT-4, and other AI models.
-This service uses the poe-api-wrapper library.
+Poe provides access to Claude, GPT-4, Gemini, and other AI models.
+This service uses the OFFICIAL Poe API with OpenAI SDK compatibility.
 
 Setup:
 1. Get your Poe API key from https://poe.com/api_key
 2. Add to Admin Panel > API Keys > Add New > Type: poe
 
-Usage priority:
-1. Poe (Claude) - FREE, high quality
-2. Groq (Llama) - FREE fallback
-3. Gemini - FREE fallback
+Official Docs: https://creator.poe.com/docs/external-applications/external-application-guide
+
+Model Pricing (10k points/day):
+- Gemini-2.5-Flash-Lite: ~52 pts/script (BEST VALUE - 192 scripts/day)
+- Gemini-2.5-Flash: ~264 pts/script (38 scripts/day)
 """
 import asyncio
 from typing import Optional
 from loguru import logger
+import openai
 
 from app.services.api_key_service import api_key_service
 
 
 class PoeService:
-    """Service for generating content using Poe API (FREE Claude access)."""
+    """Service for generating content using Official Poe API (OpenAI SDK compatible)."""
     
-    # Default models available on Poe
+    # Poe API base URL (OpenAI compatible)
+    BASE_URL = "https://api.poe.com/v1"
+    
+    # Default models available on Poe (use lowercase with hyphens)
     MODELS = {
-        "claude": "Claude-3.5-Sonnet",      # Best for quality
-        "claude_haiku": "Claude-3-Haiku",   # Faster, still good
-        "gpt4": "GPT-4",                     # Alternative
-        "gpt4_mini": "GPT-4o-Mini",          # Faster GPT
-        "llama": "Llama-3.1-405B",           # Open source
+        "claude": "claude-3.5-sonnet",      # Best for quality
+        "claude_haiku": "claude-3-haiku",   # Faster, still good
+        "gpt4": "gpt-4",                     # Alternative
+        "gpt4_mini": "gpt-4o-mini",          # Faster GPT
+        "llama": "llama-3.1-405b",           # Open source
         # Gemini models (CHEAPEST!)
-        "gemini_flash_lite": "Gemini-2.5-Flash-Lite",  # Best value: 3 pts/1k input, 10 pts/1k output
-        "gemini_flash": "Gemini-2.5-Flash",             # Good: 7 pts/1k input
-        "gemini_3_flash": "Gemini-3-Flash",             # Latest: 14 pts/1k input
+        "gemini_flash_lite": "gemini-2.5-flash-lite",  # Best value: 3 pts/1k input, 10 pts/1k output
+        "gemini_flash": "gemini-2.5-flash",             # Good: 7 pts/1k input
+        "gemini_3_flash": "gemini-3-flash",             # Latest: 14 pts/1k input
     }
     
-    DEFAULT_MODEL = "Gemini-2.5-Flash-Lite"  # Cheapest: ~52 points per script
+    DEFAULT_MODEL = "gemini-2.5-flash-lite"  # Cheapest: ~52 points per script
     
     def __init__(self):
         self._client = None
         self._api_key = None
     
-    async def _get_client(self):
-        """Get Poe API client with lazy initialization."""
+    async def _get_client(self) -> Optional[openai.AsyncOpenAI]:
+        """Get Poe API client (OpenAI SDK compatible) with lazy initialization."""
         api_key = await api_key_service.get_poe_key()
         
         if not api_key:
@@ -55,16 +60,14 @@ class PoeService:
             return self._client
         
         try:
-            from poe_api_wrapper import AsyncPoeApi
-            
             self._api_key = api_key
-            self._client = await AsyncPoeApi(tokens={"p-b": api_key}).create()
-            logger.info("Poe API client initialized successfully")
+            self._client = openai.AsyncOpenAI(
+                api_key=api_key,
+                base_url=self.BASE_URL
+            )
+            logger.info("Poe API client initialized (OpenAI SDK compatible)")
             return self._client
             
-        except ImportError:
-            logger.error("poe-api-wrapper not installed. Run: pip install poe-api-wrapper")
-            return None
         except Exception as e:
             logger.error(f"Failed to initialize Poe client: {e}")
             return None
@@ -77,12 +80,12 @@ class PoeService:
         max_retries: int = 2,
     ) -> Optional[str]:
         """
-        Generate script using Poe API (Claude).
+        Generate script using Official Poe API (OpenAI SDK compatible).
         
         Args:
             prompt: User prompt with transcript
             system_prompt: System instructions
-            model: Model to use (default: Claude-3.5-Sonnet)
+            model: Model to use (default: gemini-2.5-flash-lite)
             max_retries: Number of retry attempts
             
         Returns:
@@ -93,18 +96,24 @@ class PoeService:
             return None
         
         model_name = model or self.DEFAULT_MODEL
-        full_prompt = f"{system_prompt}\n\n{prompt}" if system_prompt else prompt
+        
+        # Build messages in OpenAI format
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
         
         for attempt in range(max_retries + 1):
             try:
-                logger.info(f"Generating script with Poe ({model_name}), attempt {attempt + 1}")
+                logger.info(f"Generating script with Poe Official API ({model_name}), attempt {attempt + 1}")
                 
-                response_text = ""
-                async for chunk in client.send_message(
-                    bot=model_name,
-                    message=full_prompt,
-                ):
-                    response_text += chunk.get("response", "")
+                # Use OpenAI SDK compatible API
+                response = await client.chat.completions.create(
+                    model=model_name,
+                    messages=messages,
+                )
+                
+                response_text = response.choices[0].message.content
                 
                 if response_text:
                     logger.info(f"Poe script generation successful: {len(response_text)} chars")
@@ -125,7 +134,7 @@ class PoeService:
         model: Optional[str] = None,
     ) -> Optional[str]:
         """
-        Simple chat with Poe.
+        Simple chat with Poe using Official API.
         
         Args:
             message: Chat message
@@ -141,13 +150,12 @@ class PoeService:
         model_name = model or self.DEFAULT_MODEL
         
         try:
-            response_text = ""
-            async for chunk in client.send_message(
-                bot=model_name,
-                message=message,
-            ):
-                response_text += chunk.get("response", "")
+            response = await client.chat.completions.create(
+                model=model_name,
+                messages=[{"role": "user", "content": message}],
+            )
             
+            response_text = response.choices[0].message.content
             return response_text.strip() if response_text else None
             
         except Exception as e:
