@@ -184,7 +184,8 @@ export default function IntegrationsPage() {
         adminApiKeysApi.getTypes(),
         adminApiKeysApi.list(),
       ]);
-      setApiKeyTypes(typesRes.data?.types || []);
+      // getTypes returns array directly, list returns { keys: [] }
+      setApiKeyTypes(typesRes.data || []);
       setApiKeys(keysRes.data?.keys || []);
     } catch (error) {
       console.error('Error fetching API keys:', error);
