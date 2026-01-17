@@ -20,6 +20,25 @@ from app.services.prompt_service import prompt_service
 from app.services.poe_service import poe_service
 
 
+def strip_thinking_block(text: str) -> str:
+    """
+    Remove <think>...</think> block from AI response.
+    
+    Gemini 2.5 Flash (thinking model) includes reasoning in <think> tags.
+    We need to strip this and only keep the actual script.
+    """
+    if not text:
+        return text
+    
+    # Remove <think>...</think> block (including multiline)
+    result = re.sub(r'<think>.*?</think>\s*', '', text, flags=re.DOTALL)
+    
+    # Also remove any leading/trailing whitespace
+    result = result.strip()
+    
+    return result
+
+
 def convert_burmese_formal_to_casual(text: str) -> str:
     """
     Convert formal Burmese writing style to casual/spoken style.
@@ -301,6 +320,9 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                         ),
                         timeout=180.0
                     )
+                    # Strip <think> block from Gemini 2.5 Flash thinking model
+                    script = strip_thinking_block(script)
+                    logger.info(f"Stripped thinking block, script length: {len(script)} chars")
                     # Apply formal to casual conversion for Burmese
                     if target_language == "my":
                         script = convert_burmese_formal_to_casual(script)
