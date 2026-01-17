@@ -810,23 +810,16 @@ export default function IntegrationsPage() {
               />
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="is_active"
-                  checked={keyFormData.is_active}
-                  onCheckedChange={(checked) => setKeyFormData(prev => ({ ...prev, is_active: checked }))}
-                />
-                <Label htmlFor="is_active">Active</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="is_primary"
-                  checked={keyFormData.is_primary}
-                  onCheckedChange={(checked) => setKeyFormData(prev => ({ ...prev, is_primary: checked }))}
-                />
-                <Label htmlFor="is_primary">Primary</Label>
-              </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="is_active"
+                checked={keyFormData.is_active}
+                onCheckedChange={(checked) => setKeyFormData(prev => ({ ...prev, is_active: checked }))}
+              />
+              <Label htmlFor="is_active">Active</Label>
+              <span className="text-xs text-muted-foreground ml-2">
+                (Priority 1 = Primary)
+              </span>
             </div>
           </div>
 
