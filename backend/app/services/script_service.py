@@ -1,13 +1,14 @@
 """
-Script Generation Service - Using Poe (Claude FREE) with Groq/Gemini fallback
+Script Generation Service - Using Poe (Claude FREE) with OpenRouter Gemini fallback
 
 Generates recap/summary scripts from YouTube transcripts.
 Uses custom prompts from database (Admin configurable).
 
 Priority:
 1. Poe API (Claude 3.5 Sonnet) - FREE via Poe
-2. Groq (Llama 3.3) - FREE fallback
-3. Gemini - FREE fallback
+2. OpenRouter (Gemini 2.0 Flash) - Best for Burmese
+3. Groq (Llama 3.3) - For non-Burmese only
+4. Gemini Direct - Final fallback
 """
 import re
 from typing import Optional
@@ -270,10 +271,37 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                     return script
                 logger.warning("Poe generation returned empty, trying fallback...")
             
-            # Primary fallback: Groq (FREE and fast)
+            # PRIMARY fallback: OpenRouter with Gemini 2.0 Flash (best for Burmese)
+            openrouter_key = await self._get_openrouter_client()
+            if openrouter_key:
+                logger.info("Using OpenRouter (Gemini 2.0 Flash) for script generation - PRIMARY fallback")
+                import asyncio
+                try:
+                    script = await asyncio.wait_for(
+                        self._call_openrouter(
+                            api_key=openrouter_key,
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": prompt}
+                            ],
+                            model="google/gemini-2.0-flash-001",  # Gemini via OpenRouter
+                            max_tokens=4000,
+                        ),
+                        timeout=120.0
+                    )
+                    # Apply formal to casual conversion for Burmese
+                    if target_language == "my":
+                        script = convert_burmese_formal_to_casual(script)
+                        logger.info("Applied Burmese formal-to-casual conversion")
+                    logger.info(f"Script generated successfully with OpenRouter Gemini: {len(script)} chars")
+                    return script
+                except Exception as e:
+                    logger.warning(f"OpenRouter Gemini failed: {e}, trying next fallback...")
+            
+            # Secondary fallback: Groq (Llama - for non-Burmese or emergency)
             groq_client = await self._get_groq_client()
-            if groq_client:
-                logger.info("Using Groq (Llama 3.3) for script generation - PRIMARY fallback")
+            if groq_client and target_language != "my":  # Skip Groq for Burmese (poor quality)
+                logger.info("Using Groq (Llama 3.3) for script generation - fallback")
                 import asyncio
                 try:
                     response = await asyncio.wait_for(
@@ -289,40 +317,10 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
                         timeout=90.0  # 90 second timeout
                     )
                     script = response.choices[0].message.content.strip()
-                    # Apply formal to casual conversion for Burmese
-                    if target_language == "my":
-                        script = convert_burmese_formal_to_casual(script)
-                        logger.info("Applied Burmese formal-to-casual conversion")
                     logger.info(f"Script generated successfully with Groq: {len(script)} chars")
                     return script
                 except Exception as e:
                     logger.warning(f"Groq failed: {e}, trying next fallback...")
-            
-            # Secondary fallback: OpenRouter (pay-as-you-go)
-            openrouter_key = await self._get_openrouter_client()
-            if openrouter_key:
-                logger.info("Using OpenRouter (DeepSeek V3) for script generation - fallback")
-                import asyncio
-                try:
-                    script = await asyncio.wait_for(
-                        self._call_openrouter(
-                            api_key=openrouter_key,
-                            messages=[
-                                {"role": "system", "content": system_prompt},
-                                {"role": "user", "content": prompt}
-                            ],
-                            model="deepseek/deepseek-chat",
-                        ),
-                        timeout=120.0
-                    )
-                    # Apply formal to casual conversion for Burmese
-                    if target_language == "my":
-                        script = convert_burmese_formal_to_casual(script)
-                        logger.info("Applied Burmese formal-to-casual conversion")
-                    logger.info(f"Script generated successfully with OpenRouter: {len(script)} chars")
-                    return script
-                except Exception as e:
-                    logger.warning(f"OpenRouter failed: {e}, trying next fallback...")
             
             # Final fallback to Gemini
             gemini_client = await self._get_gemini_client()
