@@ -146,6 +146,37 @@ const PROVIDER_CONFIG: Record<string, {
   },
 };
 
+// Available AI models for each provider
+const PROVIDER_MODELS: Record<string, { value: string; label: string }[]> = {
+  deepinfra: [
+    { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash (Recommended)' },
+    { value: 'google/gemini-2.0-flash-001', label: 'Gemini 2.0 Flash' },
+    { value: 'meta-llama/Llama-3.3-70B-Instruct', label: 'Llama 3.3 70B' },
+    { value: 'Qwen/Qwen2.5-72B-Instruct', label: 'Qwen 2.5 72B' },
+  ],
+  openrouter: [
+    { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash (Recommended)' },
+    { value: 'google/gemini-2.0-flash-001', label: 'Gemini 2.0 Flash' },
+    { value: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet' },
+    { value: 'deepseek/deepseek-chat', label: 'DeepSeek Chat' },
+    { value: 'openai/gpt-4o-mini', label: 'GPT-4o Mini' },
+  ],
+  groq: [
+    { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B (Recommended)' },
+    { value: 'llama-3.1-70b-versatile', label: 'Llama 3.1 70B' },
+    { value: 'mixtral-8x7b-32768', label: 'Mixtral 8x7B' },
+  ],
+  gemini: [
+    { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (Recommended)' },
+    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+    { value: 'gemini-pro', label: 'Gemini Pro' },
+  ],
+  poe: [
+    { value: 'claude-3-5-sonnet', label: 'Claude 3.5 Sonnet' },
+    { value: 'gpt-4o', label: 'GPT-4o' },
+  ],
+};
+
 interface APIKeyFormData {
   key_type: string;
   name: string;
@@ -154,6 +185,8 @@ interface APIKeyFormData {
   config: string;
   is_active: boolean;
   is_primary: boolean;
+  priority: number;
+  model: string;
 }
 
 const defaultFormData: APIKeyFormData = {
@@ -164,6 +197,8 @@ const defaultFormData: APIKeyFormData = {
   config: '',
   is_active: true,
   is_primary: false,
+  priority: 100,
+  model: '',
 };
 
 export default function IntegrationsPage() {
@@ -227,11 +262,13 @@ export default function IntegrationsPage() {
   const handleAddKey = (keyType?: string) => {
     setEditingKey(null);
     const provider = keyType ? PROVIDER_CONFIG[keyType] : null;
+    const defaultModel = keyType && PROVIDER_MODELS[keyType] ? PROVIDER_MODELS[keyType][0]?.value : '';
     setKeyFormData({
       ...defaultFormData,
       key_type: keyType || '',
       name: provider ? provider.name : '',
       description: provider ? provider.description : '',
+      model: defaultModel,
     });
     setShowKeyDialog(true);
   };
@@ -256,6 +293,8 @@ export default function IntegrationsPage() {
       config: key.config ? JSON.stringify(key.config, null, 2) : '',
       is_active: key.is_active,
       is_primary: key.is_primary,
+      priority: key.priority || 100,
+      model: key.model || '',
     });
     setShowKeyDialog(true);
   };
@@ -287,6 +326,8 @@ export default function IntegrationsPage() {
         config,
         is_active: keyFormData.is_active,
         is_primary: keyFormData.is_primary,
+        priority: keyFormData.priority,
+        model: keyFormData.model || undefined,
       };
 
       if (editingKey) {
@@ -457,6 +498,9 @@ export default function IntegrationsPage() {
                       {key.is_primary && (
                         <Badge variant="outline" className="text-xs">Primary</Badge>
                       )}
+                      <Badge variant="secondary" className="text-xs">
+                        Priority: {key.priority}
+                      </Badge>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span>
@@ -464,6 +508,9 @@ export default function IntegrationsPage() {
                           ? revealedKeys[key.id].substring(0, 20) + '...'
                           : '••••••••••••'}
                       </span>
+                      {key.model && (
+                        <span>• Model: {key.model.split('/').pop()}</span>
+                      )}
                       {key.usage_count > 0 && (
                         <span>• {key.usage_count} uses</span>
                       )}
@@ -644,11 +691,13 @@ export default function IntegrationsPage() {
                 value={keyFormData.key_type}
                 onValueChange={(value) => {
                   const provider = PROVIDER_CONFIG[value];
+                  const defaultModel = PROVIDER_MODELS[value]?.[0]?.value || '';
                   setKeyFormData(prev => ({
                     ...prev,
                     key_type: value,
                     name: provider?.name || prev.name,
                     description: provider?.description || prev.description,
+                    model: defaultModel,
                   }));
                 }}
                 disabled={!!editingKey}
@@ -690,6 +739,49 @@ export default function IntegrationsPage() {
               />
             </div>
 
+            {/* Priority - Only for AI providers */}
+            {['deepinfra', 'openrouter', 'groq', 'gemini', 'poe'].includes(keyFormData.key_type) && (
+              <div className="space-y-2">
+                <Label htmlFor="priority">
+                  Priority Order
+                  <span className="text-xs text-muted-foreground ml-2">
+                    (1 = first, lower = higher priority)
+                  </span>
+                </Label>
+                <Input
+                  id="priority"
+                  type="number"
+                  min={1}
+                  max={999}
+                  value={keyFormData.priority}
+                  onChange={(e) => setKeyFormData(prev => ({ ...prev, priority: parseInt(e.target.value) || 100 }))}
+                  placeholder="100"
+                />
+              </div>
+            )}
+
+            {/* Model Selection - Only for AI providers with models */}
+            {PROVIDER_MODELS[keyFormData.key_type] && (
+              <div className="space-y-2">
+                <Label htmlFor="model">AI Model</Label>
+                <Select
+                  value={keyFormData.model}
+                  onValueChange={(value) => setKeyFormData(prev => ({ ...prev, model: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PROVIDER_MODELS[keyFormData.key_type].map((model) => (
+                      <SelectItem key={model.value} value={model.value}>
+                        {model.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
@@ -707,8 +799,8 @@ export default function IntegrationsPage() {
                 id="config"
                 value={keyFormData.config}
                 onChange={(e) => setKeyFormData(prev => ({ ...prev, config: e.target.value }))}
-                placeholder='{"model": "gpt-4"}'
-                rows={3}
+                placeholder='{"custom_option": "value"}'
+                rows={2}
                 className="font-mono text-sm"
               />
             </div>

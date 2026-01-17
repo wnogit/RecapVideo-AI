@@ -77,7 +77,7 @@ async def list_api_keys(
     if is_active is not None:
         query = query.where(APIKey.is_active == is_active)
     
-    query = query.order_by(APIKey.key_type, APIKey.created_at.desc())
+    query = query.order_by(APIKey.key_type, APIKey.priority.asc(), APIKey.created_at.desc())
     
     # Get total count
     count_query = select(func.count()).select_from(query.subquery())
@@ -98,6 +98,8 @@ async def list_api_keys(
                 config=key.config,
                 is_active=key.is_active,
                 is_primary=key.is_primary,
+                priority=key.priority,
+                model=key.model,
                 last_used_at=key.last_used_at,
                 usage_count=key.usage_count,
                 created_at=key.created_at,
@@ -147,6 +149,8 @@ async def create_api_key(
         config=key_data.config,
         is_active=key_data.is_active,
         is_primary=key_data.is_primary,
+        priority=key_data.priority,
+        model=key_data.model,
     )
     
     db.add(api_key)
@@ -165,6 +169,8 @@ async def create_api_key(
         config=api_key.config,
         is_active=api_key.is_active,
         is_primary=api_key.is_primary,
+        priority=api_key.priority,
+        model=api_key.model,
         last_used_at=api_key.last_used_at,
         usage_count=api_key.usage_count,
         created_at=api_key.created_at,
@@ -201,6 +207,8 @@ async def get_api_key(
         config=api_key.config,
         is_active=api_key.is_active,
         is_primary=api_key.is_primary,
+        priority=api_key.priority,
+        model=api_key.model,
         last_used_at=api_key.last_used_at,
         usage_count=api_key.usage_count,
         created_at=api_key.created_at,
@@ -307,6 +315,8 @@ async def update_api_key(
         config=api_key.config,
         is_active=api_key.is_active,
         is_primary=api_key.is_primary,
+        priority=api_key.priority,
+        model=api_key.model,
         last_used_at=api_key.last_used_at,
         usage_count=api_key.usage_count,
         created_at=api_key.created_at,

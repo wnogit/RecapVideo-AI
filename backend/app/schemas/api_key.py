@@ -17,6 +17,8 @@ class APIKeyCreate(BaseModel):
     config: Optional[str] = Field(None, description="JSON config (base_url, etc.)")
     is_active: bool = True
     is_primary: bool = False
+    priority: int = Field(100, ge=1, le=999, description="Priority order (1=highest)")
+    model: Optional[str] = Field(None, max_length=100, description="AI model name (e.g., google/gemini-2.5-flash)")
 
 
 class APIKeyUpdate(BaseModel):
@@ -27,6 +29,8 @@ class APIKeyUpdate(BaseModel):
     config: Optional[str] = None
     is_active: Optional[bool] = None
     is_primary: Optional[bool] = None
+    priority: Optional[int] = Field(None, ge=1, le=999)
+    model: Optional[str] = Field(None, max_length=100)
 
 
 class APIKeyResponse(BaseModel):
@@ -39,6 +43,8 @@ class APIKeyResponse(BaseModel):
     config: Optional[str] = None
     is_active: bool
     is_primary: bool
+    priority: int = 100
+    model: Optional[str] = None
     last_used_at: Optional[datetime] = None
     usage_count: int
     created_at: datetime

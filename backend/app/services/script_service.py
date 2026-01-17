@@ -1,14 +1,18 @@
 """
-Script Generation Service - Using DeepInfra (Gemini 2.5 Flash) as PRIMARY
+Script Generation Service - Dynamic Priority-based AI Provider Selection
 
 Generates recap/summary scripts from YouTube transcripts.
 Uses custom prompts from database (Admin configurable).
 
-Priority:
-1. DeepInfra (Gemini 2.5 Flash) - PRIMARY, best for Burmese
-2. Poe API (Claude 3.5 Sonnet) - FREE backup
-3. OpenRouter (Gemini 2.5 Flash) - backup
-4. Gemini Direct - Final fallback
+Priority is determined by database `priority` field:
+- Lower number = higher priority (1 is first)
+- Multiple keys per provider = random selection
+- Auto-fallback to next provider on failure
+
+Admin can configure via Integrations page:
+- Provider priority order
+- Model selection per provider
+- Multiple API keys per provider (load balancing)
 """
 import re
 from typing import Optional
@@ -302,101 +306,116 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
 """
         
         try:
-            # PRIMARY: DeepInfra (Gemini 2.5 Flash) - Best for Burmese
-            deepinfra_key = await self._get_deepinfra_key()
-            if deepinfra_key:
-                logger.info("Using DeepInfra (Gemini 2.5 Flash) for script generation - PRIMARY")
-                import asyncio
+            # Get AI providers ordered by priority from database
+            providers = await api_key_service.get_ai_providers_by_priority()
+            
+            if not providers:
+                raise ValueError("No AI providers configured in database or environment")
+            
+            logger.info(f"AI Provider priority order: {[p['provider'] for p in providers]}")
+            
+            # Try each provider in priority order
+            for provider_info in providers:
+                provider = provider_info["provider"]
+                keys = provider_info["keys"]
+                default_model = provider_info.get("model")
+                
+                # Randomly select a key from available keys for this provider
+                import random
+                selected_key = random.choice(keys)
+                api_key = selected_key["key_value"]
+                model = selected_key.get("model") or default_model
+                
+                logger.info(f"Trying {provider} (model: {model}, keys available: {len(keys)})")
+                
                 try:
-                    script = await asyncio.wait_for(
-                        self._call_deepinfra(
-                            api_key=deepinfra_key,
-                            messages=[
-                                {"role": "system", "content": system_prompt},
-                                {"role": "user", "content": prompt}
-                            ],
-                            model="google/gemini-2.5-flash",
-                            max_tokens=4000,
-                        ),
-                        timeout=180.0
+                    script = await self._call_provider(
+                        provider=provider,
+                        api_key=api_key,
+                        model=model,
+                        system_prompt=system_prompt,
+                        prompt=prompt,
                     )
-                    # Strip <think> block from Gemini 2.5 Flash thinking model
-                    script = strip_thinking_block(script)
-                    logger.info(f"Stripped thinking block, script length: {len(script)} chars")
-                    # Apply formal to casual conversion for Burmese
-                    if target_language == "my":
-                        script = convert_burmese_formal_to_casual(script)
-                        logger.info("Applied Burmese formal-to-casual conversion")
-                    logger.info(f"Script generated successfully with DeepInfra: {len(script)} chars")
-                    return script
+                    
+                    if script:
+                        # Strip <think> block from thinking models
+                        script = strip_thinking_block(script)
+                        
+                        # Apply formal to casual conversion for Burmese
+                        if target_language == "my":
+                            script = convert_burmese_formal_to_casual(script)
+                            logger.info("Applied Burmese formal-to-casual conversion")
+                        
+                        logger.info(f"Script generated successfully with {provider}: {len(script)} chars")
+                        return script
+                        
                 except Exception as e:
-                    logger.warning(f"DeepInfra failed: {e}, trying fallback...")
+                    logger.warning(f"{provider} failed: {e}, trying next provider...")
+                    continue
             
-            # Fallback 1: Poe (FREE Claude access)
-            if await poe_service.is_available():
-                logger.info("Using Poe (Claude 3.5 Sonnet) for script generation - fallback")
-                script = await poe_service.generate_script(
-                    prompt=prompt,
-                    system_prompt=system_prompt,
-                )
-                if script:
-                    # Apply formal to casual conversion for Burmese
-                    if target_language == "my":
-                        script = convert_burmese_formal_to_casual(script)
-                        logger.info("Applied Burmese formal-to-casual conversion")
-                    logger.info(f"Script generated successfully with Poe: {len(script)} chars")
-                    return script
-                logger.warning("Poe generation returned empty, trying fallback...")
-            
-            # Fallback 2: OpenRouter with Gemini 2.5 Flash
-            openrouter_key = await self._get_openrouter_client()
-            if openrouter_key:
-                logger.info("Using OpenRouter (Gemini 2.5 Flash) for script generation - fallback")
-                import asyncio
-                try:
-                    script = await asyncio.wait_for(
-                        self._call_openrouter(
-                            api_key=openrouter_key,
-                            messages=[
-                                {"role": "system", "content": system_prompt},
-                                {"role": "user", "content": prompt}
-                            ],
-                            model="google/gemini-2.5-flash",
-                            max_tokens=4000,
-                        ),
-                        timeout=120.0
-                    )
-                    # Apply formal to casual conversion for Burmese
-                    if target_language == "my":
-                        script = convert_burmese_formal_to_casual(script)
-                        logger.info("Applied Burmese formal-to-casual conversion")
-                    logger.info(f"Script generated successfully with OpenRouter: {len(script)} chars")
-                    return script
-                except Exception as e:
-                    logger.warning(f"OpenRouter failed: {e}, trying next fallback...")
-            
-            # Final fallback to Gemini Direct
-            gemini_client = await self._get_gemini_client()
-            if gemini_client:
-                logger.info("Using Gemini Direct for script generation - final fallback")
-                import asyncio
-                response = await asyncio.wait_for(
-                    gemini_client.generate_content_async(prompt),
-                    timeout=60.0  # 60 second timeout
-                )
-                script = response.text.strip()
-                # Apply formal to casual conversion for Burmese
-                if target_language == "my":
-                    script = convert_burmese_formal_to_casual(script)
-                    logger.info("Applied Burmese formal-to-casual conversion")
-                logger.info(f"Script generated successfully with Gemini Direct: {len(script)} chars")
-                return script
-            
-            raise ValueError("No AI API key configured (DeepInfra, Poe, OpenRouter, or Gemini)")
+            raise ValueError("All AI providers failed")
             
         except Exception as e:
             logger.error(f"Script generation failed: {e}")
             raise
+    
+    async def _call_provider(
+        self,
+        provider: str,
+        api_key: str,
+        model: str,
+        system_prompt: str,
+        prompt: str,
+    ) -> Optional[str]:
+        """Call a specific AI provider."""
+        import asyncio
+        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ]
+        
+        if provider == "deepinfra":
+            return await asyncio.wait_for(
+                self._call_deepinfra(api_key, messages, model or "google/gemini-2.5-flash"),
+                timeout=180.0
+            )
+        
+        elif provider == "openrouter":
+            return await asyncio.wait_for(
+                self._call_openrouter(api_key, messages, model or "google/gemini-2.5-flash"),
+                timeout=120.0
+            )
+        
+        elif provider == "groq":
+            from groq import AsyncGroq
+            client = AsyncGroq(api_key=api_key)
+            response = await asyncio.wait_for(
+                client.chat.completions.create(
+                    model=model or "llama-3.3-70b-versatile",
+                    messages=messages,
+                    max_tokens=4000,
+                ),
+                timeout=120.0
+            )
+            return response.choices[0].message.content.strip()
+        
+        elif provider == "gemini":
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
+            gemini_model = genai.GenerativeModel(model or 'gemini-2.0-flash')
+            response = await asyncio.wait_for(
+                gemini_model.generate_content_async(prompt),
+                timeout=60.0
+            )
+            return response.text.strip()
+        
+        elif provider == "poe":
+            if await poe_service.is_available():
+                return await poe_service.generate_script(prompt=prompt, system_prompt=system_prompt)
+            return None
+        
+        return None
     
     async def improve_script(
         self,

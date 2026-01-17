@@ -3,10 +3,12 @@ API Key Management Service
 
 Provides centralized access to API keys stored in the database.
 Falls back to environment variables if database keys are not found.
+Supports priority-based provider selection and random key rotation.
 """
 import json
+import random
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from functools import lru_cache
 
 from sqlalchemy import select, update
@@ -99,55 +101,35 @@ class APIKeyService:
         key_type: str,
         db: AsyncSession,
     ) -> Optional[str]:
-        """Get API key value from database."""
-        result = await db.execute(
-            select(APIKey)
-            .where(
-                APIKey.key_type == key_type,
-                APIKey.is_active == True,
-                APIKey.is_primary == True,
-            )
-            .limit(1)
-        )
-        api_key = result.scalar_one_or_none()
-        
-        if api_key:
-            # Update usage stats
-            await db.execute(
-                update(APIKey)
-                .where(APIKey.id == api_key.id)
-                .values(
-                    last_used_at=datetime.now(timezone.utc),
-                    usage_count=APIKey.usage_count + 1,
-                )
-            )
-            await db.commit()
-            return api_key.key_value
-        
-        # Try any active key for this type
+        """Get API key value from database (random from active keys)."""
+        # Get all active keys for this type, ordered by priority
         result = await db.execute(
             select(APIKey)
             .where(
                 APIKey.key_type == key_type,
                 APIKey.is_active == True,
             )
-            .limit(1)
+            .order_by(APIKey.priority.asc())
         )
-        api_key = result.scalar_one_or_none()
+        all_keys = result.scalars().all()
         
-        if api_key:
-            await db.execute(
-                update(APIKey)
-                .where(APIKey.id == api_key.id)
-                .values(
-                    last_used_at=datetime.now(timezone.utc),
-                    usage_count=APIKey.usage_count + 1,
-                )
+        if not all_keys:
+            return None
+        
+        # Pick random key from available active keys
+        api_key = random.choice(all_keys)
+        
+        # Update usage stats
+        await db.execute(
+            update(APIKey)
+            .where(APIKey.id == api_key.id)
+            .values(
+                last_used_at=datetime.now(timezone.utc),
+                usage_count=APIKey.usage_count + 1,
             )
-            await db.commit()
-            return api_key.key_value
-        
-        return None
+        )
+        await db.commit()
+        return api_key.key_value
     
     async def _get_full_from_db(
         self,
@@ -264,6 +246,165 @@ class APIKeyService:
         return {
             "access_key": access_key or "",
             "secret_key": secret_key or "",
+        }
+    
+    # ============== NEW: Priority-based AI Provider Selection ==============
+    
+    async def get_ai_providers_by_priority(
+        self,
+        db: Optional[AsyncSession] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Get all AI providers ordered by priority.
+        Returns list of providers with their keys, models, and priority.
+        
+        Example return:
+        [
+            {"provider": "openrouter", "keys": [...], "model": "google/gemini-2.5-flash", "priority": 1},
+            {"provider": "deepinfra", "keys": [...], "model": "google/gemini-2.5-flash", "priority": 2},
+            {"provider": "gemini", "keys": [...], "model": None, "priority": 3},
+        ]
+        """
+        ai_provider_types = ["deepinfra", "openrouter", "groq", "gemini", "poe"]
+        
+        try:
+            if db:
+                return await self._get_ai_providers_from_db(ai_provider_types, db)
+            else:
+                worker_session = create_worker_session_maker()
+                async with worker_session() as session:
+                    return await self._get_ai_providers_from_db(ai_provider_types, session)
+        except Exception as e:
+            logger.warning(f"Failed to get AI providers from DB: {e}")
+            # Fallback to environment variables with default priority
+            return self._get_ai_providers_from_env(ai_provider_types)
+    
+    async def _get_ai_providers_from_db(
+        self,
+        provider_types: List[str],
+        db: AsyncSession,
+    ) -> List[Dict[str, Any]]:
+        """Get AI providers from database ordered by priority."""
+        providers = []
+        
+        for provider_type in provider_types:
+            result = await db.execute(
+                select(APIKey)
+                .where(
+                    APIKey.key_type == provider_type,
+                    APIKey.is_active == True,
+                )
+                .order_by(APIKey.priority.asc())
+            )
+            keys = result.scalars().all()
+            
+            if keys:
+                # Get the lowest priority (highest rank) for this provider
+                min_priority = min(k.priority for k in keys)
+                # Get model from first key (or use default)
+                model = keys[0].model
+                
+                providers.append({
+                    "provider": provider_type,
+                    "keys": [{"id": str(k.id), "key_value": k.key_value, "model": k.model} for k in keys],
+                    "model": model,
+                    "priority": min_priority,
+                })
+        
+        # Sort by priority (lower number = higher priority)
+        providers.sort(key=lambda x: x["priority"])
+        return providers
+    
+    def _get_ai_providers_from_env(self, provider_types: List[str]) -> List[Dict[str, Any]]:
+        """Fallback: Get AI providers from environment variables."""
+        providers = []
+        default_priority = {
+            "deepinfra": 1,
+            "openrouter": 2,
+            "groq": 3,
+            "gemini": 4,
+            "poe": 5,
+        }
+        default_models = {
+            "deepinfra": "google/gemini-2.5-flash",
+            "openrouter": "google/gemini-2.5-flash",
+            "groq": "llama-3.3-70b-versatile",
+            "gemini": "gemini-pro",
+            "poe": "claude-3-5-sonnet",
+        }
+        
+        for provider_type in provider_types:
+            key = self._get_from_env(provider_type)
+            if key:
+                providers.append({
+                    "provider": provider_type,
+                    "keys": [{"id": None, "key_value": key, "model": default_models.get(provider_type)}],
+                    "model": default_models.get(provider_type),
+                    "priority": default_priority.get(provider_type, 100),
+                })
+        
+        providers.sort(key=lambda x: x["priority"])
+        return providers
+    
+    async def get_random_key_for_provider(
+        self,
+        provider_type: str,
+        db: Optional[AsyncSession] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Get a random key for a specific provider.
+        Returns dict with key_value and model.
+        """
+        try:
+            if db:
+                return await self._get_random_key_from_db(provider_type, db)
+            else:
+                worker_session = create_worker_session_maker()
+                async with worker_session() as session:
+                    return await self._get_random_key_from_db(provider_type, session)
+        except Exception as e:
+            logger.warning(f"Failed to get random key for {provider_type}: {e}")
+            # Fallback to env
+            key = self._get_from_env(provider_type)
+            if key:
+                return {"key_value": key, "model": None}
+            return None
+    
+    async def _get_random_key_from_db(
+        self,
+        provider_type: str,
+        db: AsyncSession,
+    ) -> Optional[Dict[str, Any]]:
+        """Get random key from database for a provider."""
+        result = await db.execute(
+            select(APIKey)
+            .where(
+                APIKey.key_type == provider_type,
+                APIKey.is_active == True,
+            )
+        )
+        keys = result.scalars().all()
+        
+        if not keys:
+            return None
+        
+        # Random selection
+        selected = random.choice(keys)
+        
+        # Update usage
+        await db.execute(
+            update(APIKey)
+            .where(APIKey.id == selected.id)
+            .values(
+                last_used_at=datetime.now(timezone.utc),
+                usage_count=APIKey.usage_count + 1,
+            )
+        )
+        await db.commit()
+        
+        return {
+            "key_value": selected.key_value,
+            "model": selected.model,
         }
 
 

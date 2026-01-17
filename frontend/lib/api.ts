@@ -299,6 +299,8 @@ export interface APIKey {
   config?: string;
   is_active: boolean;
   is_primary: boolean;
+  priority: number;
+  model?: string;
   last_used_at?: string;
   usage_count: number;
   created_at: string;
@@ -334,6 +336,8 @@ export const adminApiKeysApi = {
     config?: string;
     is_active?: boolean;
     is_primary?: boolean;
+    priority?: number;
+    model?: string;
   }) => api.post<APIKey>('/admin/api-keys', data),
   update: (id: string, data: {
     name?: string;
@@ -342,6 +346,8 @@ export const adminApiKeysApi = {
     config?: string;
     is_active?: boolean;
     is_primary?: boolean;
+    priority?: number;
+    model?: string;
   }) => api.patch<APIKey>(`/admin/api-keys/${id}`, data),
   delete: (id: string) => api.delete(`/admin/api-keys/${id}`),
   test: (id: string) => api.post<{ status: string; message: string }>(`/admin/api-keys/${id}/test`),

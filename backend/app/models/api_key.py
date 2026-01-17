@@ -68,6 +68,15 @@ class APIKey(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_primary: Mapped[bool] = mapped_column(Boolean, default=False)  # Primary key for this type
     
+    # Priority (lower number = higher priority, 1 is first)
+    priority: Mapped[int] = mapped_column(default=100)
+    
+    # Model name for AI providers (e.g., "google/gemini-2.5-flash")
+    model: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+    )
+    
     # Usage tracking
     last_used_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
