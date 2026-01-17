@@ -30,9 +30,13 @@ class PoeService:
         "gpt4": "GPT-4",                     # Alternative
         "gpt4_mini": "GPT-4o-Mini",          # Faster GPT
         "llama": "Llama-3.1-405B",           # Open source
+        # Gemini models (CHEAPEST!)
+        "gemini_flash_lite": "Gemini-2.5-Flash-Lite",  # Best value: 3 pts/1k input, 10 pts/1k output
+        "gemini_flash": "Gemini-2.5-Flash",             # Good: 7 pts/1k input
+        "gemini_3_flash": "Gemini-3-Flash",             # Latest: 14 pts/1k input
     }
     
-    DEFAULT_MODEL = "Claude-3.5-Sonnet"  # Best quality, FREE on Poe
+    DEFAULT_MODEL = "Gemini-2.5-Flash-Lite"  # Cheapest: ~52 points per script
     
     def __init__(self):
         self._client = None

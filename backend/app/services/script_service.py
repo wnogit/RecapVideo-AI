@@ -412,7 +412,11 @@ Generate the recap script (SHORT sentences only, suitable for TTS):
         
         elif provider == "poe":
             if await poe_service.is_available():
-                return await poe_service.generate_script(prompt=prompt, system_prompt=system_prompt)
+                return await poe_service.generate_script(
+                    prompt=prompt, 
+                    system_prompt=system_prompt,
+                    model=model or "Gemini-2.5-Flash-Lite"  # Cheapest: 52 points/script
+                )
             return None
         
         return None
