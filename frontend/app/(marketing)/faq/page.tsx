@@ -4,13 +4,13 @@ import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { 
-  HelpCircle, 
-  CreditCard, 
-  Video, 
-  Globe, 
-  Clock, 
-  Shield, 
+import {
+  HelpCircle,
+  CreditCard,
+  Video,
+  Globe,
+  Clock,
+  Shield,
   Zap,
   MessageCircle,
   ArrowRight,
@@ -53,7 +53,7 @@ const faqCategories = [
     questions: [
       {
         q: 'How does the credit system work?',
-        a: 'Each video creation uses 1 credit, regardless of the video length or complexity. When you sign up, you get 4 free credits to try our service. You can purchase more credits in packages: 10 credits for $5, 50 credits for $20 (save 20%), or 100 credits for $35 (save 30%).'
+        a: 'Each video creation uses 2 credits, regardless of the video length or complexity. When you sign up, you get 4 free credits to try our service (enough for 2 videos). You can purchase more credits in packages: 10 credits for $5 (5 videos), 30 credits for $13, or 100 credits for $40.'
       },
       {
         q: 'What payment methods do you accept?',
@@ -81,7 +81,7 @@ const faqCategories = [
       },
       {
         q: 'How long can the source video be?',
-        a: 'We support videos up to 3 hours in length. The processing time scales with video length - longer videos take more time to process but still only use 1 credit.'
+        a: 'We support videos up to 3 hours in length. The processing time scales with video length - longer videos take more time to process but still only use 2 credits.'
       },
       {
         q: 'How long does processing take?',
@@ -153,7 +153,7 @@ export default function FAQPage() {
             Frequently Asked <span className="gradient-text">Questions</span>
           </h1>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Everything you need to know about RecapVideo.AI. Can&apos;t find what you&apos;re looking for? 
+            Everything you need to know about RecapVideo.AI. Can&apos;t find what you&apos;re looking for?
             <Link href="/contact" className="text-violet-400 hover:text-violet-300 ml-1">Contact us</Link>.
           </p>
         </motion.div>
@@ -244,7 +244,7 @@ export default function FAQPage() {
             Ready to start creating amazing recap videos?
           </p>
           <a href={studioUrls.signup}>
-            <Button 
+            <Button
               size="lg"
               className="bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-700 hover:to-pink-700 text-white border-0 shadow-lg"
             >
