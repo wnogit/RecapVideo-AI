@@ -13,10 +13,10 @@ const api = axios.create({
 // Request interceptor - add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = typeof window !== 'undefined' 
-      ? localStorage.getItem('access_token') 
+    const token = typeof window !== 'undefined'
+      ? localStorage.getItem('access_token')
       : null;
-    
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -68,7 +68,7 @@ export default api;
 // API endpoints
 export const authApi = {
   // Email/Password auth
-  signup: (data: { email: string; password: string; name: string; device_id?: string }) =>
+  signup: (data: { email: string; password: string; name: string; device_id?: string; referral_code?: string }) =>
     api.post('/auth/signup', data),
   login: (data: { email: string; password: string; device_id?: string; remember_me?: boolean }) =>
     api.post('/auth/login', data),
@@ -78,7 +78,7 @@ export const authApi = {
     api.post('/auth/resend-verification', { email }),
   getAllowedDomains: () =>
     api.get<string[]>('/auth/allowed-domains'),
-  
+
   // OAuth & common
   logout: () => api.post('/auth/logout'),
   me: () => api.get('/users/me'),
@@ -120,9 +120,9 @@ export interface VideoOptions {
 }
 
 export const videoApi = {
-  create: (data: { 
-    source_url: string; 
-    voice_type?: string; 
+  create: (data: {
+    source_url: string;
+    voice_type?: string;
     output_language?: string;
     options?: VideoOptions;
   }) => api.post('/videos', data),
@@ -156,7 +156,7 @@ export interface CreditPackage {
 export const creditPackagesApi = {
   // Public endpoint
   getPublic: () => api.get<CreditPackage[]>('/credit-packages/public'),
-  
+
   // Admin endpoints
   list: (includeInactive: boolean = true) =>
     api.get<{ packages: CreditPackage[]; total: number }>('/credit-packages', {
@@ -233,7 +233,7 @@ export const paymentMethodsApi = {
   // Public endpoints
   getActive: () => api.get<PaymentMethod[]>('/payment-methods/active'),
   getTypes: () => api.get<PaymentType[]>('/payment-methods/types'),
-  
+
   // Admin endpoints
   list: (includeInactive: boolean = true) =>
     api.get<{ payment_methods: PaymentMethod[]; total: number }>('/payment-methods', {
@@ -266,15 +266,15 @@ export const paymentMethodsApi = {
 };
 
 export const orderApi = {
-  create: (data: { 
-    package_id: string; 
+  create: (data: {
+    package_id: string;
     payment_method: string;
     payment_method_id?: string;
     promo_code?: string;
   }) => api.post<OrderData>('/orders', data),
-  list: (page: number = 1, pageSize: number = 10) => 
+  list: (page: number = 1, pageSize: number = 10) =>
     api.get<{ orders: OrderData[]; total: number; page: number; page_size: number; total_pages: number }>(
-      '/orders', 
+      '/orders',
       { params: { page, page_size: pageSize } }
     ),
   get: (orderId: string) => api.get<OrderData>(`/orders/${orderId}`),
@@ -390,15 +390,15 @@ export interface OrderStats {
 
 // Admin Orders API
 export const adminOrdersApi = {
-  list: (params?: { 
-    page?: number; 
-    page_size?: number; 
+  list: (params?: {
+    page?: number;
+    page_size?: number;
     status?: string;
     search?: string;
   }) => api.get<AdminOrderListResponse>('/admin/orders', { params }),
   get: (id: string) => api.get<AdminOrder>(`/admin/orders/${id}`),
   approve: (id: string) => api.post<AdminOrder>(`/admin/orders/${id}/approve`),
-  reject: (id: string, reason?: string) => 
+  reject: (id: string, reason?: string) =>
     api.post<AdminOrder>(`/admin/orders/${id}/reject`, null, { params: { reason } }),
   stats: () => api.get<OrderStats>('/admin/orders/stats/summary'),
 };
@@ -446,16 +446,16 @@ export const siteSettingsApi = {
   updateMultiple: (updates: SettingUpdate[]) => api.put('/site-settings', updates),
   updateSingle: (key: string, update: SettingUpdate) => api.put(`/site-settings/${key}`, update),
   // Maintenance mode allowed IPs
-  addAllowedIP: (ip: string, label?: string) => 
+  addAllowedIP: (ip: string, label?: string) =>
     api.post('/site-settings/maintenance/allowed-ips', { ip, label }),
-  removeAllowedIP: (ip: string) => 
+  removeAllowedIP: (ip: string) =>
     api.delete(`/site-settings/maintenance/allowed-ips/${encodeURIComponent(ip)}`),
   // Login whitelist (bypass VPN/Datacenter check)
-  addLoginAllowedIP: (ip: string, label?: string) => 
+  addLoginAllowedIP: (ip: string, label?: string) =>
     api.post('/site-settings/login/allowed-ips', { ip, label }),
-  removeLoginAllowedIP: (ip: string) => 
+  removeLoginAllowedIP: (ip: string) =>
     api.delete(`/site-settings/login/allowed-ips/${encodeURIComponent(ip)}`),
-  getLoginAllowedIPs: () => 
+  getLoginAllowedIPs: () =>
     api.get<{ allowed_ips: Array<{ ip: string; label: string; added_by: string }> }>('/site-settings/login/allowed-ips'),
 };
 
@@ -470,9 +470,9 @@ export interface TelegramStatus {
 
 export const telegramApi = {
   getStatus: () => api.get<TelegramStatus>('/site-settings/telegram/status'),
-  updateConfig: (config: { bot_token?: string; admin_chat_id?: string; enabled?: boolean }) => 
+  updateConfig: (config: { bot_token?: string; admin_chat_id?: string; enabled?: boolean }) =>
     api.put('/site-settings/telegram/config', config),
-  setWebhook: (webhookUrl: string) => 
+  setWebhook: (webhookUrl: string) =>
     api.post('/site-settings/telegram/set-webhook', { webhook_url: webhookUrl }),
   deleteWebhook: () => api.delete('/site-settings/telegram/webhook'),
   testConnection: () => api.post<{ success: boolean; message: string; bot_name?: string; bot_username?: string }>('/site-settings/telegram/test'),
