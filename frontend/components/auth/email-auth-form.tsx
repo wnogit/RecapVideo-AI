@@ -1,20 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Sparkles, 
-  Mail, 
-  Lock, 
-  User, 
+import {
+  Sparkles,
+  Mail,
+  Lock,
+  User,
   AlertCircle,
   Loader2,
   Eye,
   EyeOff,
   Check,
   ChevronLeft,
+  Gift,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,21 +38,23 @@ const ALLOWED_DOMAINS = ['gmail.com', 'yahoo.com', 'yahoo.co.uk', 'outlook.com',
 
 export function EmailAuthForm({ initialMode = 'login' }: EmailAuthFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setAuth } = useAuthStore();
-  
+
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [deviceId, setDeviceId] = useState<string | null>(null);
-  
+
   // Form fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
-  
+
   // Validation
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -83,23 +86,31 @@ export function EmailAuthForm({ initialMode = 'login' }: EmailAuthFormProps) {
     setDeviceId(id);
   };
 
+  // Load referral code from URL parameter
+  useEffect(() => {
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      setReferralCode(refCode.toUpperCase());
+    }
+  }, [searchParams]);
+
   const validateEmail = (email: string): boolean => {
     if (!email) {
       setEmailError('Email is required');
       return false;
     }
-    
+
     const domain = email.toLowerCase().split('@')[1];
     if (!domain) {
       setEmailError('Please enter a valid email address');
       return false;
     }
-    
+
     if (!ALLOWED_DOMAINS.includes(domain)) {
       setEmailError(`Only Gmail, Yahoo, Outlook, Hotmail, and Live emails are allowed`);
       return false;
     }
-    
+
     setEmailError(null);
     return true;
   };
@@ -109,12 +120,12 @@ export function EmailAuthForm({ initialMode = 'login' }: EmailAuthFormProps) {
       setPasswordError('Password is required');
       return false;
     }
-    
+
     if (password.length < 8) {
       setPasswordError('Password must be at least 8 characters');
       return false;
     }
-    
+
     setPasswordError(null);
     return true;
   };
@@ -123,20 +134,20 @@ export function EmailAuthForm({ initialMode = 'login' }: EmailAuthFormProps) {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    
+
     // Validate
     const isEmailValid = validateEmail(email);
     const isPasswordValid = validatePassword(password);
-    
+
     if (!isEmailValid || !isPasswordValid) return;
-    
+
     if (mode === 'signup' && !name.trim()) {
       setError('Name is required');
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       if (mode === 'signup') {
         const response = await authApi.signup({
@@ -144,8 +155,9 @@ export function EmailAuthForm({ initialMode = 'login' }: EmailAuthFormProps) {
           password,
           name,
           device_id: deviceId || undefined,
+          referral_code: referralCode || undefined,
         });
-        
+
         setSuccess(response.data.message);
         setMode('login');
       } else {
@@ -155,15 +167,15 @@ export function EmailAuthForm({ initialMode = 'login' }: EmailAuthFormProps) {
           device_id: deviceId || undefined,
           remember_me: rememberMe,
         });
-        
+
         const { access_token, refresh_token, user } = response.data;
-        
+
         setAuth(access_token, refresh_token, user);
         router.push('/dashboard');
       }
     } catch (err: any) {
       const detail = err.response?.data?.detail;
-      
+
       if (typeof detail === 'object') {
         if (detail.code === 'VPN_DETECTED') {
           setError(detail.message || 'Please disconnect VPN/Proxy to continue.');
@@ -187,10 +199,10 @@ export function EmailAuthForm({ initialMode = 'login' }: EmailAuthFormProps) {
     // Generate CSRF token for OAuth state
     const csrfToken = crypto.randomUUID();
     const oauthState = JSON.stringify({ csrf: csrfToken, deviceId: deviceId || 'unknown' });
-    
+
     // Store state in sessionStorage for verification in callback
     sessionStorage.setItem('oauth_state', oauthState);
-    
+
     // Build Google OAuth URL
     const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     googleAuthUrl.searchParams.set('client_id', process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!);
@@ -200,7 +212,7 @@ export function EmailAuthForm({ initialMode = 'login' }: EmailAuthFormProps) {
     googleAuthUrl.searchParams.set('access_type', 'offline');
     googleAuthUrl.searchParams.set('prompt', 'consent');
     googleAuthUrl.searchParams.set('state', btoa(oauthState)); // Base64 encode state
-    
+
     window.location.href = googleAuthUrl.toString();
   };
 
@@ -214,8 +226,8 @@ export function EmailAuthForm({ initialMode = 'login' }: EmailAuthFormProps) {
       </div>
 
       {/* Back to Website Button */}
-      <a 
-        href={siteConfig.landingUrl} 
+      <a
+        href={siteConfig.landingUrl}
         className="absolute left-6 top-6 md:left-8 md:top-8 flex items-center text-sm text-gray-400 hover:text-white transition-colors z-20"
       >
         <ChevronLeft className="w-4 h-4 mr-1" />
@@ -233,13 +245,13 @@ export function EmailAuthForm({ initialMode = 'login' }: EmailAuthFormProps) {
       {/* Animated Login Card */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
-        animate={{ 
-          opacity: 1, 
+        animate={{
+          opacity: 1,
           y: 0,
-          x: shake ? [0, -10, 10, -10, 10, 0] : 0 
+          x: shake ? [0, -10, 10, -10, 10, 0] : 0
         }}
-        transition={{ 
-          duration: 0.5, 
+        transition={{
+          duration: 0.5,
           ease: "easeOut",
           x: { duration: 0.4 }
         }}
@@ -251,8 +263,8 @@ export function EmailAuthForm({ initialMode = 'login' }: EmailAuthFormProps) {
             {mode === 'login' ? 'Welcome Back' : 'Create Your Account'}
           </h2>
           <p className="text-gray-400 mt-2 text-sm">
-            {mode === 'login' 
-              ? 'Sign in to continue creating amazing videos' 
+            {mode === 'login'
+              ? 'Sign in to continue creating amazing videos'
               : 'Start creating AI-powered recap videos'}
           </p>
         </div>
@@ -307,6 +319,34 @@ export function EmailAuthForm({ initialMode = 'login' }: EmailAuthFormProps) {
                   disabled={isLoading}
                 />
               </div>
+            </motion.div>
+          )}
+
+          {mode === 'signup' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              <Label htmlFor="referralCode" className="text-gray-300">
+                Referral Code <span className="text-gray-500">(optional)</span>
+              </Label>
+              <div className="relative mt-1.5">
+                <Gift className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <Input
+                  id="referralCode"
+                  type="text"
+                  placeholder="ABC123"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-violet-500/50 focus:ring-violet-500/20 transition-all uppercase tracking-widest"
+                  maxLength={10}
+                  disabled={isLoading}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1.5">
+                သူငယ်ချင်းတစ်ယောက်ဆီက referral code ရှိရင် ထည့်ပါ
+              </p>
             </motion.div>
           )}
 

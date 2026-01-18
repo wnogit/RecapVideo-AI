@@ -123,6 +123,7 @@ class EmailSignupRequest(BaseModel):
     password: str = Field(..., min_length=8)
     name: str = Field(..., min_length=2, max_length=100)
     device_id: Optional[str] = None
+    referral_code: Optional[str] = Field(None, max_length=10)
     
     @field_validator('email')
     @classmethod
@@ -734,7 +735,18 @@ async def email_signup(request: Request, body: EmailSignupRequest, db: DBSession
                 detail="Too many accounts from this device.",
             )
     
-    # Step 4: Create user (unverified)
+    # Step 4: Look up referrer if referral code provided
+    referred_by_id = None
+    if body.referral_code:
+        referrer_result = await db.execute(
+            select(User).where(User.referral_code == body.referral_code.upper())
+        )
+        referrer = referrer_result.scalar_one_or_none()
+        if referrer:
+            referred_by_id = referrer.id
+            logger.info(f"Signup with referral code {body.referral_code} from {referrer.email}")
+    
+    # Step 5: Create user (unverified)
     verification_token = secrets.token_urlsafe(32)
     verification_expires = datetime.now(timezone.utc) + timedelta(hours=24)
     
@@ -750,6 +762,7 @@ async def email_signup(request: Request, body: EmailSignupRequest, db: DBSession
         signup_device_id=body.device_id,
         verification_token=verification_token,
         verification_expires=verification_expires,
+        referred_by_id=referred_by_id,  # Link referrer
     )
     
     db.add(user)
