@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 # Revision identifiers
 revision = 'add_platform_field'
-down_revision = None  # Update this to your latest migration
+down_revision = '005_add_api_key_priority_and_model'  # Chain after priority/model migration
 branch_labels = None
 depends_on = None
 
