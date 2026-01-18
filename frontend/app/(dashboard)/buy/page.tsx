@@ -282,16 +282,29 @@ export default function BuyCreditsPage() {
 
                   <CardContent className="text-center pb-3">
                     <div className="mb-2">
-                      <span className="text-2xl font-bold">
-                        {pkg.price_mmk ? `${pkg.price_mmk.toLocaleString()}` : `$${pkg.price_usd}`}
-                      </span>
+                      {pkg.discount_percent && pkg.discount_percent > 0 ? (
+                        <>
+                          <span className="text-sm text-muted-foreground line-through mr-2">
+                            {pkg.price_mmk
+                              ? `${Math.round(pkg.price_mmk / (1 - pkg.discount_percent / 100)).toLocaleString()}`
+                              : `$${(pkg.price_usd / (1 - pkg.discount_percent / 100)).toFixed(2)}`}
+                          </span>
+                          <span className="text-2xl font-bold text-green-500">
+                            {pkg.price_mmk ? `${pkg.price_mmk.toLocaleString()}` : `$${pkg.price_usd}`}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-2xl font-bold">
+                          {pkg.price_mmk ? `${pkg.price_mmk.toLocaleString()}` : `$${pkg.price_usd}`}
+                        </span>
+                      )}
                       <span className="text-muted-foreground text-xs ml-1">
                         {pkg.price_mmk ? 'MMK' : 'USD'}
                       </span>
                     </div>
 
                     {pkg.discount_percent && pkg.discount_percent > 0 && (
-                      <Badge variant="secondary" className="mb-3 text-xs">
+                      <Badge variant="secondary" className="mb-3 text-xs bg-green-500/10 text-green-500">
                         Save {pkg.discount_percent}%
                       </Badge>
                     )}
@@ -303,7 +316,7 @@ export default function BuyCreditsPage() {
                     <ul className="text-xs space-y-1.5 text-left">
                       <li className="flex items-center gap-2">
                         <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                        {pkg.credits} video creations
+                        {Math.floor(pkg.credits / 2)} video creations
                       </li>
                       <li className="flex items-center gap-2">
                         <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />

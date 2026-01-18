@@ -548,22 +548,35 @@ export default function LandingPage() {
                     </CardHeader>
                     <CardContent className="text-center pb-3">
                       <div className="mb-2">
-                        <span className={`text-2xl font-bold ${pkg.is_popular ? 'gradient-text' : ''}`}>
-                          {pkg.price_mmk ? `${pkg.price_mmk.toLocaleString()}` : `$${pkg.price_usd}`}
-                        </span>
+                        {pkg.discount_percent > 0 ? (
+                          <>
+                            <span className="text-sm text-muted-foreground line-through mr-2">
+                              {pkg.price_mmk
+                                ? `${Math.round(pkg.price_mmk / (1 - pkg.discount_percent / 100)).toLocaleString()}`
+                                : `$${(pkg.price_usd / (1 - pkg.discount_percent / 100)).toFixed(2)}`}
+                            </span>
+                            <span className={`text-2xl font-bold text-green-400 ${pkg.is_popular ? 'gradient-text' : ''}`}>
+                              {pkg.price_mmk ? `${pkg.price_mmk.toLocaleString()}` : `$${pkg.price_usd}`}
+                            </span>
+                          </>
+                        ) : (
+                          <span className={`text-2xl font-bold ${pkg.is_popular ? 'gradient-text' : ''}`}>
+                            {pkg.price_mmk ? `${pkg.price_mmk.toLocaleString()}` : `$${pkg.price_usd}`}
+                          </span>
+                        )}
                         <span className="text-muted-foreground text-xs ml-1">
                           {pkg.price_mmk ? 'MMK' : 'USD'}
                         </span>
                       </div>
                       {pkg.discount_percent > 0 && (
-                        <Badge variant="secondary" className="mb-3 text-xs text-green-500 bg-green-500/10">
+                        <Badge variant="secondary" className="mb-3 text-xs text-green-400 bg-green-500/10">
                           Save {pkg.discount_percent}%
                         </Badge>
                       )}
                       <ul className="text-xs space-y-1.5 text-left mt-3">
                         <li className="flex items-center gap-2">
                           <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                          {pkg.credits} video creations
+                          {Math.floor(pkg.credits / 2)} video creations
                         </li>
                         <li className="flex items-center gap-2">
                           <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />
