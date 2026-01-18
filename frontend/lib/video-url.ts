@@ -34,6 +34,7 @@ export const FACEBOOK_PATTERNS = [
     /^https?:\/\/(?:www\.)?facebook\.com\/.+\/videos\/(\d+)/,
     /^https?:\/\/(?:www\.)?facebook\.com\/watch\/?\?v=(\d+)/,
     /^https?:\/\/(?:www\.)?facebook\.com\/reel\/(\d+)/,
+    /^https?:\/\/(?:www\.)?facebook\.com\/share\/r\/([\w]+)/,
     /^https?:\/\/fb\.watch\/([\w]+)/,
 ];
 
