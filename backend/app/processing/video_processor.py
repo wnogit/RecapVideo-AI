@@ -42,6 +42,8 @@ from app.services.video_processing import (
     BlurOptions,
     BlurRegion,
     CropOptions,
+    AudioEnhanceOptions,
+    VideoEnhanceOptions,
 )
 
 
@@ -119,6 +121,17 @@ class VideoProcessor:
                 channel_name=outro_opts.get("channel_name", "") or "RecapVideo",  # Default if empty
                 logo_path=logo_opts.get("image_url") if outro_opts.get("use_logo") else None,
                 duration=outro_opts.get("duration", 5),
+            ),
+            # Audio enhancement (normalization)
+            audio_enhance=AudioEnhanceOptions(
+                normalize=options_dict.get("audio_enhance", {}).get("normalize", True),
+                target_loudness=float(options_dict.get("audio_enhance", {}).get("target_loudness", -16.0)),
+                true_peak=float(options_dict.get("audio_enhance", {}).get("true_peak", -1.5)),
+            ),
+            # Video enhancement (sharpen)
+            video_enhance=VideoEnhanceOptions(
+                sharpen_enabled=options_dict.get("video_enhance", {}).get("sharpen_enabled", False),
+                sharpen_strength=float(options_dict.get("video_enhance", {}).get("sharpen_strength", 0.3)),
             ),
         )
     

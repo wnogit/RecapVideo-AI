@@ -76,6 +76,21 @@ class CropOptions:
 
 
 @dataclass
+class AudioEnhanceOptions:
+    """Audio enhancement options."""
+    normalize: bool = True  # EBU R128 loudness normalization
+    target_loudness: float = -16.0  # LUFS (-24 to -12)
+    true_peak: float = -1.5  # dB (-3 to 0)
+
+
+@dataclass
+class VideoEnhanceOptions:
+    """Video enhancement options."""
+    sharpen_enabled: bool = False  # Contrast Adaptive Sharpen
+    sharpen_strength: float = 0.3  # 0.0 to 1.0
+
+
+@dataclass
 class VideoProcessingOptions:
     """All video processing options."""
     aspect_ratio: str = "9:16"  # 9:16, 16:9, 1:1, 4:5
@@ -85,4 +100,7 @@ class VideoProcessingOptions:
     subtitles: SubtitleOptions = field(default_factory=SubtitleOptions)
     logo: LogoOptions = field(default_factory=LogoOptions)
     outro: OutroOptions = field(default_factory=OutroOptions)
+    audio_enhance: AudioEnhanceOptions = field(default_factory=AudioEnhanceOptions)
+    video_enhance: VideoEnhanceOptions = field(default_factory=VideoEnhanceOptions)
+
 

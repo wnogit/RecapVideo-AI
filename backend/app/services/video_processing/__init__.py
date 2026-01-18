@@ -40,6 +40,8 @@ from .models import (
     BlurRegion,
     BlurOptions,
     CropOptions,
+    AudioEnhanceOptions,
+    VideoEnhanceOptions,
     VideoProcessingOptions,
 )
 

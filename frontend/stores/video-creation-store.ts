@@ -117,6 +117,17 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
   // Step 3
   outroOptions: DEFAULT_OUTRO_OPTIONS,
 
+  // Audio/Video Enhancement
+  audioEnhanceOptions: {
+    normalize: true,
+    targetLoudness: -16.0,
+    truePeak: -1.5,
+  },
+  videoEnhanceOptions: {
+    sharpenEnabled: false,
+    sharpenStrength: 0.3,
+  },
+
   // Validation
   isStep1Valid: false,
   isStep2Valid: true, // Always valid (has defaults)
@@ -291,6 +302,17 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
           channel_name: state.outroOptions.channelName,
           use_logo: state.outroOptions.useUploadedLogo && !!state.logoOptions.imageUrl,
           duration: state.outroOptions.duration,
+        },
+        // Audio Enhancement (Normalization)
+        audio_enhance: {
+          normalize: state.audioEnhanceOptions.normalize,
+          target_loudness: state.audioEnhanceOptions.targetLoudness,
+          true_peak: state.audioEnhanceOptions.truePeak,
+        },
+        // Video Enhancement (Sharpen)
+        video_enhance: {
+          sharpen_enabled: state.videoEnhanceOptions.sharpenEnabled,
+          sharpen_strength: state.videoEnhanceOptions.sharpenStrength,
         },
       },
     };

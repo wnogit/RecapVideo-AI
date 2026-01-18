@@ -568,6 +568,12 @@ class SinglePassProcessorV2:
         if options.copyright.slight_zoom:
             vf.append("scale=iw*1.05:ih*1.05,crop=iw/1.05:ih/1.05")
         
+        # Video Sharpen (Contrast Adaptive Sharpen)
+        if hasattr(options, 'video_enhance') and options.video_enhance.sharpen_enabled:
+            strength = min(1.0, max(0.0, options.video_enhance.sharpen_strength))
+            vf.append(f"cas=strength={strength}")
+            logger.info(f"[SINGLE-PASS-V2] Video sharpen enabled: strength={strength}")
+        
         # Resize
         if options.aspect_ratio in self.ASPECT_RATIOS:
             w, h = self.ASPECT_RATIOS[options.aspect_ratio]
@@ -630,12 +636,27 @@ class SinglePassProcessorV2:
             fc_parts.append(f"[{current_label}][logo]overlay={pos}[vout]")
             current_label = "vout"
         
-        # Audio filter (pitch shift)
+        # Audio filter (pitch shift + normalization)
         audio_label = None
         if audio_idx is not None:
+            audio_filters = []
+            
+            # Audio pitch shift
             if options.copyright.audio_pitch_shift:
                 pitch = options.copyright.pitch_value
-                fc_parts.append(f"[{audio_idx}:a]asetrate=44100*{pitch},aresample=44100[aout]")
+                audio_filters.append(f"asetrate=44100*{pitch}")
+                audio_filters.append("aresample=44100")
+            
+            # Audio normalization (EBU R128)
+            if hasattr(options, 'audio_enhance') and options.audio_enhance.normalize:
+                target = options.audio_enhance.target_loudness
+                tp = options.audio_enhance.true_peak
+                audio_filters.append(f"loudnorm=I={target}:LRA=11:TP={tp}")
+                logger.info(f"[SINGLE-PASS-V2] Audio normalization enabled: I={target}, TP={tp}")
+            
+            if audio_filters:
+                filter_chain = ",".join(audio_filters)
+                fc_parts.append(f"[{audio_idx}:a]{filter_chain}[aout]")
                 audio_label = "aout"
             else:
                 audio_label = f"{audio_idx}:a"
