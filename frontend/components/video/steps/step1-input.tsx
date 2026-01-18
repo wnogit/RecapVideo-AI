@@ -159,13 +159,13 @@ export function Step1Input() {
         </Label>
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Link2 className="absolute left-3 top-2.5 lg:top-2 h-4 w-4 text-muted-foreground" />
+            <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               id="url"
               type="url"
               placeholder="YouTube, TikTok, or Facebook video URL..."
               className={cn(
-                "pl-9 pr-10 h-10 lg:h-9 text-sm",
+                "pl-9 pr-10 h-10 text-sm",
                 isValidUrl && "border-green-500 focus-visible:ring-green-500",
                 showError && "border-destructive focus-visible:ring-destructive"
               )}
@@ -173,7 +173,7 @@ export function Step1Input() {
               onChange={handleUrlChange}
               onBlur={() => setUrlTouched(true)}
             />
-            {/* Status Icon - positioned with space for text */}
+            {/* Status Icon - centered vertically */}
             {sourceUrl && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
                 {isValidUrl ? (
@@ -184,7 +184,7 @@ export function Step1Input() {
               </div>
             )}
           </div>
-          {/* Paste Button */}
+          {/* Paste Button - same height as input */}
           <button
             type="button"
             onClick={async () => {
@@ -197,13 +197,13 @@ export function Step1Input() {
               }
             }}
             className={cn(
-              "h-12 px-4 rounded-lg border text-muted-foreground flex items-center gap-2",
+              "h-10 px-3 rounded-lg border text-muted-foreground flex items-center gap-2",
               "transition-all duration-200 hover:bg-accent hover:text-foreground hover:border-primary/50",
               "active:scale-95"
             )}
             title="URL ကို Paste လုပ်ရန်"
           >
-            <ClipboardPaste className="h-5 w-5" />
+            <ClipboardPaste className="h-4 w-4" />
             <span className="hidden sm:inline text-sm">Paste</span>
           </button>
         </div>
