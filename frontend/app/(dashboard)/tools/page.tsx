@@ -21,9 +21,9 @@ import { Button } from '@/components/ui/button';
 const tools = [
     {
         id: 'watermark-removal',
-        name: 'AI Watermark Removal',
-        description: 'Remove TikTok/Facebook watermarks with AI inpainting',
-        longDescription: 'Advanced AI technology သုံးပြီး video watermarks ကို ဖယ်ရှားပေးပါသည်။ Blur မဟုတ်ဘဲ AI inpainting ဖြင့် clean background ပြန်ဖန်တီးပေးပါသည်။',
+        name: 'Watermark Removal',
+        description: 'Remove TikTok/Facebook watermarks automatically',
+        longDescription: 'Video watermarks ကို အလိုအလျောက် ဖယ်ရှားပေးပါသည်။ Clean background ပြန်ဖန်တီးပြီး professional output ရရှိပါသည်။',
         icon: Sparkles,
         credits: 9,
         status: 'coming_soon' as const,
@@ -31,15 +31,15 @@ const tools = [
         features: [
             'TikTok watermark removal',
             'Facebook watermark removal',
-            'AI inpainting technology',
             'Clean background restoration',
+            'Professional quality output',
         ],
     },
     {
         id: 'subtitle-generator',
         name: 'Subtitle Generator',
-        description: 'Generate subtitles from any video/audio with Whisper AI',
-        longDescription: 'OpenAI Whisper AI သုံးပြီး video/audio ကို subtitle ထုတ်ပေးပါသည်။ SRT, VTT, ASS formats ထုတ်နိုင်ပါသည်။',
+        description: 'Generate subtitles from any video/audio',
+        longDescription: 'Video/audio ကို subtitle အဖြစ် ထုတ်ပေးပါသည်။ SRT, VTT, ASS formats ထုတ်နိုင်ပါသည်။',
         icon: FileText,
         credits: 3,
         status: 'available' as const,
@@ -48,7 +48,7 @@ const tools = [
             'Multi-language support',
             'Word-level timestamps',
             'SRT/VTT/ASS export',
-            'High accuracy with Whisper',
+            'High accuracy transcription',
         ],
     },
     {

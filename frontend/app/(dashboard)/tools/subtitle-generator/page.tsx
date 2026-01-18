@@ -86,7 +86,7 @@ export default function SubtitleGeneratorPage() {
                     <div>
                         <h1 className="text-2xl font-bold">Subtitle Generator</h1>
                         <p className="text-muted-foreground">
-                            Generate subtitles from video using Whisper AI
+                            Generate subtitles from any video automatically
                         </p>
                     </div>
                 </div>
