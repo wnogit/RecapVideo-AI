@@ -21,6 +21,7 @@ import {
   PlusCircle,
   Shield,
   Gift,
+  Wrench,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -28,6 +29,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Video ဖန်တီးမည်', href: '/create', icon: PlusCircle, highlight: true },
   { name: 'My Videos', href: '/videos', icon: Video },
+  { name: 'Tools', href: '/tools', icon: Wrench },
   { name: 'Credits', href: '/credits', icon: Coins },
   { name: 'Buy Credits', href: '/buy', icon: ShoppingCart },
   { name: 'Referral', href: '/referral', icon: Gift },
