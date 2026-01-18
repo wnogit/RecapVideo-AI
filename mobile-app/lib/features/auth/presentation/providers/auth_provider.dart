@@ -77,15 +77,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// 3. Network error = keep cached data, 401 = logout
   Future<void> initialize() async {
     state = state.copyWith(isLoading: true);
-    print('🚀 Auth Initialize started (offline-first)...');
+    if (kDebugMode) debugPrint('🚀 Auth Initialize started (offline-first)...');
 
     try {
       final token = await _tokenStorage.getAccessToken();
-      print('🔑 Stored token: ${token != null ? "exists (${token.length} chars)" : "null"}');
+      if (kDebugMode) debugPrint('🔑 Stored token: ${token != null ? "exists (${token.length} chars)" : "null"}');
       
       if (token == null || token.isEmpty) {
         // No token - go to login
-        print('⚠️ No token found, going to login');
+        if (kDebugMode) debugPrint('⚠️ No token found, going to login');
         state = state.copyWith(isLoading: false, isInitialized: true);
         return;
       }
@@ -96,20 +96,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // Step 1: Load cached user FIRST (for instant home screen)
       final cachedUser = await _tokenStorage.getCachedUser();
       if (cachedUser != null) {
-        print('✅ Loaded cached user: ${cachedUser.email}');
+        if (kDebugMode) debugPrint('✅ Loaded cached user: ${cachedUser.email}');
         state = state.copyWith(
           user: cachedUser,
           token: token,
           isLoading: false,
           isInitialized: true,
         );
-        print('✅ Auth initialized with cached data - authenticated: ${state.isAuthenticated}');
+        if (kDebugMode) debugPrint('✅ Auth initialized with cached data - authenticated: ${state.isAuthenticated}');
       }
       
       // Step 2: Validate with server in background
       try {
         final freshUser = await _authRepository.getCurrentUser();
-        print('✅ Server validation success: ${freshUser.email}');
+        if (kDebugMode) debugPrint('✅ Server validation success: ${freshUser.email}');
         
         // Update state and cache with fresh data
         await _tokenStorage.saveUserData(freshUser);
@@ -120,10 +120,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
           isInitialized: true,
         );
       } on ApiError catch (e) {
-        print('❌ ApiError during validation: ${e.message} (status: ${e.statusCode})');
+        if (kDebugMode) debugPrint('❌ ApiError during validation: ${e.message} (status: ${e.statusCode})');
         if (e.statusCode == 401) {
           // Token invalid - force logout
-          print('🔒 Token invalid (401) - forcing logout');
+          if (kDebugMode) debugPrint('🔒 Token invalid (401) - forcing logout');
           await _tokenStorage.clearAll();
           state = const AuthState(isInitialized: true);
         } else if (cachedUser == null) {
@@ -133,7 +133,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         // If cached user exists, keep using it
       } catch (e) {
         // Network error - keep using cached data if available
-        print('⚠️ Network error during validation: $e');
+        if (kDebugMode) debugPrint('⚠️ Network error during validation: $e');
         if (cachedUser == null) {
           // No cached user - mark as initialized but not authenticated
           state = state.copyWith(isLoading: false, isInitialized: true);
@@ -141,8 +141,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
         // If cached user exists, already set in state - keep it
       }
     } catch (e, stackTrace) {
-      print('❌ Exception during init: $e');
-      print('📍 Stack: $stackTrace');
+      if (kDebugMode) {
+        debugPrint('❌ Exception during init: $e');
+        debugPrint('📍 Stack: $stackTrace');
+      }
       state = state.copyWith(isLoading: false, isInitialized: true);
     }
   }

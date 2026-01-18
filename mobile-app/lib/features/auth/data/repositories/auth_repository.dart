@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_endpoints.dart';
 import '../../../../core/models/auth_response.dart';
@@ -26,15 +27,17 @@ class AuthRepository {
       );
 
       // Debug: Print response for troubleshooting
-      print('🔐 Login Response: ${response.data}');
+      if (kDebugMode) debugPrint('🔐 Login Response: ${response.data}');
       
       return AuthResponse.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      print('❌ DioException: ${e.message}');
+      if (kDebugMode) debugPrint('❌ DioException: ${e.message}');
       throw ApiError.fromDioError(e);
     } catch (e, stackTrace) {
-      print('❌ Parsing Error: $e');
-      print('📍 Stack: $stackTrace');
+      if (kDebugMode) {
+        debugPrint('❌ Parsing Error: $e');
+        debugPrint('📍 Stack: $stackTrace');
+      }
       throw ApiError(message: 'Login failed: ${e.toString()}', statusCode: 0);
     }
   }
@@ -83,7 +86,7 @@ class AuthRepository {
   Future<User> getCurrentUser() async {
     try {
       final response = await _apiClient.get(ApiEndpoints.me);
-      print('👤 Get Current User Response: ${response.data}');
+      if (kDebugMode) debugPrint('👤 Get Current User Response: ${response.data}');
       
       // /auth/me returns {user: {...}} or just {...}
       final data = response.data as Map<String, dynamic>;
@@ -92,7 +95,7 @@ class AuthRepository {
       }
       return User.fromJson(data);
     } on DioException catch (e) {
-      print('❌ Get Current User Error: ${e.message}');
+      if (kDebugMode) debugPrint('❌ Get Current User Error: ${e.message}');
       throw ApiError.fromDioError(e);
     }
   }

@@ -28,6 +28,11 @@
 # Keep Firebase (if using)
 -keep class com.google.firebase.** { *; }
 
+# Keep Google Play Core (for deferred components)
+-dontwarn com.google.android.play.core.**
+-keep class com.google.android.play.core.** { *; }
+-keep interface com.google.android.play.core.** { *; }
+
 # Security - Hide sensitive class names (optional)
 # -repackageclasses 'ai.recapvideo.internal'
 

@@ -364,7 +364,6 @@ export function Step1Input() {
               key={format.value}
               type="button"
               onClick={() => {
-                console.log('[Step1] User clicked aspect ratio:', format.value);
                 setAspectRatio(format.value);
               }}
               className={cn(

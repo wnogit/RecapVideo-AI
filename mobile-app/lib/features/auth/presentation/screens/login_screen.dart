@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -89,8 +90,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    print('🔐 Starting login...');
-    print('📧 Email: ${_emailController.text.trim()}');
+    if (kDebugMode) {
+      debugPrint('🔐 Starting login...');
+      debugPrint('📧 Email: ${_emailController.text.trim()}');
+    }
 
     await ref.read(authProvider.notifier).login(
       _emailController.text.trim(),
@@ -98,19 +101,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
 
     final authState = ref.read(authProvider);
-    print('✅ Login complete. isAuthenticated: ${authState.isAuthenticated}');
-    print('👤 User: ${authState.user?.email ?? "null"}');
-    print('❌ Error: ${authState.error?.message ?? "null"}');
+    if (kDebugMode) {
+      debugPrint('✅ Login complete. isAuthenticated: ${authState.isAuthenticated}');
+      debugPrint('👤 User: ${authState.user?.email ?? "null"}');
+      debugPrint('❌ Error: ${authState.error?.message ?? "null"}');
+    }
     
     if (!mounted) {
-      print('⚠️ Widget not mounted, returning');
+      if (kDebugMode) debugPrint('⚠️ Widget not mounted, returning');
       return;
     }
 
     // Error ရှိရင်ပဲ SnackBar ပြမယ်
     // Success ရင် Router redirect ကပဲ handle မယ် (AuthChangeNotifier ကနေ)
     if (authState.error != null) {
-      print('🔴 Showing error snackbar: ${authState.error!.message}');
+      if (kDebugMode) debugPrint('🔴 Showing error snackbar: ${authState.error!.message}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(authState.error!.message),
@@ -119,7 +124,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       );
     } else if (!authState.isAuthenticated) {
       // Neither error nor authenticated - something went wrong
-      print('🟡 Neither error nor authenticated - something went wrong');
+      if (kDebugMode) debugPrint('🟡 Neither error nor authenticated - something went wrong');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Login failed. Please try again.'),

@@ -1,4 +1,4 @@
-/// App Configuration
+import 'package:flutter/foundation.dart';\n\n/// App Configuration
 /// 
 /// Environment-based configuration for different build modes
 /// 
@@ -108,14 +108,16 @@ class AppConfig {
   
   /// Print configuration for debugging
   static void printConfig() {
-    print('========== App Configuration ==========');
-    print('Environment: $environment');
-    print('API URL: $apiBaseUrl');
-    print('Version: $appVersion+$buildNumber');
-    print('Analytics: $enableAnalytics');
-    print('Crash Reporting: $enableCrashReporting');
-    print('SSL Pinning: $enableSSLPinning');
-    print('Device Security: $enableDeviceSecurity');
-    print('========================================');
+    if (kDebugMode) {
+      debugPrint('========== App Configuration ==========');
+      debugPrint('Environment: $environment');
+      debugPrint('API URL: $apiBaseUrl');
+      debugPrint('Version: $appVersion+$buildNumber');
+      debugPrint('Analytics: $enableAnalytics');
+      debugPrint('Crash Reporting: $enableCrashReporting');
+      debugPrint('SSL Pinning: $enableSSLPinning');
+      debugPrint('Device Security: $enableDeviceSecurity');
+      debugPrint('========================================');
+    }
   }
 }

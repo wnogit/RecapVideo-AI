@@ -156,7 +156,6 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
   setVoiceId: (id) => set({ voiceId: id }),
 
   setAspectRatio: (ratio) => {
-    console.log('[VideoCreationStore] Setting aspect ratio:', ratio);
     set({ aspectRatio: ratio });
   },
 
@@ -240,7 +239,6 @@ export const useVideoCreationStore = create<VideoCreationState>((set, get) => ({
   // Get submission data
   getSubmissionData: () => {
     const state = get();
-    console.log('[VideoCreationStore] getSubmissionData - aspectRatio:', state.aspectRatio);
     return {
       source_url: state.sourceUrl,
       voice_type: state.voiceId,
