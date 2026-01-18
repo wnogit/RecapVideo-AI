@@ -83,6 +83,9 @@ class Settings(BaseSettings):
     # Google Gemini (TTS fallback)
     GEMINI_API_KEY: str = ""
     
+    # HuggingFace API (for Whisper transcription)
+    HUGGINGFACE_API_KEY: str = ""
+    
     # Google OAuth
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""

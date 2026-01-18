@@ -29,6 +29,13 @@ class VideoStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
+class VideoPlatform(str, Enum):
+    """Supported video platforms."""
+    YOUTUBE = "youtube"
+    TIKTOK = "tiktok"
+    FACEBOOK = "facebook"
+
+
 class VoiceType(str, Enum):
     """Available voice types for TTS."""
     FEMALE_BURMESE = "my-MM-NilarNeural"
@@ -92,8 +99,14 @@ class Video(Base):
     )
     
     # Source info
+    platform: Mapped[str] = mapped_column(
+        String(20), 
+        default=VideoPlatform.YOUTUBE.value,
+        index=True,
+    )
     source_url: Mapped[str] = mapped_column(String(500), nullable=False)
-    youtube_id: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    source_video_id: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)  # Video ID for any platform
+    youtube_id: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)  # Keep for backward compatibility
     source_title: Mapped[str | None] = mapped_column(String(500), nullable=True)
     source_thumbnail: Mapped[str | None] = mapped_column(String(500), nullable=True)
     source_duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)

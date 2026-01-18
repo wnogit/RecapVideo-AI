@@ -182,6 +182,7 @@ class APIKeyService:
             "gemini": settings.GEMINI_API_KEY,
             "groq": getattr(settings, 'GROQ_API_KEY', None),
             "poe": getattr(settings, 'POE_API_KEY', None),
+            "huggingface": getattr(settings, 'HUGGINGFACE_API_KEY', None),
             "openrouter": getattr(settings, 'OPENROUTER_API_KEY', None),
             "deepinfra": getattr(settings, 'DEEPINFRA_API_KEY', None),
             "resend": settings.RESEND_API_KEY,
@@ -238,6 +239,9 @@ class APIKeyService:
     
     async def get_resend_key(self, db: Optional[AsyncSession] = None) -> Optional[str]:
         return await self.get_key("resend", db)
+    
+    async def get_huggingface_key(self, db: Optional[AsyncSession] = None) -> Optional[str]:
+        return await self.get_key("huggingface", db)
     
     async def get_r2_credentials(self, db: Optional[AsyncSession] = None) -> Dict[str, str]:
         """Get R2 access and secret keys."""

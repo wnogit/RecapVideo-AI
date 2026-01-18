@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  Plus, Pencil, Trash2, Eye, EyeOff, Loader2, Check, X, 
+import {
+  Plus, Pencil, Trash2, Eye, EyeOff, Loader2, Check, X,
   RefreshCw, TestTube, Zap, FileText, Cloud, Mail, Bot,
   Sparkles, ChevronDown, ChevronRight, AlertCircle, CheckCircle2,
   Settings2, Layers
@@ -56,6 +56,14 @@ const INTEGRATION_CATEGORIES = {
     bgColor: 'bg-blue-500/10',
     providers: ['transcript_api']
   },
+  whisper: {
+    title: 'Whisper (TikTok/Facebook)',
+    description: 'Audio transcription for TikTok & Facebook videos',
+    icon: Bot,
+    color: 'text-yellow-500',
+    bgColor: 'bg-yellow-500/10',
+    providers: ['huggingface']
+  },
   storage: {
     title: 'Storage',
     description: 'Cloud storage for videos and assets',
@@ -75,70 +83,77 @@ const INTEGRATION_CATEGORIES = {
 };
 
 // Provider display config
-const PROVIDER_CONFIG: Record<string, { 
-  name: string; 
-  description: string; 
+const PROVIDER_CONFIG: Record<string, {
+  name: string;
+  description: string;
   icon: string;
   docsUrl?: string;
   category: string;
 }> = {
-  deepinfra: { 
-    name: 'DeepInfra (Gemini 2.5 Flash)', 
+  deepinfra: {
+    name: 'DeepInfra (Gemini 2.5 Flash)',
     description: 'PRIMARY AI - Best for Burmese scripts',
     icon: '🚀',
     docsUrl: 'https://deepinfra.com/dash/api_keys',
     category: 'script_generation'
   },
-  poe: { 
-    name: 'Poe API (10k pts/day)', 
+  poe: {
+    name: 'Poe API (10k pts/day)',
     description: 'Cheapest option! Gemini-2.5-Flash-Lite = ~192 scripts/day',
     icon: '🎭',
     docsUrl: 'https://poe.com/api_pricing',
     category: 'script_generation'
   },
-  groq: { 
-    name: 'Groq (Llama 3.3)', 
+  groq: {
+    name: 'Groq (Llama 3.3)',
     description: 'Fast AI fallback - English only',
     icon: '⚡',
     docsUrl: 'https://console.groq.com/',
     category: 'script_generation'
   },
-  gemini: { 
-    name: 'Google Gemini', 
+  gemini: {
+    name: 'Google Gemini',
     description: 'Final fallback - FREE tier',
     icon: '🤖',
     docsUrl: 'https://aistudio.google.com/app/apikey',
     category: 'script_generation'
   },
-  openrouter: { 
-    name: 'OpenRouter', 
+  openrouter: {
+    name: 'OpenRouter',
     description: 'Access to multiple AI models',
     icon: '🌐',
     docsUrl: 'https://openrouter.ai/keys',
     category: 'script_generation'
   },
-  transcript_api: { 
-    name: 'TranscriptAPI.com', 
+  transcript_api: {
+    name: 'TranscriptAPI.com',
     description: 'YouTube transcript extraction',
     icon: '📝',
     docsUrl: 'https://www.transcriptapi.com/',
     category: 'transcript'
   },
-  r2_access_key: { 
-    name: 'Cloudflare R2 Access Key', 
+  huggingface: {
+    name: 'HuggingFace (Whisper)',
+    description: 'Audio transcription for TikTok & Facebook - via fal-ai',
+    icon: '🤗',
+    docsUrl: 'https://huggingface.co/settings/tokens',
+    category: 'whisper'
+  },
+  r2_access_key: {
+    name: 'Cloudflare R2 Access Key',
     description: 'R2 storage access key ID',
     icon: '☁️',
     docsUrl: 'https://dash.cloudflare.com/',
     category: 'storage'
   },
-  r2_secret_key: { 
-    name: 'Cloudflare R2 Secret Key', 
+  r2_secret_key: {
+    name: 'Cloudflare R2 Secret Key',
     description: 'R2 storage secret access key',
     icon: '🔐',
     category: 'storage'
   },
-  resend: { 
-    name: 'Resend', 
+  resend: {
+    name: 'Resend',
     description: 'Email delivery service',
     icon: '📧',
     docsUrl: 'https://resend.com/api-keys',
@@ -282,7 +297,7 @@ export default function IntegrationsPage() {
 
   const handleEditKey = async (key: APIKey) => {
     setEditingKey(key);
-    
+
     // Fetch the actual key value if needed
     let keyValue = '';
     try {
@@ -291,7 +306,7 @@ export default function IntegrationsPage() {
     } catch (error) {
       console.error('Error fetching key value:', error);
     }
-    
+
     setKeyFormData({
       key_type: key.key_type,
       name: key.name,
@@ -414,17 +429,17 @@ export default function IntegrationsPage() {
       if (response.data?.status === 'success') {
         toast({ title: 'Connection test successful!' });
       } else {
-        toast({ 
-          title: 'Connection test failed', 
+        toast({
+          title: 'Connection test failed',
           description: response.data?.message || 'Unknown error',
-          variant: 'destructive' 
+          variant: 'destructive'
         });
       }
     } catch (error: any) {
-      toast({ 
-        title: 'Connection test failed', 
+      toast({
+        title: 'Connection test failed',
         description: error.response?.data?.detail || 'Unknown error',
-        variant: 'destructive' 
+        variant: 'destructive'
       });
     } finally {
       setTestingKey(null);
@@ -437,7 +452,7 @@ export default function IntegrationsPage() {
 
     const status = getProviderStatus(provider);
     const keys = getKeysByProvider(provider);
-    
+
     // Group keys by priority for better visualization
     const keysByPriority = keys.reduce((acc, key) => {
       if (!acc[key.priority]) {
@@ -446,7 +461,7 @@ export default function IntegrationsPage() {
       acc[key.priority].push(key);
       return acc;
     }, {} as Record<number, typeof keys>);
-    
+
     const sortedPriorities = Object.keys(keysByPriority).sort((a, b) => Number(a) - Number(b));
 
     return (
@@ -479,8 +494,8 @@ export default function IntegrationsPage() {
             </div>
             <div className="flex items-center gap-1">
               {config.docsUrl && (
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
                   className="h-8 px-2 text-xs"
                   onClick={() => window.open(config.docsUrl, '_blank')}
@@ -488,8 +503,8 @@ export default function IntegrationsPage() {
                   Docs
                 </Button>
               )}
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 className="h-8 px-3 text-xs"
                 onClick={() => handleAddKey(provider)}
@@ -514,13 +529,13 @@ export default function IntegrationsPage() {
                         Priority {priority}
                       </Badge>
                       <div className="text-xs text-muted-foreground">
-                        {priorityKeys.length} key{priorityKeys.length > 1 ? 's' : ''} 
+                        {priorityKeys.length} key{priorityKeys.length > 1 ? 's' : ''}
                         {Number(priority) === 1 && ' (Primary)'}
                       </div>
                     </div>
                     <div className="grid grid-cols-1 gap-2">
                       {priorityKeys.map(key => (
-                        <div 
+                        <div
                           key={key.id}
                           className="flex items-center justify-between p-3 border rounded-md bg-card hover:bg-muted/30 transition-colors"
                         >
@@ -540,7 +555,7 @@ export default function IntegrationsPage() {
                               </div>
                               <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                                 <span className="font-mono">
-                                  {revealedKeys[key.id] 
+                                  {revealedKeys[key.id]
                                     ? revealedKeys[key.id].substring(0, 24) + '...'
                                     : '••••••••••••••••'}
                                 </span>
@@ -650,9 +665,8 @@ export default function IntegrationsPage() {
                 <Button
                   key={provider}
                   variant={isSelected ? 'default' : 'outline'}
-                  className={`h-auto py-3 px-4 flex flex-col items-start gap-1 ${
-                    isSelected ? '' : 'hover:border-primary/50'
-                  }`}
+                  className={`h-auto py-3 px-4 flex flex-col items-start gap-1 ${isSelected ? '' : 'hover:border-primary/50'
+                    }`}
                   onClick={() => setSelectedProvider(provider)}
                 >
                   <div className="flex items-center gap-2 w-full">
@@ -685,7 +699,7 @@ export default function IntegrationsPage() {
               {editingKey ? 'Edit Integration' : 'Add Integration'}
             </DialogTitle>
             <DialogDescription>
-              {editingKey 
+              {editingKey
                 ? 'Update the integration settings below.'
                 : 'Configure a new external service integration.'}
             </DialogDescription>
@@ -850,8 +864,8 @@ export default function IntegrationsPage() {
             <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={() => deleteConfirm && handleDeleteKey(deleteConfirm)}
             >
               Delete

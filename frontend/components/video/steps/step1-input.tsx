@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { Link2, AlertCircle, CheckCircle2, Mic, Volume2, Loader2, Square, ClipboardPaste, Languages, ChevronDown } from 'lucide-react';
-import { isYoutubeShortsUrl, isRegularYoutubeUrl } from '@/lib/youtube';
+import { detectPlatform, isSupportedUrl, isYoutubeShortsUrl, isRegularYoutubeUrl, getPlatformInfo, type VideoPlatform } from '@/lib/video-url';
 import { AspectRatio, FORMAT_OPTIONS } from '@/lib/types/video-options';
 import {
   Select,
@@ -71,9 +71,13 @@ export function Step1Input() {
   const [loadingVoice, setLoadingVoice] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Multi-platform URL detection
+  const { platform, videoId } = detectPlatform(sourceUrl);
+  const isValidUrl = isSupportedUrl(sourceUrl);
   const isValidShorts = isYoutubeShortsUrl(sourceUrl);
   const isRegularYoutube = isRegularYoutubeUrl(sourceUrl) && !isValidShorts;
-  const showError = urlTouched && sourceUrl && !isValidShorts;
+  const showError = urlTouched && sourceUrl && !isValidUrl;
+  const platformInfo = platform !== 'unknown' ? getPlatformInfo(platform) : null;
 
   // Cleanup audio on unmount
   useEffect(() => {
@@ -144,14 +148,14 @@ export function Step1Input() {
           🎬 Video အချက်အလက်
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
-          YouTube Shorts URL ထည့်ပြီး Voice ရွေးချယ်ပါ
+          YouTube, TikTok, သို့မဟုတ် Facebook URL ထည့်ပြီး Voice ရွေးချယ်ပါ
         </p>
       </div>
 
-      {/* YouTube URL Input */}
+      {/* Video URL Input */}
       <div className="space-y-2">
         <Label htmlFor="url" className="text-sm font-medium">
-          YouTube Shorts URL
+          Video URL (YouTube, TikTok, Facebook)
         </Label>
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -159,10 +163,10 @@ export function Step1Input() {
             <Input
               id="url"
               type="url"
-              placeholder="https://www.youtube.com/shorts/..."
+              placeholder="YouTube, TikTok, or Facebook video URL..."
               className={cn(
                 "pl-9 h-10 lg:h-9 text-sm",
-                isValidShorts && "border-green-500 focus-visible:ring-green-500",
+                isValidUrl && "border-green-500 focus-visible:ring-green-500",
                 showError && "border-destructive focus-visible:ring-destructive"
               )}
               value={sourceUrl}
@@ -172,7 +176,7 @@ export function Step1Input() {
             {/* Status Icon */}
             {sourceUrl && (
               <div className="absolute right-3 top-3">
-                {isValidShorts ? (
+                {isValidUrl ? (
                   <CheckCircle2 className="h-5 w-5 text-green-500" />
                 ) : (
                   <AlertCircle className="h-5 w-5 text-destructive" />
@@ -209,28 +213,29 @@ export function Step1Input() {
           <div className="flex items-start gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
             <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
             <div>
-              {isRegularYoutube ? (
-                <>
-                  <p className="font-medium">YouTube Shorts သာ လက်ခံပါသည်</p>
-                  <p className="text-xs mt-1 opacity-80">
-                    URL ပုံစံ: youtube.com/shorts/VIDEO_ID
-                  </p>
-                </>
-              ) : (
-                <p>ကျေးဇူးပြု၍ မှန်ကန်သော YouTube Shorts URL ထည့်ပါ</p>
-              )}
+              <p className="font-medium">URL မမှန်ကန်ပါ</p>
+              <p className="text-xs mt-1 opacity-80">
+                YouTube, TikTok, သို့မဟုတ် Facebook video URL ထည့်ပါ
+              </p>
             </div>
           </div>
         )}
 
-        {/* Success Message with YouTube Logo */}
-        {isValidShorts && (
-          <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 dark:bg-green-950/20 p-2.5 rounded-lg">
-            {/* YouTube Logo SVG */}
-            <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#FF0000" />
-            </svg>
-            <span className="font-medium">YouTube Shorts ✓</span>
+        {/* Success Message with Platform Icon */}
+        {isValidUrl && platformInfo && (
+          <div className={cn(
+            "flex items-center gap-2 text-sm p-2.5 rounded-lg",
+            platformInfo.bgColor,
+            platformInfo.color
+          )}>
+            <span className="text-lg">{platformInfo.icon}</span>
+            <span className="font-medium">{platformInfo.name} ✓</span>
+            {platform === 'tiktok' && (
+              <span className="text-xs opacity-70 ml-auto">🎤 Whisper Transcription</span>
+            )}
+            {platform === 'facebook' && (
+              <span className="text-xs opacity-70 ml-auto">🎤 Whisper Transcription</span>
+            )}
           </div>
         )}
       </div>

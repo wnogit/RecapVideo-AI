@@ -19,6 +19,7 @@ class APIKeyType(str, Enum):
     GEMINI = "gemini"                       # Google Gemini
     GROQ = "groq"                           # Groq (Llama)
     POE = "poe"                             # Poe API (Claude FREE)
+    HUGGINGFACE = "huggingface"             # HuggingFace API (Whisper)
     RESEND = "resend"                       # Resend Email
     R2_ACCESS_KEY = "r2_access_key"         # Cloudflare R2 Access Key
     R2_SECRET_KEY = "r2_secret_key"         # Cloudflare R2 Secret Key

@@ -30,6 +30,8 @@ from app.services.script_service import script_service
 from app.services.tts_service import edge_tts_service
 from app.services.storage_service import storage_service
 from app.services.email_service import email_service
+from app.services.whisper_service import whisper_service
+from app.models.video import VideoPlatform
 from app.services.video_processing import (
     VideoProcessingService,
     VideoProcessingOptions,
@@ -288,22 +290,50 @@ class VideoProcessor:
                 return False
     
     async def _extract_transcript(self, video: Video) -> dict:
-        """Extract transcript from YouTube video."""
-        logger.info(f"Extracting transcript from: {video.source_url}")
+        """Extract transcript from video (multi-platform support)."""
+        platform = getattr(video, 'platform', VideoPlatform.YOUTUBE.value)
+        logger.info(f"Extracting transcript from {platform}: {video.source_url}")
         
-        # Get video info first
-        video_info = await transcript_service.get_video_info(video.source_url)
-        
-        # Get transcript
-        transcript_data = await transcript_service.get_transcript(
-            video.source_url,
-            language="en",  # Try English first, TranscriptAPI handles fallback
-        )
-        
-        transcript_data["title"] = video_info.get("title")
-        transcript_data["thumbnail"] = video_info.get("thumbnail")
-        
-        return transcript_data
+        if platform == VideoPlatform.YOUTUBE.value:
+            # YouTube: Use TranscriptAPI
+            video_info = await transcript_service.get_video_info(video.source_url)
+            transcript_data = await transcript_service.get_transcript(
+                video.source_url,
+                language="en",
+            )
+            transcript_data["title"] = video_info.get("title")
+            transcript_data["thumbnail"] = video_info.get("thumbnail")
+            return transcript_data
+        else:
+            # TikTok/Facebook: Download video → Extract audio → Whisper
+            logger.info(f"Using Whisper for {platform} video transcription")
+            
+            # Download video first
+            video_path = await self._download_source_video(video)
+            
+            # Transcribe using Whisper
+            transcript_text = await whisper_service.transcribe_video(video_path)
+            
+            # Get video metadata using yt-dlp
+            import subprocess
+            title = None
+            thumbnail = None
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    "yt-dlp", "--no-download", "--print", "title", video.source_url,
+                    stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+                )
+                stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=30)
+                title = stdout.decode().strip() if stdout else None
+            except Exception as e:
+                logger.warning(f"Failed to get title: {e}")
+            
+            return {
+                "text": transcript_text,
+                "title": title,
+                "thumbnail": thumbnail,
+                "source": "whisper",
+            }
     
     async def _generate_script(self, video: Video) -> str:
         """Generate recap script using Gemini."""
