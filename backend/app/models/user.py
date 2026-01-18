@@ -116,6 +116,27 @@ class User(Base):
     signup_device_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     is_suspicious: Mapped[bool] = mapped_column(Boolean, default=False)
     
+    # Daily Free Video (Beta feature)
+    last_free_video_date: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    
+    # Referral System
+    referral_code: Mapped[str | None] = mapped_column(
+        String(10),
+        unique=True,
+        nullable=True,
+        index=True,
+    )
+    referred_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        nullable=True,
+        index=True,
+    )
+    referral_credits_earned: Mapped[int] = mapped_column(Integer, default=0)
+    referral_count: Mapped[int] = mapped_column(Integer, default=0)  # Number of people referred
+    
     def __repr__(self) -> str:
         return f"<User {self.email}>"
     

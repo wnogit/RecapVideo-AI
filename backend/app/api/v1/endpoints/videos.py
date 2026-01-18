@@ -109,17 +109,27 @@ async def create_video(
     )
     user = user_result.scalar_one()
     
-    # Check credits with locked row
+    # Check credits - allow daily free video if no credits
+    use_daily_free = False
     if user.credit_balance < CREDITS_PER_VIDEO:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail={
-                "code": "INSUFFICIENT_CREDITS",
-                "message": f"Insufficient credits. Required: {CREDITS_PER_VIDEO}, Available: {user.credit_balance}",
-                "required": CREDITS_PER_VIDEO,
-                "available": user.credit_balance,
-            }
-        )
+        # Check if daily free video is available
+        from app.services.daily_credit_service import daily_credit_service
+        can_use_free, free_message = await daily_credit_service.can_use_free_video(db, str(user.id))
+        
+        if can_use_free:
+            use_daily_free = True
+            logger.info(f"User {user.email} using daily free video")
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail={
+                    "code": "INSUFFICIENT_CREDITS",
+                    "message": f"Credit မလုံလောက်ပါ။ လိုအပ်သည်: {CREDITS_PER_VIDEO}, ရှိသည်: {user.credit_balance}။ {free_message}",
+                    "required": CREDITS_PER_VIDEO,
+                    "available": user.credit_balance,
+                    "daily_free_message": free_message,
+                }
+            )
     
     # Convert options to dict for JSONB storage
     options_dict = video_data.options.model_dump() if video_data.options else None
@@ -133,34 +143,52 @@ async def create_video(
         output_language=video_data.output_language,
         output_resolution=video_data.output_resolution,
         options=options_dict,
-        credits_used=CREDITS_PER_VIDEO,
+        credits_used=0 if use_daily_free else CREDITS_PER_VIDEO,
     )
     
     db.add(video)
     
-    # Deduct credits from locked user object - use trial credits first, then purchased
-    user.credit_balance -= CREDITS_PER_VIDEO
-    
-    # Track purchased credits deduction properly
-    # Trial credits are used first (trial = balance - purchased)
-    if user.purchased_credits > 0:
-        trial_credits_before = (user.credit_balance + CREDITS_PER_VIDEO) - user.purchased_credits
-        if trial_credits_before < CREDITS_PER_VIDEO:
-            # Some or all credits come from purchased
-            credits_from_purchased = min(CREDITS_PER_VIDEO - max(0, trial_credits_before), user.purchased_credits)
-            user.purchased_credits -= credits_from_purchased
-    
-    # Record transaction
-    transaction = CreditTransaction(
-        user_id=current_user.id,
-        transaction_type=TransactionType.USAGE.value,
-        amount=-CREDITS_PER_VIDEO,
-        balance_after=current_user.credit_balance,
-        reference_type="video",
-        reference_id=str(video.id),
-        description=f"Video creation: YouTube Shorts {video_id}",
-    )
-    db.add(transaction)
+    # Deduct credits or mark daily free as used
+    if use_daily_free:
+        # Mark daily free as used
+        from app.services.daily_credit_service import daily_credit_service
+        await daily_credit_service.use_free_video(db, str(user.id))
+        
+        # Record transaction for tracking
+        transaction = CreditTransaction(
+            user_id=current_user.id,
+            transaction_type=TransactionType.USAGE.value,
+            amount=0,
+            balance_after=user.credit_balance,
+            reference_type="video",
+            reference_id=str(video.id),
+            description=f"Daily free video: YouTube Shorts {video_id}",
+        )
+        db.add(transaction)
+    else:
+        # Deduct credits from locked user object - use trial credits first, then purchased
+        user.credit_balance -= CREDITS_PER_VIDEO
+        
+        # Track purchased credits deduction properly
+        # Trial credits are used first (trial = balance - purchased)
+        if user.purchased_credits > 0:
+            trial_credits_before = (user.credit_balance + CREDITS_PER_VIDEO) - user.purchased_credits
+            if trial_credits_before < CREDITS_PER_VIDEO:
+                # Some or all credits come from purchased
+                credits_from_purchased = min(CREDITS_PER_VIDEO - max(0, trial_credits_before), user.purchased_credits)
+                user.purchased_credits -= credits_from_purchased
+        
+        # Record transaction
+        transaction = CreditTransaction(
+            user_id=current_user.id,
+            transaction_type=TransactionType.USAGE.value,
+            amount=-CREDITS_PER_VIDEO,
+            balance_after=user.credit_balance,
+            reference_type="video",
+            reference_id=str(video.id),
+            description=f"Video creation: YouTube Shorts {video_id}",
+        )
+        db.add(transaction)
     
     await db.flush()
     await db.refresh(video)

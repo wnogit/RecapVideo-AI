@@ -3,12 +3,17 @@ API v1 Router - Combines all endpoint routers
 """
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, users, videos, credits, orders, health, admin_api_keys, admin_orders, admin_users, admin_dashboard, admin_videos, admin_prompts, telegram, voices, uploads, payment_methods, credit_packages, sessions, site_settings
+from app.api.v1.endpoints import auth, users, videos, credits, orders, health, admin_api_keys, admin_orders, admin_users, admin_dashboard, admin_videos, admin_prompts, telegram, voices, uploads, payment_methods, credit_packages, sessions, site_settings, referral
 
 
 api_router = APIRouter()
 
 # Include all endpoint routers
+api_router.include_router(
+    referral.router,
+    prefix="/referral",
+    tags=["Referral"],
+)
 api_router.include_router(
     health.router,
     prefix="/health",

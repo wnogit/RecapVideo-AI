@@ -301,25 +301,52 @@ async def google_auth(request: Request, body: GoogleAuthRequest, db: DBSession):
     """
     Authenticate with Google OAuth.
     Creates new account if user doesn't exist.
+    
+    Pro users can bypass VPN/Proxy detection.
+    New signups always require VPN check.
     """
     client_ip = get_client_ip(request)
-    
-    # Check if IP is whitelisted (bypass VPN/Datacenter check)
-    allowed_ips = await get_setting_json(db, "login_allowed_ips", [])
-    allowed_ip_list = []
-    for item in allowed_ips:
-        if isinstance(item, str):
-            allowed_ip_list.append(item)
-        elif isinstance(item, dict) and 'ip' in item:
-            allowed_ip_list.append(item['ip'])
-    
-    is_whitelisted = client_ip in allowed_ip_list
     
     # Initialize ip_result for later use (device fingerprinting)
     ip_result = {"allowed": True, "country": None, "city": None, "isp": None}
     
-    # Step 1: Check VPN/Proxy (skip if whitelisted)
-    if not is_whitelisted:
+    # Step 1: Exchange code for tokens and get user info FIRST
+    google_user = await exchange_google_code(body.code, body.redirect_uri)
+    
+    # Step 2: Check if user exists
+    result = await db.execute(
+        select(User).where(User.email == google_user["email"].lower())
+    )
+    user = result.scalar_one_or_none()
+    
+    is_new_user = user is None
+    
+    # Step 3: Check VPN/Proxy
+    # - New users: ALWAYS check VPN (prevent abuse)
+    # - Existing Pro users: Skip VPN check
+    # - Existing non-Pro users: Check VPN
+    should_check_vpn = True
+    
+    if user and user.is_pro:
+        should_check_vpn = False
+        logger.info(f"Pro user {user.email} bypassing VPN check for Google login")
+    
+    # Check if IP is whitelisted (for developers)
+    if should_check_vpn:
+        allowed_ips = await get_setting_json(db, "login_allowed_ips", [])
+        allowed_ip_list = []
+        for item in allowed_ips:
+            if isinstance(item, str):
+                allowed_ip_list.append(item)
+            elif isinstance(item, dict) and 'ip' in item:
+                allowed_ip_list.append(item['ip'])
+        
+        if client_ip in allowed_ip_list:
+            should_check_vpn = False
+            logger.info(f"IP {client_ip} is whitelisted for Google login, bypassing VPN check")
+    
+    # Perform VPN check if needed
+    if should_check_vpn:
         ip_result = await ip_service.check_ip(client_ip)
         
         if not ip_result["allowed"]:
@@ -330,21 +357,9 @@ async def google_auth(request: Request, body: GoogleAuthRequest, db: DBSession):
                     "message": ip_result.get("reason", "Please disconnect VPN/Proxy to continue."),
                 }
             )
-    else:
-        logger.info(f"IP {client_ip} is whitelisted for Google login, bypassing VPN/Datacenter check")
     
-    # Step 2: Exchange code for tokens and get user info
-    google_user = await exchange_google_code(body.code, body.redirect_uri)
-    
-    # Step 3: Check if user exists
-    result = await db.execute(
-        select(User).where(User.email == google_user["email"].lower())
-    )
-    user = result.scalar_one_or_none()
-    
-    is_new_user = False
-    
-    if not user:
+    # Step 4: Create user if new
+    if is_new_user:
         # New user - check rate limits
         ip_allowed, _ = await rate_limit_service.check_signup_limit(client_ip)
         if not ip_allowed:
@@ -378,8 +393,6 @@ async def google_auth(request: Request, body: GoogleAuthRequest, db: DBSession):
         db.add(user)
         await db.flush()
         await db.refresh(user)
-        
-        is_new_user = True
         
         # Record for rate limiting
         await rate_limit_service.record_signup(client_ip)
@@ -790,39 +803,15 @@ async def email_login(request: Request, body: EmailLoginRequest, db: DBSession):
     - **email**: User's email
     - **password**: User's password
     - **remember_me**: If true, generates longer-lived refresh token
+    
+    Pro users can bypass VPN/Proxy detection.
     """
     client_ip = get_client_ip(request)
-    
-    # Check if IP is whitelisted (bypass VPN/Datacenter check)
-    allowed_ips = await get_setting_json(db, "login_allowed_ips", [])
-    allowed_ip_list = []
-    for item in allowed_ips:
-        if isinstance(item, str):
-            allowed_ip_list.append(item)
-        elif isinstance(item, dict) and 'ip' in item:
-            allowed_ip_list.append(item['ip'])
-    
-    is_whitelisted = client_ip in allowed_ip_list
     
     # Initialize ip_result for later use (device fingerprinting)
     ip_result = {"allowed": True, "country": None, "city": None, "isp": None}
     
-    # Step 1: Check VPN/Proxy (skip if whitelisted)
-    if not is_whitelisted:
-        ip_result = await ip_service.check_ip(client_ip)
-        
-        if not ip_result["allowed"]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "code": "VPN_DETECTED",
-                    "message": ip_result.get("reason", "Please disconnect VPN/Proxy to continue."),
-                }
-            )
-    else:
-        logger.info(f"IP {client_ip} is whitelisted for login, bypassing VPN/Datacenter check")
-    
-    # Step 2: Find user
+    # Step 1: Find user FIRST (before VPN check)
     result = await db.execute(
         select(User).where(User.email == body.email.lower())
     )
@@ -834,12 +823,47 @@ async def email_login(request: Request, body: EmailLoginRequest, db: DBSession):
             detail="Invalid email or password.",
         )
     
-    # Step 3: Verify password
+    # Step 2: Verify password
     if not user.hashed_password or not verify_password(body.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password.",
         )
+    
+    # Step 3: Check VPN/Proxy (skip for Pro users and whitelisted IPs)
+    should_check_vpn = True
+    
+    # Pro users can bypass VPN
+    if user.is_pro:
+        should_check_vpn = False
+        logger.info(f"Pro user {user.email} bypassing VPN check")
+    
+    # Check if IP is whitelisted (for developers)
+    if should_check_vpn:
+        allowed_ips = await get_setting_json(db, "login_allowed_ips", [])
+        allowed_ip_list = []
+        for item in allowed_ips:
+            if isinstance(item, str):
+                allowed_ip_list.append(item)
+            elif isinstance(item, dict) and 'ip' in item:
+                allowed_ip_list.append(item['ip'])
+        
+        if client_ip in allowed_ip_list:
+            should_check_vpn = False
+            logger.info(f"IP {client_ip} is whitelisted for login, bypassing VPN check")
+    
+    # Perform VPN check if needed
+    if should_check_vpn:
+        ip_result = await ip_service.check_ip(client_ip)
+        
+        if not ip_result["allowed"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "VPN_DETECTED",
+                    "message": ip_result.get("reason", "Please disconnect VPN/Proxy to continue."),
+                }
+            )
     
     # Step 4: Check if verified
     if not user.is_verified:
