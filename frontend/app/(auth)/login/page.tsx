@@ -1,11 +1,25 @@
 import { EmailAuthForm } from '@/components/auth/email-auth-form';
 import { Metadata } from 'next';
+import { Suspense } from 'react';
+import { Loader2 } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Sign In - RecapVideo.AI',
   description: 'Sign in to your RecapVideo.AI account',
 };
 
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-950">
+      <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
+    </div>
+  );
+}
+
 export default function LoginPage() {
-  return <EmailAuthForm initialMode="login" />;
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <EmailAuthForm initialMode="login" />
+    </Suspense>
+  );
 }
