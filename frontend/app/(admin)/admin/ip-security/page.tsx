@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuthStore } from '@/stores/auth-store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,8 +24,13 @@ interface WhitelistIP {
     added_at: string;
 }
 
+// Helper to get access token from localStorage or cookie
+function getAccessToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('access_token');
+}
+
 export default function IPSecurityPage() {
-    const { accessToken } = useAuthStore();
     const [whitelist, setWhitelist] = useState<WhitelistIP[]>([]);
     const [loading, setLoading] = useState(true);
     const [adding, setAdding] = useState(false);
@@ -53,7 +57,7 @@ export default function IPSecurityPage() {
     const fetchWhitelist = async () => {
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/login-whitelist`, {
-                headers: { Authorization: `Bearer ${accessToken}` },
+                headers: { Authorization: `Bearer ${getAccessToken()}` },
             });
             if (res.ok) {
                 const data = await res.json();
@@ -72,7 +76,7 @@ export default function IPSecurityPage() {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/login-whitelist`, {
                 method: 'POST',
                 headers: {
-                    Authorization: `Bearer ${accessToken}`,
+                    Authorization: `Bearer ${getAccessToken()}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ ip, label }),
@@ -97,7 +101,7 @@ export default function IPSecurityPage() {
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/login-whitelist/${encodeURIComponent(ip)}`, {
                 method: 'DELETE',
-                headers: { Authorization: `Bearer ${accessToken}` },
+                headers: { Authorization: `Bearer ${getAccessToken()}` },
             });
             if (res.ok) {
                 toast({ title: 'Success', description: 'IP removed from whitelist' });
