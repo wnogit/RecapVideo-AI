@@ -322,34 +322,6 @@ export function EmailAuthForm({ initialMode = 'login' }: EmailAuthFormProps) {
             </motion.div>
           )}
 
-          {mode === 'signup' && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-            >
-              <Label htmlFor="referralCode" className="text-gray-300">
-                Referral Code <span className="text-gray-500">(optional)</span>
-              </Label>
-              <div className="relative mt-1.5">
-                <Gift className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                <Input
-                  id="referralCode"
-                  type="text"
-                  placeholder="ABC123"
-                  value={referralCode}
-                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-violet-500/50 focus:ring-violet-500/20 transition-all uppercase tracking-widest"
-                  maxLength={10}
-                  disabled={isLoading}
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-1.5">
-                သူငယ်ချင်းတစ်ယောက်ဆီက referral code ရှိရင် ထည့်ပါ
-              </p>
-            </motion.div>
-          )}
-
           <div>
             <Label htmlFor="email" className="text-gray-300">Email Address</Label>
             <div className="relative mt-1.5">
@@ -407,6 +379,34 @@ export function EmailAuthForm({ initialMode = 'login' }: EmailAuthFormProps) {
               <p className="text-sm text-red-400 mt-1.5">{passwordError}</p>
             )}
           </div>
+
+          {mode === 'signup' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              <Label htmlFor="referralCode" className="text-gray-300">
+                Referral Code <span className="text-gray-500">(optional)</span>
+              </Label>
+              <div className="relative mt-1.5">
+                <Gift className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <Input
+                  id="referralCode"
+                  type="text"
+                  placeholder="ABC123"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-violet-500/50 focus:ring-violet-500/20 transition-all uppercase tracking-widest"
+                  maxLength={10}
+                  disabled={isLoading}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1.5">
+                သူငယ်ချင်းတစ်ယောက်ဆီက referral code ရှိရင် ထည့်ပါ
+              </p>
+            </motion.div>
+          )}
 
           {mode === 'login' && (
             <div className="flex items-center justify-between">
