@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 
 const languages = [
     { code: 'auto', name: 'Auto Detect' },
@@ -44,10 +44,15 @@ export default function SubtitleGeneratorPage() {
     const [format, setFormat] = useState('srt');
     const [isProcessing, setIsProcessing] = useState(false);
     const [result, setResult] = useState<string | null>(null);
+    const { toast } = useToast();
 
     const handleGenerate = async () => {
         if (!videoUrl) {
-            toast.error('Please enter a video URL');
+            toast({
+                title: 'Error',
+                description: 'Please enter a video URL',
+                variant: 'destructive',
+            });
             return;
         }
 
@@ -57,7 +62,10 @@ export default function SubtitleGeneratorPage() {
         // Simulate processing (will be replaced with actual API call)
         await new Promise(resolve => setTimeout(resolve, 3000));
 
-        toast.success('Subtitles generated successfully!');
+        toast({
+            title: 'Success',
+            description: 'Subtitles generated successfully!',
+        });
         setResult('sample_subtitles.srt');
         setIsProcessing(false);
     };

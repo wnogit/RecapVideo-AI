@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 
 const formats = [
     { value: 'mp3', name: 'MP3', description: 'Most compatible' },
@@ -40,10 +40,15 @@ export default function AudioExtractorPage() {
     const [quality, setQuality] = useState('192');
     const [isProcessing, setIsProcessing] = useState(false);
     const [result, setResult] = useState<{ url: string; filename: string } | null>(null);
+    const { toast } = useToast();
 
     const handleExtract = async () => {
         if (!videoUrl) {
-            toast.error('Please enter a video URL');
+            toast({
+                title: 'Error',
+                description: 'Please enter a video URL',
+                variant: 'destructive',
+            });
             return;
         }
 
@@ -53,7 +58,10 @@ export default function AudioExtractorPage() {
         // Simulate processing (will be replaced with actual API call)
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-        toast.success('Audio extracted successfully!');
+        toast({
+            title: 'Success',
+            description: 'Audio extracted successfully!',
+        });
         setResult({
             url: '#',
             filename: `audio_${Date.now()}.${format}`,
@@ -124,8 +132,8 @@ export default function AudioExtractorPage() {
                                     <Label
                                         key={fmt.value}
                                         className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-all ${format === fmt.value
-                                                ? 'border-green-500 bg-green-500/10'
-                                                : 'border-border hover:border-green-500/50'
+                                            ? 'border-green-500 bg-green-500/10'
+                                            : 'border-border hover:border-green-500/50'
                                             }`}
                                     >
                                         <RadioGroupItem value={fmt.value} className="sr-only" />
