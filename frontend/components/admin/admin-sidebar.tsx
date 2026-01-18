@@ -18,6 +18,7 @@ import {
   Wallet,
   Gift,
   Plug,
+  Shield,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -70,6 +71,11 @@ const adminNavItems = [
     icon: Plug,
   },
   {
+    title: "IP Security",
+    href: "/admin/ip-security",
+    icon: Shield,
+  },
+  {
     title: "Settings",
     href: "/admin/settings",
     icon: Settings,
@@ -96,9 +102,9 @@ export function AdminSidebar() {
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="flex flex-col gap-1">
           {adminNavItems.map((item) => {
-            const isActive = pathname === item.href || 
+            const isActive = pathname === item.href ||
               (item.href !== "/admin" && pathname.startsWith(item.href))
-            
+
             return (
               <Link
                 key={item.href}
