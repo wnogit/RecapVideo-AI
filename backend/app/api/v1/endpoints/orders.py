@@ -350,12 +350,20 @@ async def upload_payment_screenshot(
     await db.flush()
     await db.refresh(order)
     
-    # Get package info for notification
+    # Get package info for notification - query from database
     package_name = f"{order.credits_amount} Credits"
-    for pkg in CREDIT_PACKAGES:
-        if pkg.credits == order.credits_amount:
-            package_name = pkg.name
-            break
+    try:
+        pkg_result = await db.execute(
+            select(CreditPackageModel).where(
+                CreditPackageModel.credits == order.credits_amount,
+                CreditPackageModel.is_active == True
+            ).order_by(CreditPackageModel.display_order.asc()).limit(1)
+        )
+        db_pkg = pkg_result.scalar_one_or_none()
+        if db_pkg:
+            package_name = db_pkg.name
+    except Exception as e:
+        logger.warning(f"Could not fetch package name from DB: {e}")
     
     # Send Telegram notification directly (not in background to ensure it runs)
     try:
