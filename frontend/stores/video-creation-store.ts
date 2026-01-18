@@ -44,6 +44,17 @@ export interface VideoCreationState {
   // Step 3: Branding
   outroOptions: OutroOptions;
 
+  // Audio/Video Enhancement
+  audioEnhanceOptions: {
+    normalize: boolean;
+    targetLoudness: number;
+    truePeak: number;
+  };
+  videoEnhanceOptions: {
+    sharpenEnabled: boolean;
+    sharpenStrength: number;
+  };
+
   // Validation
   isStep1Valid: boolean;
   isStep2Valid: boolean;
