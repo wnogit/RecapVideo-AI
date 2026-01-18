@@ -637,10 +637,16 @@ class CreditsScreen extends ConsumerWidget {
         child: InkWell(
           onTap: onPressed,
           borderRadius: BorderRadius.circular(24),
-          child: Center(
-            child: isLoading
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Center(
+              child: isLoading
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600), maxLines: 1),
+                    ),
+            ),
           ),
         ),
       ),
@@ -656,8 +662,12 @@ class CreditsScreen extends ConsumerWidget {
           foregroundColor: colors.textPrimary,
           side: BorderSide(color: colors.surfaceVariant),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
         ),
-        child: Text(label),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(label, maxLines: 1),
+        ),
       ),
     );
   }

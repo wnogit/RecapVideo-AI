@@ -330,9 +330,9 @@ class VideoCreationNotifier extends StateNotifier<VideoCreationState> {
           'enabled': true,
           'intensity': options.blurIntensity,
           'blur_type': 'gaussian',
-          'regions': options.blurRegions.map((r) => {
-            return {'x': r.x, 'y': r.y, 'width': r.width, 'height': r.height};
-          }).toList(),
+          'regions': options.blurRegions.map((r) => (
+            {'x': r.x, 'y': r.y, 'width': r.width, 'height': r.height}
+          )).toList(),
         } : null,
       ));
       

@@ -1,4 +1,6 @@
-import 'package:flutter/foundation.dart';\n\n/// App Configuration
+import 'package:flutter/foundation.dart';
+
+/// App Configuration
 /// 
 /// Environment-based configuration for different build modes
 /// 

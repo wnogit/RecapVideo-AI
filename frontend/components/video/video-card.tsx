@@ -168,9 +168,11 @@ export function VideoCard({ video, onCancel, onDownload }: VideoCardProps) {
                 </div>
               )}
 
-              {/* Error message */}
-              {video.status === 'failed' && video.error_message && (
-                <p className="text-xs text-destructive truncate">{video.error_message}</p>
+              {/* Error message - show user-friendly message only */}
+              {video.status === 'failed' && (
+                <p className="text-xs text-destructive truncate">
+                  ဗီဒီယို ပြုလုပ်ရာတွင် အမှားဖြစ်ပါသည်။ ထပ်မံကြိုးစားပါ။
+                </p>
               )}
 
               {/* Row 2: Actions */}
