@@ -22,6 +22,7 @@ from app.schemas.order import (
 from app.schemas.credit import CREDIT_PACKAGES
 from app.services.telegram_service import telegram_service
 from app.models.credit_package import CreditPackage as CreditPackageModel
+from app.services.referral_service import referral_service
 
 logger = logging.getLogger(__name__)
 
@@ -252,6 +253,17 @@ async def complete_order(
     
     # Add credits to user
     current_user.credit_balance += order.credits_amount
+    
+    # Check for referral bonus
+    if current_user.referred_by_id:
+        try:
+            await referral_service.apply_referral_bonus(
+                db,
+                referrer_id=str(current_user.referred_by_id),
+                referee_id=str(current_user.id)
+            )
+        except Exception as e:
+            logger.error(f"Failed to apply referral bonus for order {order.id}: {e}")
     
     # Record transaction
     transaction = CreditTransaction(
