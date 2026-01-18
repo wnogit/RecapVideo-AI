@@ -134,8 +134,8 @@ class User(Base):
         nullable=True,
         index=True,
     )
-    referral_credits_earned: Mapped[int] = mapped_column(Integer, default=0)
-    referral_count: Mapped[int] = mapped_column(Integer, default=0)  # Number of people referred
+    referral_credits_earned: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    referral_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")  # Number of people referred
     
     def __repr__(self) -> str:
         return f"<User {self.email}>"
