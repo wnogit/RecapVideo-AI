@@ -291,7 +291,7 @@ class VideoCreationNotifier extends StateNotifier<VideoCreationState> {
       // Simulate processing steps for UI feedback
       await _simulateProcessing();
       
-      // Call actual API
+      // Call actual API - Matches Web frontend format
       await _videoService.createVideo(CreateVideoRequest(
         sourceUrl: options.sourceUrl,
         voiceId: options.voiceId,
@@ -309,19 +309,30 @@ class VideoCreationNotifier extends StateNotifier<VideoCreationState> {
           'position': options.subtitleOptions.position,
           'size': options.subtitleOptions.size,
           'background': options.subtitleOptions.background,
+          'color': options.subtitleOptions.color,
+          'word_highlight': options.subtitleOptions.wordHighlight,  // Added
         },
         logoOptions: options.logoOptions.enabled ? {
           'enabled': true,
           'position': options.logoOptions.position,
           'size': options.logoOptions.size,
           'opacity': options.logoOptions.opacity,
-          'file_path': options.logoOptions.localFilePath,
+          'image_url': options.logoOptions.imageUrl,  // Changed from file_path
         } : null,
         outroOptions: options.outroOptions.enabled ? {
           'enabled': true,
           'platform': options.outroOptions.platform,
           'channel_name': options.outroOptions.channelName,
           'duration': options.outroOptions.durationSeconds,
+          'use_logo': options.outroOptions.useLogo,  // Added
+        } : null,
+        blurOptions: options.blurRegions.isNotEmpty ? {
+          'enabled': true,
+          'intensity': options.blurIntensity,
+          'blur_type': 'gaussian',
+          'regions': options.blurRegions.map((r) => {
+            return {'x': r.x, 'y': r.y, 'width': r.width, 'height': r.height};
+          }).toList(),
         } : null,
       ));
       

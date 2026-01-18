@@ -13,7 +13,7 @@ class VideoCreationOptions {
 
   const VideoCreationOptions({
     this.sourceUrl = '',
-    this.voiceId = 'Nilar',
+    this.voiceId = 'my-MM-NilarNeural',  // Full Azure TTS format
     this.language = 'my',
     this.aspectRatio = '9:16',
     this.copyrightOptions = const CopyrightOptions(),
@@ -109,13 +109,15 @@ class SubtitleOptions {
   final String size; // small, medium, large
   final String background; // none, semi, solid
   final String color;
+  final bool wordHighlight;  // Highlight current word in subtitle
 
   const SubtitleOptions({
     this.enabled = true,
     this.position = 'bottom',
-    this.size = 'medium',
+    this.size = 'large',  // Changed from 'medium' to match web
     this.background = 'semi',
     this.color = '#FFFFFF',
+    this.wordHighlight = true,  // Match web default
   });
 
   SubtitleOptions copyWith({
@@ -124,6 +126,7 @@ class SubtitleOptions {
     String? size,
     String? background,
     String? color,
+    bool? wordHighlight,
   }) {
     return SubtitleOptions(
       enabled: enabled ?? this.enabled,
@@ -131,6 +134,7 @@ class SubtitleOptions {
       size: size ?? this.size,
       background: background ?? this.background,
       color: color ?? this.color,
+      wordHighlight: wordHighlight ?? this.wordHighlight,
     );
   }
 }
@@ -176,12 +180,14 @@ class OutroOptions {
   final String platform; // youtube, tiktok, facebook, instagram
   final String channelName;
   final int durationSeconds;
+  final bool useLogo;  // Use uploaded logo in outro
 
   const OutroOptions({
     this.enabled = false,
     this.platform = 'youtube',
     this.channelName = '',
     this.durationSeconds = 5,
+    this.useLogo = false,
   });
 
   OutroOptions copyWith({
@@ -189,12 +195,14 @@ class OutroOptions {
     String? platform,
     String? channelName,
     int? durationSeconds,
+    bool? useLogo,
   }) {
     return OutroOptions(
       enabled: enabled ?? this.enabled,
       platform: platform ?? this.platform,
       channelName: channelName ?? this.channelName,
       durationSeconds: durationSeconds ?? this.durationSeconds,
+      useLogo: useLogo ?? this.useLogo,
     );
   }
 }

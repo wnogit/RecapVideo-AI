@@ -103,7 +103,7 @@ class Video {
   }
 }
 
-/// Video creation request
+/// Video creation request - Matches Web API format
 class CreateVideoRequest {
   final String sourceUrl;
   final String voiceId;
@@ -113,6 +113,7 @@ class CreateVideoRequest {
   final Map<String, dynamic>? subtitleOptions;
   final Map<String, dynamic>? logoOptions;
   final Map<String, dynamic>? outroOptions;
+  final Map<String, dynamic>? blurOptions;
 
   CreateVideoRequest({
     required this.sourceUrl,
@@ -123,17 +124,22 @@ class CreateVideoRequest {
     this.subtitleOptions,
     this.logoOptions,
     this.outroOptions,
+    this.blurOptions,
   });
 
+  /// Convert to JSON - Matches Web frontend API format
   Map<String, dynamic> toJson() => {
     'source_url': sourceUrl,
-    'voice_id': voiceId,
-    'language': language,
-    'aspect_ratio': aspectRatio,
-    if (copyrightOptions != null) 'copyright_options': copyrightOptions,
-    if (subtitleOptions != null) 'subtitle_options': subtitleOptions,
-    if (logoOptions != null) 'logo_options': logoOptions,
-    if (outroOptions != null) 'outro_options': outroOptions,
+    'voice_type': voiceId,           // Changed: voice_id → voice_type
+    'output_language': language,     // Changed: language → output_language
+    'options': {                     // Wrapped in 'options' to match backend schema
+      'aspect_ratio': aspectRatio,
+      if (copyrightOptions != null) 'copyright': copyrightOptions,    // Changed key
+      if (subtitleOptions != null) 'subtitles': subtitleOptions,      // Changed key
+      if (logoOptions != null) 'logo': logoOptions,                   // Changed key
+      if (outroOptions != null) 'outro': outroOptions,                // Changed key
+      if (blurOptions != null) 'blur': blurOptions,                   // Added blur
+    },
   };
 }
 
