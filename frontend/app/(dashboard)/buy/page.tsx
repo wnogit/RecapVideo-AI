@@ -294,7 +294,7 @@ export default function BuyCreditsPage() {
                           </span>
                         </>
                       ) : (
-                        <span className="text-2xl font-bold">
+                        <span className={`text-2xl font-bold ${pkg.is_popular ? 'gradient-text' : ''}`}>
                           {pkg.price_mmk ? `${pkg.price_mmk.toLocaleString()}` : `$${pkg.price_usd}`}
                         </span>
                       )}
@@ -309,21 +309,21 @@ export default function BuyCreditsPage() {
                       </Badge>
                     )}
 
-                    {pkg.description && (
+                    {pkg.description && pkg.description.trim() !== '' && pkg.description !== '0' && (
                       <p className="text-xs text-muted-foreground mb-3">{pkg.description}</p>
                     )}
 
                     <ul className="text-xs space-y-1.5 text-left">
                       <li className="flex items-center gap-2">
-                        <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                        <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />
                         {Math.floor(pkg.credits / 2)} video creations
                       </li>
                       <li className="flex items-center gap-2">
-                        <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                        <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />
                         AI-powered scripts
                       </li>
                       <li className="flex items-center gap-2">
-                        <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                        <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />
                         Never expires
                       </li>
                     </ul>
