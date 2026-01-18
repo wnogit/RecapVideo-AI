@@ -91,7 +91,7 @@ function ToolCard({ tool }: { tool: typeof tools[0] }) {
     const IconComponent = tool.icon;
 
     return (
-        <Card className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/10 ${isComingSoon ? 'opacity-80' : 'hover:-translate-y-1'}`}>
+        <Card className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/10 h-full flex flex-col ${isComingSoon ? 'opacity-80' : 'hover:-translate-y-1'}`}>
             {/* Gradient accent */}
             <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${tool.gradient}`} />
 
@@ -123,7 +123,7 @@ function ToolCard({ tool }: { tool: typeof tools[0] }) {
                 <CardDescription>{tool.description}</CardDescription>
             </CardHeader>
 
-            <CardContent>
+            <CardContent className="flex-1 flex flex-col">
                 <p className="text-sm text-muted-foreground mb-4">
                     {tool.longDescription}
                 </p>
@@ -139,25 +139,27 @@ function ToolCard({ tool }: { tool: typeof tools[0] }) {
                 </div>
 
                 {/* Action Button */}
-                {isComingSoon ? (
-                    <Button
-                        variant="outline"
-                        className="w-full"
-                        disabled
-                    >
-                        <Lock className="h-4 w-4 mr-2" />
-                        Coming Soon
-                    </Button>
-                ) : (
-                    <Link href={`/tools/${tool.id}`}>
+                <div className="mt-auto">
+                    {isComingSoon ? (
                         <Button
-                            className={`w-full bg-gradient-to-r ${tool.gradient} hover:opacity-90`}
+                            variant="outline"
+                            className="w-full"
+                            disabled
                         >
-                            Use Tool
-                            <ArrowRight className="h-4 w-4 ml-2" />
+                            <Lock className="h-4 w-4 mr-2" />
+                            Coming Soon
                         </Button>
-                    </Link>
-                )}
+                    ) : (
+                        <Link href={`/tools/${tool.id}`}>
+                            <Button
+                                className={`w-full bg-gradient-to-r ${tool.gradient} hover:opacity-90`}
+                            >
+                                Use Tool
+                                <ArrowRight className="h-4 w-4 ml-2" />
+                            </Button>
+                        </Link>
+                    )}
+                </div>
             </CardContent>
         </Card>
     );
@@ -182,7 +184,7 @@ export default function ToolsPage() {
             </div>
 
             {/* Tools Grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 gap-6">
                 {tools.map((tool) => (
                     <ToolCard key={tool.id} tool={tool} />
                 ))}
