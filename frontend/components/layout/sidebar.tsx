@@ -20,6 +20,7 @@ import {
   Coins,
   PlusCircle,
   Shield,
+  Gift,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -29,6 +30,7 @@ const navigation = [
   { name: 'My Videos', href: '/videos', icon: Video },
   { name: 'Credits', href: '/credits', icon: Coins },
   { name: 'Buy Credits', href: '/buy', icon: ShoppingCart },
+  { name: 'Referral', href: '/referral', icon: Gift },
   { name: 'Profile', href: '/profile', icon: User },
 ];
 
