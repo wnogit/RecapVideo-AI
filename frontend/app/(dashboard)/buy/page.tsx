@@ -282,7 +282,7 @@ export default function BuyCreditsPage() {
 
                   <CardContent className="text-center pb-3">
                     <div className="mb-2">
-                      {pkg.discount_percent && pkg.discount_percent > 0 ? (
+                      {pkg.discount_percent > 0 ? (
                         <>
                           <span className="text-sm text-muted-foreground line-through mr-2">
                             {pkg.price_mmk
@@ -303,7 +303,7 @@ export default function BuyCreditsPage() {
                       </span>
                     </div>
 
-                    {pkg.discount_percent && pkg.discount_percent > 0 && (
+                    {typeof pkg.discount_percent === 'number' && pkg.discount_percent > 0 && (
                       <Badge variant="secondary" className="mb-3 text-xs bg-green-500/10 text-green-500">
                         Save {pkg.discount_percent}%
                       </Badge>
