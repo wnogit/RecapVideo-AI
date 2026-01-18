@@ -309,7 +309,7 @@ export default function BuyCreditsPage() {
                       </Badge>
                     )}
 
-                    {pkg.description && pkg.description.trim() !== '' && pkg.description !== '0' && (
+                    {pkg.description && String(pkg.description).trim() !== '' && String(pkg.description).trim() !== '0' && (
                       <p className="text-xs text-muted-foreground mb-3">{pkg.description}</p>
                     )}
 
